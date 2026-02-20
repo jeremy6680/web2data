@@ -1,0 +1,37 @@
+---
+import { SITE_METADATA, NAVIGATION } from "@/consts";
+import HeaderLink from "./HeaderLink.astro";
+import Logo from "./Logo.astro";
+import MobileNav from "@/solid/MobileNav.tsx";
+import ThemeSwitcher from "@/solid/ThemeSwitcher.tsx";
+import SearchButton from "@/solid/SearchButton.tsx";
+import { useTranslations } from "@/i18n";
+
+const t = useTranslations();
+---
+
+<header class="flex items-center justify-between py-10">
+  <div class="mr-3">
+    <a href="/" aria-label={t("siteMetadata.headerTitle")} class="flex items-center">
+      <Logo class="w-full" />
+      <div class="ml-3 hidden h-6 text-2xl font-semibold sm:block">{t("siteMetadata.headerTitle")}</div>
+    </a>
+  </div>
+  <div class="flex items-center leading-5 space-x-4 sm:space-x-6">
+    {
+      NAVIGATION.filter((link) => link.href !== "/").map((link) => (
+        <HeaderLink
+          href={link.href}
+          class="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
+        >
+          {t(link.title)}
+        </HeaderLink>
+      ))
+    }
+    <div class="flex gap-4">
+      <SearchButton client:only="solid-js" />
+      <ThemeSwitcher client:only="solid-js" />
+      <MobileNav client:only="solid-js" />
+    </div>
+  </div>
+</header>
