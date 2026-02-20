@@ -13,7 +13,7 @@ interface Props {
   page: Page;
 }
 
-export async function getStaticPaths({ paginate }) {
+export async function getStaticPaths({ paginate }: { paginate: any }) {
   const posts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
   return paginate(posts, { pageSize: ITEMS_PER_PAGE });
 }

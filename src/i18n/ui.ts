@@ -1,10 +1,10 @@
-export const defaultLang = "en" as const;
+export const defaultLang = "fr" as const;
 
 export const ui = {
   en: {
     // Site Metadata
-    "siteMetadata.title": "Le blog de Jeremy",
-    "siteMetadata.headerTitle": "Le blog de Jeremy",
+    "siteMetadata.title": "Web2Data",
+    "siteMetadata.headerTitle": "Web2Data",
     "siteMetadata.description":
       "Welcome to my personal blog where I share my thoughts, projects, and experiences in the world of technology and software development.",
     "siteMetadata.language": "en-US",
@@ -72,4 +72,77 @@ export const ui = {
     // SEO
     "seo.pagination.page": "%s - Page {page}",
   },
-};
+
+  fr: {
+    // Site Metadata
+    "siteMetadata.title": "Web2Data",
+    "siteMetadata.headerTitle": "Web2Data",
+    "siteMetadata.description":
+      "Bienvenue sur mon blog personnel, où je partage mes réflexions, projets et expériences dans le monde de la technologie et du développement logiciel.",
+    "siteMetadata.language": "fr-FR",
+
+    // Pages
+    "pages.home.latestPosts": "Derniers articles",
+    "pages.home.viewAllPosts": "Voir tous les articles",
+    "pages.home.noPosts": "Aucun article trouvé",
+    "pages.home.readMoreAbout": "En savoir plus sur {title}",
+    "pages.home.readMore": "Lire la suite",
+    "pages.tags.title": "Tags",
+    "pages.tags.description": "Tous les tags utilisés sur le blog",
+    "pages.tags.allTags": "Tous les tags",
+    "pages.tags.noTags": "Aucun tag trouvé",
+    "pages.tags.viewPosts": "Voir tous les articles avec le tag {tag}",
+    "pages.projects.title": "Projets",
+    "pages.projects.description": "Tous les projets",
+    "pages.projects.allProjects": "Tous les projets",
+    "pages.projects.showcase": "Découvrez mes projets",
+    "pages.blog.title": "Blog",
+    "pages.blog.description": "Tous les articles du blog",
+    "pages.404.title": "404 - Page introuvable",
+    "pages.404.description": "La page que vous recherchez n’existe pas.",
+    "pages.404.backToHome": "Retour à l’accueil",
+
+    // Components
+    "components.scrollTopAndComments.scrollTop": "Remonter en haut",
+    "components.scrollTopAndComments.scrollToComments":
+      "Aller aux commentaires",
+    "components.themeSwitcher.toggleDarkMode": "Basculer en mode sombre",
+    "components.card.linkToPost": "En savoir plus sur {title}",
+    "components.mobileNav.toggleMenu": "Ouvrir le menu",
+    "components.listPostCover.publishedAt": "Publié le",
+    "components.pagination.previous": "Précédent",
+    "components.pagination.next": "Suivant",
+    "components.socialShareButtons.sharing": "Partager, c’est aimer !",
+    "components.comments.title": "Commentaires",
+
+    // Navigation
+    "nav.home": "Accueil",
+    "nav.blog": "Blog",
+    "nav.projects": "Projets",
+    "nav.tags": "Tags",
+    "nav.about": "À propos",
+
+    // Layouts
+    "layouts.authorLayout.aboutAuthor": "À propos de {author}",
+    "layouts.authorLayout.latestPosts": "Derniers articles de l’auteur",
+    "layouts.listWithTagsLayout.allPosts": "Tous les articles",
+    "layouts.listWithTagsLayout.publishedAt": "Publié le",
+    "layouts.postLayout.publishedAt": "Publié le",
+    "layouts.postLayout.authors": "Auteurs",
+    "layouts.postLayout.authorName": "Nom",
+    "layouts.postLayout.authorTwitter": "Twitter",
+    "layouts.postLayout.draftMessage":
+      "Ceci est un brouillon. Il peut être incomplet ou contenir des erreurs.",
+    "layouts.postLayout.tableOfContents": "Table des matières",
+    "layouts.postLayout.tags": "Tags",
+    "layouts.postLayout.previousPost": "Article précédent",
+    "layouts.postLayout.nextPost": "Article suivant",
+    "layouts.postLayout.relatedPosts": "Articles similaires",
+    "layouts.postLayout.backToBlog": "Retour au blog",
+    "layouts.simplePostLayout.previousPost": "Article précédent : {title}",
+    "layouts.simplePostLayout.nextPost": "Article suivant : {title}",
+
+    // SEO
+    "seo.pagination.page": "%s - Page {page}",
+  },
+} as const;
