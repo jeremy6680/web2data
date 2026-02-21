@@ -3,25 +3,24 @@ import Card from "@/components/Card.astro";
 import { useTranslations } from "@/i18n";
 import RootLayout from "@/layouts/RootLayout.astro";
 
+// Import images from src/assets/ — Astro will optimize them at build time
+import project1Img from "@/assets/project-1.png";
+import project2Img from "@/assets/project-2.png";
+
 const t = useTranslations();
 
 const projectsData = [
   {
-    title: "A Search Engine",
-    description: `What if you could look up any information in the world? Webpages, images, videos
-    and more. Google has many features to help you find exactly what you're looking
-    for.`,
-    imgSrc:
-      "https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
-    href: "https://www.google.com",
+    title: "Running Performance Analyzer",
+    description: `Une plateforme d'analyse basée sur l'IA pour les coureurs...`,
+    imgSrc: project1Img, // ImageMetadata object, not a string
+    href: "https://github.com/jeremy6680/running-performance-analyzer",
   },
   {
-    title: "The Time Machine",
-    description: `Imagine being able to travel back in time or to the future. Simple turn the knob
-    to the desired date and press "Go". No more worrying about lost keys or
-    forgotten headphones with this simple yet affordable solution.`,
-    imgSrc: "https://placeholder.com/500x190",
-    href: "/blog/the-time-machine",
+    title: "Sports Cards Inventory",
+    description: `Une application web basée sur Python...`,
+    imgSrc: project2Img,
+    href: "https://github.com/jeremy6680/sports-cards-inventory",
   },
 ];
 ---

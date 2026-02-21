@@ -8,7 +8,8 @@ const t = useTranslations();
 interface Props {
   title: string;
   description: string;
-  imgSrc?: string;
+  // Accept both imported image objects (src/assets/) and plain strings (public/)
+  imgSrc?: string | ImageMetadata;
   href?: string;
 }
 
@@ -22,7 +23,41 @@ const { title, description, imgSrc, href } = Astro.props;
     {
       imgSrc &&
         (href ? (
-          <Link href={href} aria-label={t('components.card.linkToPost', {title})}>
+          <Link href={href} aria-label={t('components.card.linkToPost', { title })}>
+            {typeof imgSrc === "string" ? (
+              // Plain string path — image lives in public/, no optimization
+              <img
+                alt={title}
+                src={imgSrc}
+                class="object-cover object-center md:h-36 lg:h-48 w-full"
+                width={544}
+                height={306}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              // Imported ImageMetadata — Astro optimizes, converts to WebP, generates srcset
+              <Image
+                alt={title}
+                src={imgSrc}
+                class="object-cover object-center md:h-36 lg:h-48"
+                width={544}
+                height={306}
+              />
+            )}
+          </Link>
+        ) : (
+          typeof imgSrc === "string" ? (
+            <img
+              alt={title}
+              src={imgSrc}
+              class="object-cover object-center md:h-36 lg:h-48 w-full"
+              width={544}
+              height={306}
+              loading="lazy"
+              decoding="async"
+            />
+          ) : (
             <Image
               alt={title}
               src={imgSrc}
@@ -30,22 +65,14 @@ const { title, description, imgSrc, href } = Astro.props;
               width={544}
               height={306}
             />
-          </Link>
-        ) : (
-          <Image
-            alt={title}
-            src={imgSrc}
-            class="object-cover object-center md:h-36 lg:h-48"
-            width={544}
-            height={306}
-          />
+          )
         ))
     }
     <div class="p-6">
       <h2 class="mb-3 text-2xl font-bold leading-8 tracking-tight">
         {
           href ? (
-            <Link href={href} aria-label={t('components.card.linkToPost', {title})}>
+            <Link href={href} aria-label={t('components.card.linkToPost', { title })}>
               {title}
             </Link>
           ) : (
@@ -61,9 +88,9 @@ const { title, description, imgSrc, href } = Astro.props;
           <Link
             href={href}
             class="text-base font-medium leading-6 text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-            aria-label={t('components.card.linkToPost', {title})}
+            aria-label={t('components.card.linkToPost', { title })}
           >
-            Learn more &rarr;
+            En savoir plus &rarr;
           </Link>
         )
       }

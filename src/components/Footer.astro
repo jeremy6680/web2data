@@ -18,24 +18,10 @@ import { useTranslations } from '@/i18n';
         <!--    <SocialIcon kind="linkedin" href={SITE_METADATA.linkedin} size={6}/>-->
         <!--    <SocialIcon kind="twitter" href={SITE_METADATA.twitter} size={6}/>-->
         <!--</div>-->
-        <div class="mb-2 flex space-x-2 text-sm text-gray-500 dark:text-gray-400">
-            <!--<Link href="/about">{SITE_METADATA.title}</Link>-->
-            <div>{` • `}</div>
-            <div>{`© ${new Date().getFullYear()}`}</div>
-            <div>{` • `}</div>
-            <Link href="/">{t('siteMetadata.title')}</Link>
-        </div>
         <div class="mb-8 text-sm text-gray-500 dark:text-gray-400">
-            <Link href={SITE_METADATA.siteRepo}>
-                {t('siteMetadata.title')} {` is open source. `}
-                {` View `}
-                <span class="underline">the source</span>
-                {` code on `}
-                <span class="underline">GitHub</span>
-                {` and `}
-                <span class="underline">give it a star</span>
-                {` if you like it.`}
-            </Link>
+            <p>
+                © {new Date().getFullYear()} <Link href="/">{t('siteMetadata.title')}</Link> • Tous droits réservés • Construit avec Astro et Tailwind CSS
+            </p>
         </div>
     </div>
 </footer>

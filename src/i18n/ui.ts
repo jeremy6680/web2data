@@ -124,7 +124,7 @@ export const ui = {
 
     // Layouts
     "layouts.authorLayout.aboutAuthor": "À propos de {author}",
-    "layouts.authorLayout.latestPosts": "Derniers articles de l’auteur",
+    "layouts.authorLayout.latestPosts": "Derniers articles",
     "layouts.listWithTagsLayout.allPosts": "Tous les articles",
     "layouts.listWithTagsLayout.publishedAt": "Publié le",
     "layouts.postLayout.publishedAt": "Publié le",
