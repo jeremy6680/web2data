@@ -123,7 +123,7 @@ export const ui = {
     "nav.about": "À propos",
 
     // Layouts
-    "layouts.authorLayout.aboutAuthor": "À propos de {author}",
+    "layouts.authorLayout.aboutAuthor": "À propos de Web2Data",
     "layouts.authorLayout.latestPosts": "Derniers articles",
     "layouts.listWithTagsLayout.allPosts": "Tous les articles",
     "layouts.listWithTagsLayout.publishedAt": "Publié le",

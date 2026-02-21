@@ -3,6 +3,7 @@ import "@/styles/global.css";
 import { SITE_METADATA } from "@/consts";
 import { ClientRouter } from "astro:transitions";
 import "@fontsource/onest";
+import '@fontsource-variable/space-grotesk';
 import { SEO } from "astro-seo";
 import { getEntry, type CollectionEntry } from "astro:content";
 import Favicon from "@/assets/favicon.svg";
@@ -73,7 +74,6 @@ const isProduction = import.meta.env.PROD;
     description={description}
     nofollow={robots.includes("nofollow")}
     noindex={robots.includes("noindex")}
-    url={Astro.url}
     charset="utf-8"
     extend={{
       meta: [
@@ -94,7 +94,6 @@ const isProduction = import.meta.env.PROD;
         { rel: "apple-touch-icon", sizes: "76x76", href: appleTouchIcon.src },
         { rel: "icon", type: "image/svg", sizes: "32x32", href: favicon32.src },
         { rel: "icon", type: "image/svg", sizes: "16x16", href: favicon16.src },
-        { rel: "mask-icon", href: favicon16.src, color: "black" },
         { rel: "alternate", type: "application/rss+xml", href: "/rss.xml" },
       ],
     }}
@@ -137,6 +136,7 @@ const isProduction = import.meta.env.PROD;
       }),
     }}
   />
+  <link rel="mask-icon" href={favicon16.src} color="black" />
   {isProduction && <Analytics />}
   <ClientRouter />
 </head>

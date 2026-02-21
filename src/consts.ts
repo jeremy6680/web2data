@@ -4,6 +4,10 @@
  * A few of these are not used yet, and are subject to change, example of this is Author.
  */
 export const SITE_METADATA = {
+  title: "Web2Data",
+  description:
+    "Tutoriels, insights et bonnes pratiques sur le développement web, la data et l'IA.",
+  language: "fr_FR", // OG locale format: language_TERRITORY
   theme: "system", // Options: system, light, dark
   siteUrl: "https://tasb.yon.fun/",
   siteRepo: "https://github.com/wanoo21/tailwind-astro-starting-blog",
@@ -37,35 +41,34 @@ export const SITE_METADATA = {
   comments: {
     // Visit https://giscus.app/ to get your configuration
     // Enable discussions in your repository settings and install the Giscus app
-    provider: 'giscus', // Set to 'giscus' to enable comments or null to disable
+    provider: "giscus", // Set to 'giscus' to enable comments or null to disable
     giscusConfig: {
-      repo: 'wanoo21/tailwind-astro-starting-blog', // Your GitHub repository (e.g., 'username/repo')
-      repositoryId: 'R_kgDOKSBMHw', // Your repository ID from giscus.app
-      category: 'General', // Discussion category (e.g., 'General')
-      categoryId: 'DIC_kwDOKSBMH84CZOdK', // Category ID from giscus.app
-      mapping: 'title', // How to map pages to discussions: 'pathname', 'url', 'title', etc.
-      reactionsEnabled: '1', // Enable reactions: '1' or '0'
-      emitMetadata: '0', // Emit discussion metadata: '1' or '0'
-      inputPosition: 'top', // Comment box position: 'top' or 'bottom'
-      theme: 'preferred_color_scheme', // Theme for light mode: 'light', 'dark', 'dark_dimmed', 'dark_high_contrast', 'transparent_dark', 'preferred_color_scheme', or custom CSS URL
-      darkTheme: 'dark', // Theme for dark mode: same options as theme
-      lang: 'en', // Language code
-      loading: 'lazy', // Loading mode: 'lazy' or 'eager'
+      repo: "wanoo21/tailwind-astro-starting-blog", // Your GitHub repository (e.g., 'username/repo')
+      repositoryId: "R_kgDOKSBMHw", // Your repository ID from giscus.app
+      category: "General", // Discussion category (e.g., 'General')
+      categoryId: "DIC_kwDOKSBMH84CZOdK", // Category ID from giscus.app
+      mapping: "title", // How to map pages to discussions: 'pathname', 'url', 'title', etc.
+      reactionsEnabled: "1", // Enable reactions: '1' or '0'
+      emitMetadata: "0", // Emit discussion metadata: '1' or '0'
+      inputPosition: "top", // Comment box position: 'top' or 'bottom'
+      theme: "preferred_color_scheme", // Theme for light mode: 'light', 'dark', 'dark_dimmed', 'dark_high_contrast', 'transparent_dark', 'preferred_color_scheme', or custom CSS URL
+      darkTheme: "dark", // Theme for dark mode: same options as theme
+      lang: "en", // Language code
+      loading: "lazy", // Loading mode: 'lazy' or 'eager'
     },
   },
   search: {
-    provider: 'custom', // Custom Solid.js search implementation
+    provider: "custom", // Custom Solid.js search implementation
     kbarConfig: {
-      searchDocumentsPath: 'search.json', // path to load documents to search
+      searchDocumentsPath: "search.json", // path to load documents to search
     },
-  }
+  },
 };
 
 /**
  * Default posts per page for pagination.
  */
 export const ITEMS_PER_PAGE = 5;
-
 
 /**
  * Navigation items.
@@ -92,6 +95,6 @@ export const POST_METADATA = {
   showAuthors: true, // Show authors in blog post, TODO: Add support for hiding authors
   showRelatedPosts: true, // Show related posts in blog post, TODO: Add support for hiding related posts
   showTableOfContents: true, // Show table of contents in blog post
-  showShareButtons: 'both', // Show share buttons in blog post, options: top, bottom, both, none
+  showShareButtons: "both", // Show share buttons in blog post, options: top, bottom, both, none
   showComments: true, // Show comments section in blog post
 };
