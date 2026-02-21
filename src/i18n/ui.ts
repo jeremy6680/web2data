@@ -78,7 +78,7 @@ export const ui = {
     "siteMetadata.title": "Web2Data",
     "siteMetadata.headerTitle": "Web2Data",
     "siteMetadata.description":
-      "Bienvenue sur mon blog personnel, où je partage mes réflexions, projets et expériences dans le monde de la technologie et du développement logiciel.",
+      "Du web à la data et l'IA — le journal de bord d'un dev en reconversion.",
     "siteMetadata.language": "fr-FR",
 
     // Pages
