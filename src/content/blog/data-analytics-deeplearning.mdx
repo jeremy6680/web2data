@@ -1,0 +1,184 @@
+---
+title: "Ce que j'ai appris en suivant le cours Data Analytics de DeepLearning.ai"
+summary: "Retour d'expérience sur la spécialisation Data Analytics de DeepLearning.ai, enseignée par Sean Barnes de Netflix. Python, stats, SQL, Tableau, storytelling — voici ce que j'en retiens."
+postLayout: column
+date: "2026-02-21"
+lastmod: "2025-02-21"
+draft: false
+related:
+  - sample-post
+tags:
+  - data
+---
+
+# Ce que j'ai appris en suivant le cours Data Analytics de DeepLearning.ai
+
+Il y a quelques semaines, j'ai terminé la spécialisation **Data Analytics** de [DeepLearning.ai](https://www.deeplearning.ai/courses/data-analytics/). Je ne savais pas trop à quoi m'attendre. Trop basique ? Trop théorique ? Est-ce que ça allait vraiment m'apporter quelque chose de concret pour ma reconversion ?
+
+Spoiler : j'ai bien fait de m'y mettre.
+
+Dans cet article, je te fais un retour honnête sur ce cours. Ce que j'ai aimé, ce qui m'a surpris, ce qui était clairement en dehors de ma zone de confort — et surtout, ce que j'en retiens vraiment.
+
+---
+
+## Le cours en bref
+
+La spécialisation est enseignée par **Sean Barnes**, responsable en science et ingénierie des données chez Netflix. Et ça se sent : les exemples sont ancrés dans des problématiques business réelles, les explications sont claires, et il y a une vraie pédagogie derrière chaque module. Sean a le chic pour rendre des concepts potentiellement arides — statistiques inférentielles, régressions, bases de données — accessibles sans les vider de leur substance.
+
+Le cours se déroule en **5 grandes parties** :
+
+1. Python pour l'analyse de données
+2. Collecte et nettoyage de données (web scraping, APIs, SQL)
+3. Visualisation
+4. Statistiques et modélisation
+5. Data storytelling avec Tableau
+
+Chaque partie alterne entre vidéos, quiz, labs pratiques dans des notebooks Jupyter, et projets capstone. Le tout en anglais, ce qui est aussi une bonne façon de se familiariser avec le vocabulaire du métier.
+
+---
+
+## Python : repartir des bases sans s'ennuyer
+
+La première partie est consacrée aux **fondamentaux de Python** — types de données, variables, listes, fonctions, boucles, conditions. Pas sexy a priori pour quelqu'un qui code depuis des années. Mais ce qui m'a intéressé ici, c'est l'angle : tout est présenté dans un **contexte data analytics**, pas dev web.
+
+On n'apprend pas Python pour construire une API ou un plugin WordPress. On l'apprend pour analyser des données d'inspection de restaurants à Los Angeles, pour calculer des moyennes sur des jeux de données réels, pour comprendre **pourquoi Python est supérieur à un tableur pour certains cas d'usage** — et pas pour d'autres.
+
+Le cours introduit ensuite **Pandas**, la bibliothèque incontournable pour la manipulation de données. DataFrames, Series, `groupby`, `pivot_table`, filtres, tri — j'avais déjà croisé ces concepts, mais sans jamais les avoir vraiment maîtrisés. Là, ça se met en place proprement.
+
+Quelques points clés que j'ai retenus :
+
+- La différence entre `df.count()` (exclut les NaN) et `len(df)` (inclut tout)
+- La puissance de `value_counts()` pour explorer des données catégorielles
+- L'importance de l'**ordre d'exécution** dans un notebook Jupyter — une source de bugs classique
+
+---
+
+## Collecte de données : scraping, APIs et SQL
+
+C'est la partie qui m'a le plus surpris, dans le bon sens. On couvre plusieurs sources de données :
+
+- **CSV et flat files** : point de départ évident
+- **Web scraping** avec `requests` et Beautiful Soup
+- **APIs** : comment fonctionnent les clés d'accès, les requêtes HTTP GET/POST, les codes de retour
+- **Bases de données SQL** : requêtes de base, jointures `INNER JOIN`, validation et prétraitement
+
+### Web scraping
+
+Le cours explique bien quand et pourquoi utiliser le scraping. `pd.read_html()` pour les tableaux HTML bien formatés, Beautiful Soup pour le reste. On apprend aussi à **planifier son parsing** avant d'écrire la moindre ligne de code — une discipline que j'aurais aimé avoir dès le début de ma carrière de dev.
+
+J'ai particulièrement aimé la leçon sur les **expressions régulières** (regex). Elles m'avaient toujours un peu intimidé. Là, l'approche est progressive, et le conseil d'utiliser un LLM pour co-écrire des patterns regex est pragmatique et honnête.
+
+Un point important soulevé par le cours : l'**éthique du scraping**. Vérifier le `robots.txt`, ne pas surcharger les serveurs, respecter les conditions d'utilisation. C'est un rappel utile que la technique ne dispense pas du bon sens.
+
+### SQL
+
+La partie SQL est solide pour un niveau débutant/intermédiaire. On travaille sur des requêtes de sélection, de filtrage, d'agrégation, de jointure. Le focus sur la **validation et le prétraitement des données en SQL** — détecter les doublons, les valeurs manquantes, les incohérences — est particulièrement pertinent pour un rôle d'analyste.
+
+---
+
+## Visualisation : Matplotlib et Seaborn
+
+Cette partie m'a donné envie de reprendre tous mes anciens graphiques et de les refaire proprement.
+
+Le cours commence par **Matplotlib**, la bibliothèque de référence pour la visualisation Python. Flexibilité totale, mais aussi beaucoup de verbosité. On apprend à personnaliser chaque élément : couleurs, grilles, annotations, ticks, spines. C'est parfois fastidieux, mais ça donne une vraie compréhension de ce qui se passe sous le capot.
+
+Ensuite vient **Seaborn**, qui simplifie beaucoup de choses. Moins de code, des charts plus esthétiques par défaut, et des types de graphiques supplémentaires : box plots, violin plots, heatmaps, regression plots. Le concept de **method chaining** — enchaîner les opérations en une seule ligne — est bien expliqué avec une belle analogie : le train express vs le train omnibus.
+
+Les insights que je retiens :
+
+- Utiliser `plt.savefig()` pour exporter ses charts en PNG, SVG ou PDF
+- La différence entre `stacked=True` et un graphique en proportions (100% stacked)
+- Les **subplots** combinés avec des boucles pour générer plusieurs graphiques efficacement
+- Le `sns.pairplot()` comme outil d'exploration rapide des relations entre variables
+
+---
+
+## Statistiques inférentielles et régression linéaire
+
+C'est clairement la partie la plus dense, et celle où j'ai le plus appris — parce que c'est aussi la plus éloignée de mon bagage de développeur web.
+
+### Statistiques inférentielles
+
+Intervalles de confiance, t-tests à un et deux échantillons, simulation Monte Carlo. Le tout illustré avec des données de prix de diamants et de prêts bancaires. Ce que j'aime dans l'approche du cours : on ne se contente pas de calculer. On **interprète les résultats pour les stakeholders** — ce qui est finalement la compétence clé.
+
+```python
+import scipy.stats as stats
+import numpy as np
+
+# Calculer un intervalle de confiance à 95%
+sem = s / np.sqrt(n)
+ci = stats.norm.interval(confidence=0.95, loc=mean, scale=sem)
+```
+
+La partie sur la **simulation** m'a particulièrement marqué. Quand on n'a pas assez de données réelles, on peut modéliser des scénarios avec des distributions uniforme ou normale. C'est une façon de tester des hypothèses avant de les confronter au terrain.
+
+### Régression linéaire
+
+Le cours couvre la régression simple, puis multiple, avec `statsmodels`. Ce que j'ai retenu :
+
+- L'importance du **R²** (coefficient de détermination) et des **p-values** pour évaluer un modèle
+- La distinction entre **prédire** et **interpréter** — deux objectifs qui ne donnent pas les mêmes modèles
+- Le risque de **multicolinéarité** quand on ajoute des variables corrélées entre elles
+- L'encodage des variables catégorielles avec `pd.get_dummies()` — et pourquoi on supprime toujours une catégorie de référence
+- L'évaluation du modèle via la **Mean Absolute Error (MAE)** et le graphique prédit vs. réel
+
+La leçon sur l'**utilisation des LLMs pour itérer sur un modèle** est une des plus honnêtes que j'aie vues dans une formation. Au lieu de prétendre qu'on peut tout calculer soi-même, le cours assume qu'on peut demander à un LLM de suggérer des transformations (log, polynomial) ou d'interpréter des résultats complexes. C'est pragmatique, et c'est la réalité du métier en 2025-2026.
+
+### Séries temporelles
+
+La dernière partie du module couvre les séries temporelles : datetime index, moving average, percent change, segmentation par mois/trimestre, resampling, et enfin une régression linéaire avec composante saisonnière.
+
+```python
+# Calculer une moyenne mobile sur 14 jours
+rolling_mean = df['volume'].rolling(window=14).mean()
+
+# Calculer les variations en pourcentage
+pct_change = df['adjusted_close'].pct_change()
+```
+
+Ce que j'ai particulièrement apprécié : l'honnêteté sur les **limites de la régression linéaire** pour les séries temporelles (les observations ne sont pas indépendantes). On nous dit d'utiliser ces modèles comme des **premières approximations**, pas comme des vérités absolues.
+
+---
+
+## Tableau et data storytelling
+
+La dernière partie du cours change de registre. On quitte Python pour **Tableau**, et on aborde quelque chose que les formations techniques négligent souvent : la capacité à **communiquer ses analyses**.
+
+### Tableau
+
+Tableau Public est l'outil no-code/low-code de référence pour la visualisation de données. Le cours couvre les graphiques classiques, les charts avancés, les dashboards et le storytelling visuel. C'est accessible et bien fait.
+
+Ce que je retiens : Tableau est puissant pour partager des analyses avec des audiences non-techniques. La **performance des dashboards** (un module dédié !) est un vrai sujet — un dashboard lent, c'est un dashboard ignoré.
+
+### Data storytelling
+
+C'est la partie qui m'a le plus résonné en tant que quelqu'un qui écrit. Le cours insiste sur une structure claire :
+
+1. **Commencer par la conclusion** (pas par la méthodologie)
+2. Soutenir avec des preuves sélectionnées et ordonnées
+3. Terminer par des recommandations actionnables
+
+La leçon sur le **rapport vs le mémo vs le notebook vs le slide deck** est excellente. Chaque format répond à un contexte différent, une audience différente. Savoir choisir le bon format, c'est déjà une compétence en soi.
+
+La citation qui m'a le plus marqué : _"If you can't clearly state your conclusion, you're not ready to present your findings."_ Simple, brutal, vrai.
+
+---
+
+## Ce que j'en retiens vraiment
+
+Ce cours m'a donné une vue d'ensemble cohérente du métier d'analyste de données. Pas juste les outils, mais le **cycle complet** : collecter → nettoyer → analyser → visualiser → communiquer.
+
+Quelques honnêtetés :
+
+- **Python** : si tu as déjà un background dev, la première partie va vite. Mais Pandas mérite qu'on s'y attarde vraiment.
+- **Stats** : c'est la partie qui demande le plus d'effort. Je recommande de prendre des notes et de refaire les labs à froid.
+- **Tableau** : utile à connaître, même si dans mon contexte je travaillerai probablement plus avec Python ou dbt.
+- **Storytelling** : sous-estimé. C'est pourtant ce qui fait la différence entre une analyse qui finit dans un tiroir et une analyse qui change une décision.
+
+Le fait que Sean Barnes vienne de Netflix apporte une vraie crédibilité. Les exemples ne sont pas artificiels : ils reflètent des problématiques réelles de business analytics. Et l'intégration des LLMs comme outils du quotidien de l'analyste — pour debugger du code, interpréter des modèles, écrire des regex — est une approche que j'aurais aimé voir dans d'autres formations.
+
+Si tu es dev web en reconversion vers la data, ou simplement curieux de comprendre ce que font les data analysts au quotidien : **ce cours vaut le coup**.
+
+---
+
+_Tu as suivi ce cours ou une formation similaire ? Dis-moi ce que tu en as pensé dans les commentaires._
