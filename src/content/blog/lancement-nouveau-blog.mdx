@@ -1,0 +1,229 @@
+---
+title: "Comment j'ai construit Web2Data avec Astro et TailwindCSS"
+summary: "Retour sur la création de ce blog : choix du stack Astro + TailwindCSS, template de départ, modifications apportées, et pourquoi Astro est devenu mon framework préféré pour les sites statiques."
+postLayout: column
+date: "2026-02-22"
+lastmod: "2026-02-22"
+draft: false
+related:
+  - nouveau-site-personnel
+  - pourquoi-je-quitte-whodunit
+tags:
+  - astro
+  - tailwindcss
+---
+
+Quand j'ai lancé ce blog, j'avais deux priorités : que ce soit rapide à mettre en place, et que ce soit agréable à maintenir sur la durée. Pas envie de me battre contre un CMS ou de gérer une infra complexe pour publier des articles. Astro cochait toutes les cases — et ça n'a pas été une surprise, puisque c'est un framework que j'utilise depuis l'an dernier sur plusieurs projets perso.
+
+Voilà comment Web2Data a été construit.
+
+---
+
+## Pourquoi Astro ?
+
+J'ai découvert [Astro](https://astro.build/) il y a un peu plus d'un an, et franchement, c'est l'un des outils qui m'a le plus agréablement surpris ces dernières années. En tant que dev habitué à WordPress et à la lourdeur qui peut parfois aller avec, Astro a été une vraie bouffée d'air frais.
+
+Ce qui me plaît vraiment :
+
+**La DX est excellente.** Le hot module replacement est rapide, la config est simple, et le fait de pouvoir mélanger des composants `.astro`, React, Solid.js ou Vue dans le même projet sans friction, c'est un luxe. Sur ce blog, j'utilise d'ailleurs SolidJS pour les composants interactifs (navigation mobile, thème dark/light, recherche) — et tout s'intègre proprement.
+
+**Le rendu statique par défaut.** Astro génère du HTML statique, et le JavaScript n'est envoyé que là où il est vraiment nécessaire (c'est le principe des [islands](https://docs.astro.build/en/concepts/islands/)). Résultat : des performances au top sans effort particulier. Lighthouse s'en réjouit.
+
+**MDX out of the box.** Pour un blog technique, pouvoir écrire en Markdown tout en insérant des composants quand c'est pertinent, c'est exactement ce qu'il faut. Les articles de Web2Data sont tous des fichiers `.mdx` dans `src/content/blog/`.
+
+**Le système de Content Collections.** Depuis Astro v2, les Content Collections permettent de définir un schéma TypeScript pour son contenu. Si un article manque un champ obligatoire, le build plante avec un message clair. Fini les surprises en production.
+
+---
+
+## Le template de départ
+
+Plutôt que de partir de zéro, j'ai utilisé le template [tailwind-astro-starting-blog](https://github.com/wanoo21/tailwind-astro-starting-blog) — un starter Astro v5 + TailwindCSS v4 bien structuré, avec un système de tags, pagination, table des matières, support des auteurs, et gestion des commentaires via [Giscus](https://giscus.app/).
+
+C'est un bon point de départ : la structure est propre, les layouts sont bien pensés, et l'i18n est déjà intégré. Ça évite de réinventer la roue sur des fonctionnalités génériques pour se concentrer sur ce qui compte vraiment — le contenu et les spécificités du projet.
+
+---
+
+## Ce que j'ai modifié
+
+### Configuration centrale
+
+La première chose à faire sur ce type de template, c'est de mettre à jour le fichier `src/consts.ts`. C'est là que réside toute la configuration centrale du site : métadonnées, navigation, analytics, commentaires, paramètres d'affichage des articles.
+
+```typescript
+// src/consts.ts
+export const SITE_METADATA = {
+  title: "Web2Data",
+  description:
+    "Du web à la data et l'IA — le journal de bord d'un dev en reconversion.",
+  language: "fr_FR",
+  theme: "system",
+  siteUrl: "https://web2data.jeremymarchandeau.com/",
+  // ...
+  comments: {
+    provider: "giscus",
+    giscusConfig: {
+      repo: "jeremy6680/web2data",
+      repositoryId: "R_kgDORUNVWA",
+      category: "General",
+      categoryId: "DIC_kwDORUNVWM4C2-0s",
+      mapping: "pathname",
+      lang: "fr",
+      // ...
+    },
+  },
+};
+```
+
+### Typographie
+
+Le template de base utilise une seule police. J'ai mis en place une combinaison à deux niveaux : **Onest** pour le corps du texte, et **Space Grotesk** pour les titres. Les deux sont chargées depuis `@fontsource`, ce qui évite une dépendance externe.
+
+Dans `src/styles/global.css` (TailwindCSS v4 avec `@theme`) :
+
+```css
+@theme {
+  --font-sans: "Onest", system-ui, sans-serif;
+  --font-heading:
+    "Space Grotesk Variable", "Space Grotesk Fallback", sans-serif;
+
+  /* Palette primaire mappée sur le rose de Tailwind */
+  --color-primary-500: var(--color-pink-500);
+  --color-primary-600: var(--color-pink-600);
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+}
+```
+
+J'ai aussi ajouté une `@font-face` de fallback pour Space Grotesk (basée sur Arial) avec des ajustements métriques pour réduire le layout shift (CLS). Petit détail, mais ça fait la différence sur le score Lighthouse.
+
+### Profil auteur
+
+Le fichier `src/content/authors/default.mdx` contient le profil affiché sur la page About. C'est du MDX standard, donc on peut y mettre du texte, des titres, des listes — sans avoir à toucher au code des layouts. J'y ai décrit ma reconversion, les thématiques du blog, et le public cible.
+
+### Tags personnalisés
+
+Chaque tag est un fichier `.mdx` dans `src/content/tags/`. En plus du nom, on peut y mettre une description qui apparaît sur la page de listing du tag. J'ai créé les tags principaux au lancement : `data_analytics`, `wordpress`, `react`, `tailwindcss`.
+
+```
+src/content/tags/
+├── data_analytics.mdx
+├── default.mdx
+├── react.mdx
+├── tailwindcss.mdx
+└── wordpress.mdx
+```
+
+Le schéma est simple :
+
+```mdx
+---
+name: Data Analytics
+description: Tout ce qui concerne l'analyse de données
+---
+
+Description longue du tag, visible sur la page /tags/data_analytics...
+```
+
+### Recherche full-text
+
+Le template inclut une recherche custom en SolidJS, sans dépendance externe type Algolia ou Pagefind. Elle fonctionne à partir d'un fichier `search.json` généré au build par `src/pages/search.json.ts` :
+
+```typescript
+// src/pages/search.json.ts
+export const GET: APIRoute = async () => {
+  const posts = await getCollection("blog", ({ data }) => !data.draft);
+
+  const searchData = posts.map((post) => ({
+    id: post.id,
+    title: post.data.title,
+    summary: post.data.summary,
+    content: post.body, // contenu Markdown complet pour la recherche full-text
+    date: post.data.date.toISOString(),
+    tags: post.data.tags.map((tag) => (typeof tag === "string" ? tag : tag.id)),
+  }));
+
+  return new Response(JSON.stringify(searchData), {
+    headers: { "Content-Type": "application/json" },
+  });
+};
+```
+
+La recherche est déclenchée par `⌘K` / `Ctrl+K`, avec debounce à 150ms et filtrage sur le titre, le résumé, le contenu et les tags. Simple et efficace pour un blog de cette taille.
+
+### Commentaires avec Giscus
+
+J'ai activé [Giscus](https://giscus.app/) pour les commentaires — une solution basée sur les GitHub Discussions, qui ne nécessite pas de base de données et qui s'intègre proprement dans un site statique. La configuration se fait entièrement dans `src/consts.ts`. Le composant SolidJS gère aussi la synchronisation du thème (dark/light) en temps réel.
+
+---
+
+## Structure du projet
+
+Pour ceux qui veulent comprendre comment c'est organisé :
+
+```
+src/
+├── content/
+│   ├── blog/       # Articles (.mdx)
+│   ├── authors/    # Profil auteur (.mdx)
+│   └── tags/       # Tags avec descriptions (.mdx)
+├── components/
+│   ├── solidjs/    # Composants interactifs (search, nav, theme, comments)
+│   └── ...
+├── layouts/
+│   ├── PostLayout.astro       # Layout principal des articles
+│   ├── ListWithTagsLayout.astro  # Liste avec sidebar tags
+│   └── ...
+├── pages/
+│   ├── blog/[...page].astro   # Pagination
+│   ├── blog/[...slug].astro   # Article individuel
+│   └── tags/                  # Pages par tag
+└── consts.ts                  # Config centrale
+```
+
+---
+
+## Le format des articles
+
+Chaque article est un fichier `.mdx` avec un frontmatter TypeScript-validé. Voilà le format utilisé :
+
+```mdx
+---
+title: "Titre de l'article"
+summary: "Un résumé court pour les listings et les méta-descriptions SEO."
+postLayout: column
+date: "2026-02-21"
+lastmod: "2026-02-21"
+draft: false
+related:
+  - slug-article-lie
+tags:
+  - nom_du_tag
+---
+
+Contenu de l'article en MDX...
+```
+
+Le champ `related` permet de créer des liens vers des articles connexes, affichés en sidebar sur le layout `column`. Pratique pour créer des ponts entre les articles — par exemple, l'article sur [la refonte de mon site perso](/blog/nouveau-site-personnel) et celui sur [mon départ de Whodunit](/blog/pourquoi-je-quitte-whodunit) se référencent mutuellement puisqu'ils font partie du même contexte de reconversion.
+
+---
+
+## Et maintenant ?
+
+Le blog tourne, les articles publient correctement, Giscus fonctionne, la recherche aussi. Il reste quelques chantiers ouverts :
+
+- Audit accessibilité complet (les composants SolidJS notamment)
+- Optimisation des images (le template utilise `passthroughImageService` pour l'instant)
+- Mise en place d'une newsletter, peut-être
+
+Ce qui est bien avec Astro, c'est que tout ça peut se faire progressivement, sans avoir à refactoriser quoi que ce soit de fondamental. Le framework est pensé pour ça.
+
+Si vous voulez jeter un œil au code source, il est disponible sur [GitHub](https://github.com/jeremy6680/web2data). Et si vous avez des questions ou des suggestions — accessibilité, perfs, structure — les commentaires sont là pour ça.
