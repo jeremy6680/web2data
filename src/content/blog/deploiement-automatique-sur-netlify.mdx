@@ -1,0 +1,137 @@
+---
+title: "Déployer automatiquement son site sur Netlify avec GitHub : simple, gratuit, efficace"
+summary: "J'ai automatisé le déploiement de mon site perso (React + Vite + TailwindCSS) sur Netlify en quelques minutes. Voici pourquoi j'ai mis ça en place, comment ça marche, et quelques conseils pour bien s'en sortir."
+postLayout: column
+date: "2026-02-22"
+lastmod: "2026-02-22"
+draft: false
+related:
+  - nouveau-site-personnel
+tags:
+  - netlify
+  - react
+---
+
+Pendant longtemps, mettre à jour mon site perso ressemblait à ça : modifier le code, builder en local, uploader les fichiers en FTP, vérifier que rien n'avait explosé. Pas insurmontable, mais clairement pas optimal non plus.
+
+Depuis que j'ai connecté mon repo GitHub à Netlify, c'est terminé. Je push, c'est déployé. Voilà, c'est tout.
+
+Je sais que ça peut paraître basique pour certain·e·s, mais quand on vient du monde WordPress où on gère tout à la main — ou presque —, mettre en place ce genre de pipeline est un vrai changement de paradigme.
+
+---
+
+## Pourquoi j'ai mis ça en place
+
+Mon site perso ([jeremymarchandeau.com](https://jeremymarchandeau.com)) est fait avec **React, Vite et TailwindCSS**. Pas de CMS, pas de backend : du pur statique généré à partir de composants React ([voir l'article que j'ai écrit sur le sujet](/blog/nouveau-site-personnel)).
+
+Le problème avec ce type de stack, c'est que le résultat final — ce que le navigateur va afficher — c'est le contenu du dossier `dist/` produit par Vite. Ce dossier n'est pas versionné (il est dans `.gitignore`), et il faut donc le (re)générer à chaque modification avant de déployer.
+
+Autant dire que le workflow manuel, c'est vite pénible :
+
+1. `npm run build`
+2. Vérifier que ça n'a pas planté
+3. Uploader les fichiers quelque part
+4. Vérifier en ligne
+
+Multiplier ça par chaque petite correction — une faute de frappe, un lien mort, une mise à jour de CV — et tu te retrouves à perdre du temps sur des tâches sans aucune valeur ajoutée.
+
+L'objectif était simple : **je push sur GitHub, le site se met à jour tout seul**. Sans intervention manuelle. Sans risque d'oublier une étape.
+
+---
+
+## Comment j'ai fait
+
+Spoiler : c'est ridiculement simple. Voilà les étapes dans l'ordre.
+
+### 1. Avoir son projet sur GitHub
+
+Mon repo était déjà sur GitHub, c'est la base. Si ce n'est pas ton cas, commence par là :
+
+```bash
+git init
+git remote add origin https://github.com/ton-user/ton-repo.git
+git push -u origin main
+```
+
+### 2. Créer un compte Netlify
+
+Rendez-vous sur [netlify.com](https://netlify.com). Le compte gratuit est largement suffisant pour un site perso statique.
+
+### 3. Connecter le repo GitHub à Netlify
+
+Dans l'interface Netlify :
+
+- **Add new site** → **Import an existing project**
+- Sélectionner **GitHub**
+- Autoriser Netlify à accéder à tes repos
+- Choisir le bon repo
+
+### 4. Configurer le build
+
+C'est là que Netlify a besoin de savoir comment builder ton projet. Pour une stack React + Vite, la config est la suivante :
+
+| Paramètre         | Valeur          |
+| ----------------- | --------------- |
+| Build command     | `npm run build` |
+| Publish directory | `dist`          |
+
+Netlify détecte souvent ces valeurs automatiquement si tu as un `package.json` bien configuré. Dans mon cas, il les a proposées directement — j'ai juste confirmé.
+
+### 5. Déployer
+
+Clique sur **Deploy site**. Netlify lance un premier build, et en deux à trois minutes, ton site est en ligne sur une URL du type `ton-site.netlify.app`.
+
+Ensuite, **à chaque push sur la branche `main`**, Netlify rebuilde et redéploie automatiquement. C'est ça la magie.
+
+### 6. (Optionnel mais recommandé) Configurer son domaine personnalisé
+
+J'ai ensuite rattaché mon domaine `jeremymarchandeau.com` à Netlify. La démarche est guidée dans l'interface : tu ajoutes ton domaine, Netlify te donne les enregistrements DNS à configurer chez ton registrar, et c'est bon.
+
+Le certificat SSL est généré automatiquement via Let's Encrypt. Rien à faire.
+
+---
+
+## Ce que j'apprécie dans ce workflow
+
+**La simplicité.** Sérieusement, ça m'a pris moins de dix minutes à mettre en place. Pour quelqu'un qui vient du monde WordPress où on manipule des hébergements, des certificats, des configs serveur… c'est presque choquant.
+
+**Les deploy previews.** Chaque branche ou pull request ouvre son propre environnement de prévisualisation sur une URL temporaire. Pratique pour vérifier un changement avant de le merger sur `main`.
+
+**Les logs de build accessibles.** Si quelque chose plante, les logs sont clairs et facilement consultables directement dans l'interface Netlify. Pas besoin de se connecter à un serveur en SSH.
+
+**Le plan gratuit est généreux.** Pour un site perso statique avec un trafic raisonnable, on ne dépasse pas les limites du free tier. Bande passante, nombre de builds, custom domain + SSL : tout ça est inclus gratuitement.
+
+---
+
+## Mes conseils
+
+**Commence par brancher ton repo sur `main` uniquement.** Pas besoin de complexifier d'entrée avec des branches de staging. Tu pourras affiner plus tard.
+
+**Utilise les variables d'environnement de Netlify** pour tes clés API et autres secrets. Ne les mets jamais directement dans ton code. Dans l'interface : Site settings → Environment variables. Dans ton code Vite, elles sont accessibles via `import.meta.env.VITE_MA_VARIABLE`.
+
+**Vérifie ton fichier `.gitignore`.** Le dossier `dist/` ne doit pas être versionné. Netlify le génère lui-même à chaque build, il n'a pas besoin de le trouver dans le repo.
+
+**Fais attention aux dépendances de build.** Tout ce dont Netlify a besoin pour builder doit être dans les `dependencies` ou `devDependencies` de ton `package.json`. Si une lib est installée globalement sur ta machine mais pas dans le projet, le build va planter sur Netlify.
+
+**Configure un fichier `netlify.toml` si tu as des besoins spécifiques.** Ce fichier à la racine du projet permet de centraliser la config de déploiement (build command, redirects, headers, etc.) directement dans le repo, plutôt que dans l'interface Netlify.
+
+```toml
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+```
+
+Ce dernier point — la règle de redirect — est indispensable pour une SPA React. Sans ça, recharger une page autre que l'accueil retourne une 404.
+
+---
+
+## En résumé
+
+Mettre en place le déploiement continu sur Netlify, c'est dix minutes de configuration pour des heures de friction éliminées sur le long terme. Pour un site statique généré avec Vite, c'est vraiment la solution la plus simple et la plus fiable que j'aie testée.
+
+Si tu gères encore ton déploiement à la main, franchement : arrête-toi cinq minutes, connecte ton repo, et passe à autre chose.
