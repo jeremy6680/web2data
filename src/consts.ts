@@ -43,17 +43,17 @@ export const SITE_METADATA = {
     // Enable discussions in your repository settings and install the Giscus app
     provider: "giscus", // Set to 'giscus' to enable comments or null to disable
     giscusConfig: {
-      repo: "wanoo21/tailwind-astro-starting-blog", // Your GitHub repository (e.g., 'username/repo')
-      repositoryId: "R_kgDOKSBMHw", // Your repository ID from giscus.app
+      repo: "jeremy6680/web2data", // Your GitHub repository (e.g., 'username/repo')
+      repositoryId: "R_kgDORUNVWA", // Your repository ID from giscus.app
       category: "General", // Discussion category (e.g., 'General')
-      categoryId: "DIC_kwDOKSBMH84CZOdK", // Category ID from giscus.app
-      mapping: "title", // How to map pages to discussions: 'pathname', 'url', 'title', etc.
+      categoryId: "DIC_kwDORUNVWM4C2-0s", // Category ID from giscus.app
+      mapping: "pathname", // How to map pages to discussions: 'pathname', 'url', 'title', etc.
       reactionsEnabled: "1", // Enable reactions: '1' or '0'
       emitMetadata: "0", // Emit discussion metadata: '1' or '0'
       inputPosition: "top", // Comment box position: 'top' or 'bottom'
       theme: "preferred_color_scheme", // Theme for light mode: 'light', 'dark', 'dark_dimmed', 'dark_high_contrast', 'transparent_dark', 'preferred_color_scheme', or custom CSS URL
       darkTheme: "dark", // Theme for dark mode: same options as theme
-      lang: "en", // Language code
+      lang: "fr", // Language code
       loading: "lazy", // Loading mode: 'lazy' or 'eager'
     },
   },
