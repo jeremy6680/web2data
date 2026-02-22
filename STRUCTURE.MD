@@ -1,65 +1,99 @@
-# Tailwind Astro Starter Project
+# Web2Data — Structure du projet
 
-This project is a starter template for building a blog using Astro and Tailwind CSS. It's a great starting point for anyone who wants to create a modern and responsive blog with Astro and Tailwind CSS.
+Blog personnel sur le développement web, la data et l'IA.
+Construit avec Astro v5 + Tailwind CSS v4, basé sur [tailwind-astro-starting-blog](https://github.com/wanoo21/tailwind-astro-starting-blog).
 
-## Project Structure
+**URL** : https://web2data.jeremymarchandeau.com/
+**Repo** : https://github.com/jeremy6680/web2data
 
-The project is structured as follows:
+---
+
+## Arborescence
 
 ```
 .
-├── README.md
-├── astro.config.mjs
-├── package.json
-├── src
-│   ├── assets
-│   ├── content
-│   │   ├── authors
-│   │   ├── blog
-│   │   └── tags
-│   ├── layouts
-│   ├── pages
-│   │   ├── 404.astro
-│   │   ├── about.astro
-│   │   ├── blog
-│   │   │   ├── [...page].astro
-│   │   │   └── index.astro
-│   │   ├── index.astro
-│   │   └── tags
-│   │       ├── [...page].astro
-│   │       └── index.astro
-│   ├── components
-│   │   ├── BaseHead.astro
+├── src/
+│   ├── assets/                    # Images statiques (favicon, logo, og-image, photos auteur, projets)
+│   ├── components/
+│   │   ├── analytics/             # Composants analytics (Fathom, GA, Plausible, Umami, Matomo…)
+│   │   ├── social-icons/          # Icônes réseaux sociaux + boutons de partage
+│   │   │   ├── icons/             # SVG icons (Github, LinkedIn, Twitter, etc.)
+│   │   │   └── social-buttons/    # Boutons de partage (Facebook, LinkedIn, Reddit, Twitter)
+│   │   ├── solidjs/               # Composants interactifs Solid.js (search, nav mobile, theme, Giscus…)
+│   │   ├── Analytics.astro
+│   │   ├── BaseHead.astro         # <head> global (SEO, OG, fonts)
 │   │   ├── Card.astro
+│   │   ├── Comments.astro         # Intégration Giscus
 │   │   ├── Footer.astro
 │   │   ├── Header.astro
-│   │   └── Sidebar.astro
-│   ├── types.d.ts
-│   └── utils
-│       ├── constants.ts
-│       ├── functions.ts
-│       └── i18n.ts
-├── .gitignore
-├── .specstory
+│   │   ├── ListPostCover.astro
+│   │   ├── Pagination.astro
+│   │   ├── PostCover.astro
+│   │   ├── Tag.astro
+│   │   └── …
+│   ├── content/
+│   │   ├── authors/
+│   │   │   └── default.mdx        # Profil auteur (Jeremy Marchandeau)
+│   │   ├── blog/                  # Articles (fichiers .mdx)
+│   │   └── tags/                  # Tags avec descriptions personnalisées (.mdx)
+│   ├── i18n/
+│   │   ├── index.ts
+│   │   ├── ui.ts                  # Traductions (fr par défaut)
+│   │   └── utils.ts
+│   ├── layouts/
+│   │   ├── AuthorLayout.astro
+│   │   ├── ListLayout.astro
+│   │   ├── ListWithTagsLayout.astro
+│   │   ├── PostLayout.astro        # Layout principal des articles (colonne)
+│   │   ├── RootLayout.astro        # Layout racine (header, footer, analytics)
+│   │   └── SimplePostLayout.astro
+│   ├── pages/
+│   │   ├── blog/
+│   │   │   ├── [...page].astro    # Liste paginée des articles
+│   │   │   └── [...slug].astro    # Page d'un article
+│   │   ├── tags/
+│   │   │   ├── index.astro        # Liste de tous les tags
+│   │   │   └── [slug]/[...page].astro  # Articles par tag
+│   │   ├── 404.astro
+│   │   ├── about.astro
+│   │   ├── index.astro            # Page d'accueil
+│   │   ├── projects.astro
+│   │   ├── rss.xml.js             # Flux RSS
+│   │   └── search.json.ts         # Données pour la recherche
+│   ├── styles/
+│   │   └── global.css
+│   ├── consts.ts                  # Config centrale : métadonnées du site, navigation, Giscus, analytics
+│   ├── content.config.ts          # Schémas de contenu Astro (blog, authors, tags)
+│   ├── env.d.ts
+│   ├── functions.ts               # Fonctions utilitaires (tri des posts, filtrage drafts…)
+│   └── utils.ts
+├── astro.config.mjs
+├── Dockerfile
+├── package.json
+├── pnpm-lock.yaml
 └── tsconfig.json
 ```
 
-- The src directory contains all the source files of the project.
-  - The assets directory contains all the static assets of the project.
-  - The content directory contains all the content files of the project.
-    - The authors directory contains the author information.
-    - The blog directory contains all the blog posts.
-    - The tags directory contains the tag information.
-  - The layouts directory contains all the layout files of the project.
-  - The pages directory contains all the page files of the project.
-    - The blog directory contains the blog pages.
-    - The tags directory contains the tag pages.
-  - The components directory contains all the component files of the project.
-  - The types.d.ts file contains the type definitions for the project.
-  - The utils directory contains all the utility files of the project.
-    - The constants.ts file contains the constants used in the project.
-    - The functions.ts file contains the utility functions used in the project.
-    - The i18n.ts file contains the internationalization functions used in the project.
-- The .gitignore file specifies the files and directories that should be ignored by Git.
-- The .specstory directory contains the history of the project.
-- The tsconfig.json file contains the TypeScript configuration for the project.
+---
+
+## Fichiers clés à connaître
+
+| Fichier | Rôle |
+| :--- | :--- |
+| `src/consts.ts` | Config centrale : titre, URL, Giscus, analytics, navigation, paramètres des posts |
+| `src/content.config.ts` | Schémas de contenu (champs requis/optionnels pour blog, authors, tags) |
+| `src/functions.ts` | Tri et filtrage des articles |
+| `src/i18n/ui.ts` | Traductions de l'interface (langue par défaut : français) |
+| `src/content/authors/default.mdx` | Profil de l'auteur |
+| `src/content/blog/*.mdx` | Articles du blog |
+| `src/content/tags/*.mdx` | Définitions des tags avec descriptions |
+
+---
+
+## Points importants
+
+- **Langue** : français (`fr_FR`), configuré dans `src/consts.ts` et `src/i18n/ui.ts`
+- **Commentaires** : Giscus (GitHub Discussions), configuré dans `src/consts.ts`
+- **Recherche** : implémentation custom Solid.js via `search.json.ts`
+- **Composants interactifs** : Solid.js (nav mobile, thème, recherche, scroll-to-top)
+- **Déploiement** : Vercel (site URL : https://web2data.jeremymarchandeau.com/)
