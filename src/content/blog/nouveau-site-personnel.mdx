@@ -1,0 +1,238 @@
+---
+title: "Refonte de mon site perso : exit WordPress, bonjour React + Vite"
+summary: "J'ai refondu mon site personnel jeremymarchandeau.com avec React, Vite et TailwindCSS. Pourquoi ce choix, comment j'ai adapté un template existant, et ce que ça m'a appris."
+postLayout: column
+date: "2026-02-22"
+lastmod: "2026-02-22"
+draft: false
+related:
+  - sample-post
+tags:
+  - tailwindcss
+  - react
+---
+
+Il y a des moments où tu regardes ton site et tu te dis : _bon, c'est l'heure de passer un coup de frais._ C'est exactement ce qui m'est arrivé avec mon site perso [jeremymarchandeau.com](https://jeremymarchandeau.com). Voilà pourquoi j'ai décidé de le refaire, et comment je m'y suis pris.
+
+---
+
+## Le contexte : WordPress, c'est bien, mais…
+
+Pendant des années, mon site perso tournait sous WordPress. Logique : c'est mon terrain de jeu professionnel depuis plus de 12 ans. Mais à un moment, tu réalises que pour un simple site vitrine personnel — quelques sections, du texte, des liens — WordPress c'est peut-être un peu overkill. Base de données, mises à jour régulières, plugins à surveiller, performance à optimiser… Pour un site qui ne change que rarement, c'est beaucoup de maintenance pour pas grand-chose.
+
+Autre élément : je suis en reconversion vers la data et l'IA, et j'avais envie que mon site reflète ce changement. Pas seulement dans le contenu, mais aussi dans les choix technologiques.
+
+Mon ancien site WordPress a migré dans un sous-domaine ([wp.jeremymarchandeau.com](https://wp.jeremymarchandeau.com)) où il continue de vivre en tant que vitrine pour mon activité freelance WordPress. Je ne ferme pas cette porte — je la déplace juste.
+
+---
+
+## Pourquoi React + Vite ?
+
+Je ne vais pas vous raconter que j'ai passé des semaines à comparer des dizaines de solutions. J'avais quelques critères clairs :
+
+- **Simple à maintenir** — pas envie de gérer de l'infra complexe
+- **Performant** — les Core Web Vitals, c'est important pour le SEO
+- **Responsive** — évidemment
+- **Accessible** — un chantier en cours, j'y reviens plus bas
+
+Et surtout, c'était l'occasion de me frotter à React sérieusement, ce que je n'avais jamais vraiment fait dans un projet abouti. Pour un site statique de ce type, React + Vite coche toutes les cases : build ultra rapide, DX agréable, et un écosystème riche.
+
+---
+
+## Le template : Ryan, par ThemeWagon
+
+Plutôt que de repartir de zéro, j'ai choisi un template : **[Ryan](https://github.com/themewagon/ryan)**, distribué par ThemeWagon sous licence MIT (design et code © codescandy). Minimaliste, sobre, professionnel. Rien de tape-à-l'œil. Le genre de design qui laisse le contenu parler et qui ne vieillit pas vite.
+
+Un peu comme sortir du coiffeur avec une coupe simple mais nette — on se sent plus léger, plus confiant. Nouveau départ, sans tout chambarder.
+
+**Petit bémol à signaler** : le repo GitHub s'intitule "Ryan - Next JS Portfolio Template", mais c'est trompeur. En regardant le code de plus près, il n'y a pas l'ombre d'un fichier Next.js. On trouve à la racine un `vite.config.ts`, un `index.html`, et les dépendances classiques d'un projet React + Vite. Pas de `next.config.js`, pas d'App Router, pas de pages — rien. ThemeWagon a probablement gardé le titre "Next JS" par erreur ou par approximation marketing, mais techniquement c'est une SPA React classique bundlée avec Vite. À avoir en tête si tu pars du même template en t'attendant à du SSR ou du routing Next.js : tu seras déçu.
+
+Cela dit, pour un site vitrine statique, React + Vite convient parfaitement. Alors, pas de regret.
+
+---
+
+## Ce que j'ai modifié
+
+Voilà les principales modifications apportées.
+
+### Contenu et sections
+
+J'ai remplacé tout le contenu par défaut : sections Expérience, Formation, Projets, Contact. J'ai également ajouté une **section Certifications** qui n'existait pas dans le thème de base — avec les logos DeepLearning.ai, Opquast, OpenClassrooms et Cefii, et les liens vers les certificats correspondants.
+
+### Internationalisation (i18n)
+
+C'est la modification la plus substantielle. Le thème Ryan est en anglais uniquement. J'ai rendu le site **bilingue français/anglais**.
+
+Pour ça, j'ai mis en place un `LanguageContext` qui expose la langue courante, un setter, et une fonction `t()` pour récupérer les traductions depuis des fichiers JSON :
+
+```tsx
+// src/LanguageContext.tsx
+import { createContext } from "react";
+
+export type Language = "en" | "fr";
+
+interface LanguageContextProps {
+  language: Language;
+  setLanguage: (language: Language) => void;
+  t: (key: string) => any;
+}
+
+export const LanguageContext = createContext<LanguageContextProps>({
+  language: "en",
+  setLanguage: () => {},
+  t: (key) => key,
+});
+```
+
+Le routing bilingue est géré avec **React Router** : `/` pour le français, `/en` pour l'anglais. La logique est dans `App.tsx` :
+
+```tsx
+// src/App.tsx (extrait)
+function AppContent() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const language: Language = location.pathname.startsWith("/en") ? "en" : "fr";
+
+  const setLanguage = (lang: Language) => {
+    navigate(lang === "en" ? "/en" : "/");
+  };
+
+  // Parcourt les clés imbriquées du fichier JSON (ex: "home.hero.name")
+  const t = (key: string) => {
+    const keys = key.split(".");
+    let value: unknown = language === "fr" ? frMessages : enMessages;
+    for (const k of keys) {
+      value = (value as Record<string, unknown>)?.[k];
+    }
+    return value ?? key;
+  };
+
+  return (
+    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+      <HeroSection />
+      <AboutSection />
+      {/* ... */}
+    </LanguageContext.Provider>
+  );
+}
+```
+
+Le composant `LanguageSelector` est intégré directement dans la `HeroSection`. Un détail qui a son importance : j'ai d'abord utilisé un `<button>`, avant de le refactoriser en `<a>` — sémantiquement plus juste pour un changement de page/langue, et meilleur pour l'accessibilité :
+
+```tsx
+// src/components/LanguageSelector.tsx
+import { useContext } from "react";
+import { LanguageContext, type Language } from "../LanguageContext";
+
+const languages: Record<Language, string> = {
+  en: "English version 🇬🇧",
+  fr: "Version française 🇫🇷",
+};
+
+export default function LanguageSelector({
+  className,
+}: {
+  className?: string;
+}) {
+  const { language, setLanguage } = useContext(LanguageContext);
+
+  const toggleLanguage = () => {
+    setLanguage(language === "en" ? "fr" : "en");
+  };
+
+  const otherLanguage = language === "en" ? "fr" : "en";
+
+  return (
+    <a
+      href="#"
+      onClick={(e) => {
+        e.preventDefault();
+        toggleLanguage();
+      }}
+      className={className}
+    >
+      {languages[otherLanguage]}
+    </a>
+  );
+}
+```
+
+Les contenus sont stockés dans des fichiers JSON par langue (`src/en/messages.en.json` et `src/fr/messages.fr.json`). La fonction `t()` permet de récupérer n'importe quelle valeur via une clé pointée comme `"home.hero.name"` :
+
+```json
+// src/en/messages.en.json (extrait)
+{
+  "home": {
+    "hero": {
+      "name": "Jeremy Marchandeau",
+      "subtitle": "Web Developer • AI & Data Analytics Enthusiast",
+      "resume": {
+        "label": "Resume",
+        "link": "/files/cv_jmarchandeau_EN_ai_2025.pdf"
+      },
+      "blog": {
+        "label": "Visit my blog",
+        "link": "https://blog.jeremymarchandeau.com"
+      }
+    }
+  }
+}
+```
+
+### Rendu du texte avec du HTML inline
+
+La section About utilise un système de placeholders pour intégrer des balises `<strong>` directement dans les paragraphes traduits, sans dupliquer le markup dans les fichiers JSON. La fonction `renderWithPlaceholders` remplace des tokens comme `{wordpress}` par leur équivalent HTML défini dans le JSON :
+
+```tsx
+// src/sections/about-section.tsx (extrait)
+const renderWithPlaceholders = (text: string) => {
+  const placeholders = t("home.about.placeholders");
+  return Object.keys(placeholders).reduce((acc, key) => {
+    return acc.split(`{${key}}`).join(placeholders[key]);
+  }, text);
+};
+
+// Dans le JSX :
+{
+  (t("home.about.paragraphs") as string[]).map(
+    (paragraph: string, i: number) => (
+      <p
+        key={i}
+        dangerouslySetInnerHTML={{ __html: renderWithPlaceholders(paragraph) }}
+      />
+    ),
+  );
+}
+```
+
+C'est pratique, mais ça implique d'utiliser `dangerouslySetInnerHTML` — à manier avec précaution. Ici le contenu vient de fichiers JSON locaux, donc pas de risque d'injection XSS, mais c'est quelque chose à garder en tête si les données venaient un jour d'une source externe.
+
+### Nettoyage et petites touches
+
+- Suppression des imports `React` inutiles dans les composants (depuis React 17, plus nécessaire grâce au nouveau JSX transform)
+- Mise à jour du favicon et suppression des assets non utilisés
+- Ajout d'un lien vers mon profil freelance dans la section Contact
+- Ajout d'une section "centres d'intérêt" dans la partie About pour rendre le profil un peu plus humain
+
+---
+
+## Ce que j'en retiens
+
+Travailler sur ce site m'a permis de me frotter concrètement à React dans un projet réel — Context API, React Router, typage TypeScript, TailwindCSS. Quelques observations en vrac :
+
+- **React + Vite, c'est vraiment agréable.** Le build est instantané, le HMR aussi. Difficile de revenir en arrière après ça.
+- **TailwindCSS déroute au début** quand on vient du monde Sass/BEM, mais on s'y fait vite. La productivité est réelle une fois qu'on a les réflexes.
+- **Gérer le i18n sans librairie dédiée** (pas de `react-i18next` ici, juste un Context + des JSON) est une approche simple et suffisante pour un site de cette taille. Ça m'a permis de bien comprendre les mécanismes sous-jacents avant d'aller vers des solutions plus outillées.
+- **Partir d'un template existant**, c'est un bon compromis — à condition de ne pas avoir peur d'aller mettre les mains dans le code pour l'adapter vraiment à son cas, et de vérifier que ce que t'as sous le capot correspond bien à ce qui est annoncé sur l'étiquette.
+
+---
+
+## Et la suite ?
+
+Le site est en ligne, mais ce n'est pas fini. Prochaines étapes :
+
+- Audit accessibilité complet (axe, Lighthouse)
+- Révision des contrastes et des balises ARIA là où c'est nécessaire
+- Optimisation des images
+
+En attendant, si tu veux jeter un œil : [jeremymarchandeau.com](https://jeremymarchandeau.com). Et si t'as des retours — accessibilité, perf, design — je suis preneur.
