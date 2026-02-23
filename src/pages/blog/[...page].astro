@@ -36,4 +36,8 @@ if (page.currentPage > 1) {
   page={page}
   {robots}
   {titleTemplate}
+  breadcrumbs={page.currentPage > 1 ? [
+    { label: t("nav.home"), href: "/" },
+    { label: `Page ${page.currentPage}` },
+  ] : undefined}
 />

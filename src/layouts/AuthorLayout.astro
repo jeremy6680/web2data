@@ -3,6 +3,7 @@ import { Image } from "astro:assets";
 import { type CollectionEntry, getCollection } from "astro:content";
 
 import SocialIcon from "@/components/social-icons/index.astro";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
 import RootLayout from "./RootLayout.astro";
 import Link from "../components/Link.astro";
 import { sortBlogPosts } from "../functions";
@@ -46,6 +47,7 @@ const authorPosts = await getCollection(
 <RootLayout title={name} description={shortBio}>
   <div class="divide-y divide-gray-200 dark:divide-gray-700">
     <div class="space-y-2 pb-8 pt-6 md:space-y-5">
+      <Breadcrumbs items={[{ label: t("nav.home"), href: "/" }, { label: t("nav.about") }]} />
       <h1
         class="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14"
       >

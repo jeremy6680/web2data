@@ -6,6 +6,7 @@ import RootLayout from "./RootLayout.astro";
 import { type CollectionEntry, getEntries, render } from "astro:content";
 import FormattedDate from "../components/FormattedDate.astro";
 import ScrollTopAndComments from "@/components/solidjs/ScrollTopAndComments.tsx";
+import Breadcrumbs from "../components/Breadcrumbs.astro";
 import PostCover from "../components/PostCover.astro";
 import DetailsSummary from "../components/DetailsSummary.astro";
 import SocialShareButtons from "../components/social-icons/SocialShareButtons.astro";
@@ -47,6 +48,7 @@ const { Content, headings } = await render(post);
 >
   <SectionContainer>
     <ScrollTopAndComments client:only="solid-js" />
+    <Breadcrumbs items={[{ label: t("nav.home"), href: "/" }, { label: post.data.title }]} />
     <article>
       <header>
         <div class="space-y-1 pb-10 text-center dark:border-gray-700">

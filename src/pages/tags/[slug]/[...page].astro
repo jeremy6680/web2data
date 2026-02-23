@@ -49,6 +49,11 @@ if (page.currentPage > 1) {
   page={page}
   {robots}
   {titleTemplate}
+  breadcrumbs={[
+    { label: t("nav.home"), href: "/" },
+    { label: t("nav.tags"), href: "/tags" },
+    { label: entry.data.name },
+  ]}
 >
   <Content />
 </ListWithTagsLayout>
