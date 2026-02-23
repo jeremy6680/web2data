@@ -1,0 +1,191 @@
+---
+title: "Mon process pour coder avec les LLMs : non, je ne fais pas du vibe coding"
+summary: "Comment j'utilise Claude Code au quotidien pour coder — sans perdre la main, sans déléguer ma réflexion, et sans me retrouver avec du code que je ne comprends pas."
+postLayout: column
+date: "2026-02-23"
+lastmod: "2026-02-23"
+draft: false
+tags:
+  - llm
+  - outils
+  - bonnes-pratiques
+---
+
+On entend beaucoup parler de "vibe coding" en ce moment. Le principe : tu décris vaguement ce que tu veux, le LLM génère du code, tu l'acceptes sans trop regarder, et tu continues. Résultat : ça tourne... jusqu'au moment où ça ne tourne plus, et là tu es coincé parce que tu ne comprends pas ce que tu as sous les yeux.
+
+Ce n'est pas comme ça que je travaille.
+
+Depuis que j'ai intégré les LLMs dans mon workflow de développement, j'ai adopté une approche que je qualifierais de **collaborative mais lucide** : je reste aux commandes, je comprends ce qui se passe, et j'utilise l'IA pour ce qu'elle fait vraiment bien — pas pour remplacer ma réflexion.
+
+## L'outil principal : Claude Code
+
+Mon interlocuteur principal, c'est **Claude Code**. Pas une interface web séparée, pas un autre outil — Claude Code directement intégré dans VS Code, là où je passe une bonne partie de mes journées.
+
+Ce qui me plaît dans cette approche, c'est qu'elle est contextualisée : Claude Code lit mes fichiers, comprend l'arborescence de mon projet, et peut agir directement sur le code. On est loin du copier-coller entre une fenêtre de chat et son éditeur.
+
+## Ce que je lui demande (et ce que je ne lui demande pas)
+
+Je ne dis pas à Claude "fais-moi une fonctionnalité de gestion des utilisateurs". C'est trop vague, et le résultat sera probablement du code générique qui ne colle pas à mon contexte.
+
+À la place, j'essaie d'être **précis et progressif** :
+
+- Je commence par décrire le problème, pas la solution.
+- Je fournis du contexte : la structure existante, les contraintes techniques, le comportement attendu.
+- Je travaille par petites itérations plutôt que de tout demander d'un coup.
+
+Prenons un exemple concret avec WordPress et ACF. Je ne lui demanderai pas : _"Comment je fais un bloc témoignage ?"_. Si tu lui demandes ça, Claude va répondre quelque chose. Mais ce sera une réponse générique, déconnectée de ta stack, de tes conventions de nommage, de la structure de ton projet.
+
+Je lui demanderai plutôt : _"J'enregistre un bloc ACF via `acf_register_block_type()`. Mon bloc s'appelle `carte-temoignage`, il a un champ texte `citation` et un champ image `photo`. Le template PHP est dans `/blocks/carte-temoignage.php`. Comment je structure ce fichier pour afficher les deux champs, en gérant correctement le mode preview dans l'éditeur ?"_
+
+La différence est énorme. Dans le second cas, Claude a tout ce qu'il faut pour répondre précisément — et moi, j'ai déjà réfléchi au problème avant de lui poser la question.
+
+## Mes fichiers de pilotage de projet
+
+Une des choses qui a le plus changé ma façon de travailler avec Claude Code, c'est l'ajout de fichiers Markdown directement à la racine de mes projets. Pas de la doc pour les autres — des fichiers pour orienter le LLM et garder le fil moi-même.
+
+La logique derrière est simple : **un LLM n'a pas de mémoire persistante entre les sessions**. Ces fichiers compensent cette limite. Ils remplacent le contexte que tu aurais transmis oralement à un collègue en début de journée.
+
+### CONTEXT.md — le "pourquoi" du projet
+
+C'est le premier fichier que je crée, avant même de toucher au code. Il décrit le projet en quelques lignes : ce qu'il fait, pour qui, et les contraintes importantes à garder en tête.
+
+```md
+## Projet
+
+Plugin WordPress de gestion de candidatures pour une école de formation.
+Permet aux candidats de soumettre un dossier en ligne et aux admins de le suivre depuis le back-office.
+
+## Contraintes
+
+- Site multilingue (FR/EN) via WPML
+- Données personnelles : conformité RGPD obligatoire
+- Pas de plugin tiers pour les formulaires, tout est custom
+- PHP 8.1 minimum
+```
+
+Sans ce fichier, Claude connaît peut-être l'arborescence de mon projet, mais il navigue à l'aveugle sur les décisions fonctionnelles. Avec, il comprend pourquoi certains choix ont été faits — et évite d'en proposer d'autres qui iraient à contresens.
+
+### NEXT_STEPS.md — le tableau de bord du projet
+
+C'est le fichier que j'utilise le plus au quotidien. Il contient deux choses : ce qui a déjà été fait (avec des cases cochées), et ce qui reste à faire, priorisé.
+
+```md
+## ✅ Fait
+
+- [x] Mise en place de l'environnement
+- [x] Création du post type `candidature`
+- [x] Formulaire de soumission — étape 1 (informations personnelles)
+
+## 🔜 À faire
+
+- [ ] Formulaire de soumission — étape 2 (documents à uploader)
+- [ ] Notification email à l'admin à chaque nouvelle candidature
+- [ ] Interface de suivi dans le back-office WP
+```
+
+Au fil de la session, je demande à Claude de mettre à jour ce fichier : cocher ce qui vient d'être fait, déplacer un point si la priorité change, ajouter une tâche qui émerge en cours de route. Ça me permet d'avoir un état du projet toujours à jour — et Claude sait exactement où on en est, même si on reprend après une pause ou le lendemain matin.
+
+### STRUCTURE.md — l'architecture du projet
+
+Je documente l'arborescence des fichiers, le rôle de chaque dossier ou fichier clé, et les conventions utilisées.
+
+```md
+## Architecture
+
+/plugin-candidatures
+├── plugin-candidatures.php # Point d'entrée, déclaration du plugin
+├── includes/
+│ ├── class-post-types.php # Enregistrement du post type candidature
+│ ├── class-form.php # Logique du formulaire multi-étapes
+│ ├── class-mailer.php # Notifications email
+│ └── helpers.php # Fonctions utilitaires
+├── templates/
+│ └── form/ # Templates PHP du formulaire
+├── assets/
+│ ├── js/form.js # Script du formulaire (vanilla JS)
+│ └── css/form.css
+└── STRUCTURE.md # Ce fichier
+```
+
+Ça évite les questions du type "où est-ce que je mets ce fichier ?" ou "comment s'appelle déjà cette classe ?". Claude s'appuie sur ce fichier pour rester cohérent avec l'organisation existante, au lieu de partir dans sa propre direction.
+
+### D'autres fichiers selon les besoins
+
+Sur des projets plus longs ou plus complexes, j'ajoute parfois :
+
+- **CONVENTIONS.md** — les règles de nommage, les patterns à suivre ou à éviter, les standards retenus pour ce projet spécifique.
+- **DECISIONS.md** — un journal des choix techniques importants, avec la raison derrière chaque décision. Indispensable quand tu reviens sur un projet trois mois plus tard.
+- **KNOWN_ISSUES.md** — les bugs connus, les comportements non résolus, les points à surveiller. Ça évite de re-débugger quelque chose qu'on a déjà investigué.
+
+Et bonus non négligeable : maintenir ces fichiers te force à organiser ta pensée avant de coder. Ce qui est rarement une mauvaise idée.
+
+## Je lis tout. Vraiment tout.
+
+Règle numéro un : **je ne valide jamais du code que je n'ai pas lu**.
+
+Ça peut sembler évident, mais c'est tentant de faire confiance et d'aller vite, surtout quand le code semble propre au premier regard. Sauf que "semble propre" et "est correct" sont deux choses différentes.
+
+Quand Claude me propose quelque chose, je prends le temps de :
+
+1. **Lire le code ligne par ligne** — pas en diagonale.
+2. **Vérifier que la logique correspond à ce que j'avais en tête**.
+3. **Chercher les angles morts** : gestion des erreurs, cas limites, sécurité, accessibilité.
+4. **Poser des questions si quelque chose m'échappe** — directement à Claude, ou dans la doc.
+
+Si je ne comprends pas un bloc de code généré, je demande une explication. Et si l'explication ne me convainc pas, je demande une alternative.
+
+## Un exemple concret
+
+Récemment, je travaillais sur un plugin WordPress qui devait exposer des données via une route REST API personnalisée. J'avais une idée précise de la structure de la route, des paramètres attendus et des permissions.
+
+Voici à peu près comment s'est déroulée la session avec Claude Code :
+
+**Étape 1 — je pose le contexte :**
+
+> "Je développe un plugin WordPress. Je veux enregistrer une route REST API custom via `register_rest_route()`. La route doit accepter un paramètre `user_id` en GET, vérifier que l'utilisateur est connecté, et retourner ses méta-données. Je veux que la validation et la sanitisation soient faites correctement."
+
+**Étape 2 — je relis la proposition et je note ce qui me gêne** :
+
+Dans ce cas, Claude avait utilisé `sanitize_text_field()` sur un paramètre qui était censé être un entier. Pas dramatique, mais pas optimal non plus. Je lui signale.
+
+**Étape 3 — on itère :**
+
+> "Pour `user_id`, utilise `absint()` plutôt que `sanitize_text_field()`, c'est plus adapté à un entier."
+
+Et ainsi de suite. À la fin, j'ai du code que je comprends, que je sais défendre, et que je pourrais réécrire si nécessaire.
+
+## Ce que ça change dans mon quotidien
+
+Honnêtement ? J'écris moins de code manuellement qu'avant. Mais je _pense_ autant — peut-être même plus, parce que je dois formuler mes problèmes clairement pour que Claude soit utile.
+
+Les gains concrets :
+
+- **Je vais plus vite sur les parties répétitives** : boilerplate, structure de fichiers, migrations SQL, tests unitaires...
+- **Je reste bloqué moins longtemps** : quand je coince sur un bug ou une API que je connais mal, Claude me donne un point de départ solide.
+- **Je documente mieux** : je lui demande souvent de générer les commentaires ou la doc PHPDoc après avoir écrit le code, ce qui m'évite une tâche que j'avais tendance à remettre à plus tard.
+
+En revanche, je n'ai pas délégué ma vision d'ensemble, mes choix d'architecture, ni ma responsabilité sur la qualité du code livré. Ce sont des choses qui restent de mon côté.
+
+## Ce que le vibe coding rend invisible
+
+Le vrai problème du vibe coding, c'est qu'il crée une **illusion de compétence**. Le code fonctionne, donc tout va bien. Sauf qu'un bout de code qui "fonctionne" peut très bien :
+
+- Introduire des failles de sécurité.
+- Être inaccessible (pas de gestion du focus clavier, pas d'attributs ARIA adaptés).
+- Être illisible pour quelqu'un d'autre — ou pour toi-même dans six mois.
+- Ne pas gérer les cas d'erreur.
+- Être impossible à faire évoluer sans tout casser.
+
+Si tu n'as pas lu et compris ce que tu as mis en production, tu ne peux pas défendre ces points. Et sur un projet client ou un produit réel, c'est un problème sérieux.
+
+## En résumé
+
+Mon process tient en quelques principes :
+
+- **Claude Code est mon pair, pas mon exécutant.** Je lui soumets des problèmes bien définis, pas des demandes vagues.
+- **Je lis et je comprends tout ce qu'il génère.** Pas de validation aveugle.
+- **Je documente le projet pour le LLM autant que pour moi.** NEXT_STEPS.md, STRUCTURE.md et quelques autres fichiers font toute la différence sur la continuité du travail.
+- **Je reste responsable du résultat.** Le code qui sort de mon projet, c'est le mien — pour le meilleur et pour le pire.
+- **J'itère en petites étapes.** Moins de risque de me retrouver avec une grosse boîte noire incompréhensible.
+
+Les LLMs sont des outils puissants. Mais comme tous les outils puissants, leur valeur dépend surtout de la façon dont on les utilise.
