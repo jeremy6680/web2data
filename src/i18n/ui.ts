@@ -39,6 +39,7 @@ export const ui = {
     "components.listPostCover.publishedAt": "Published at",
     "components.pagination.previous": "Previous",
     "components.pagination.next": "Next",
+    "components.pagination.of": "of",
     "components.socialShareButtons.sharing": "Sharing is caring!",
     "components.comments.title": "Comments",
 
@@ -112,6 +113,7 @@ export const ui = {
     "components.listPostCover.publishedAt": "Publié le",
     "components.pagination.previous": "Précédent",
     "components.pagination.next": "Suivant",
+    "components.pagination.of": "sur",
     "components.socialShareButtons.sharing": "Partager, c’est aimer !",
     "components.comments.title": "Commentaires",
 

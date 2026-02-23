@@ -34,18 +34,26 @@
   --line-height-13: 3.25rem;
   --line-height-14: 3.5rem;
 
-  /* Map custom primary color scale to the default pink palette */
-  --color-primary-50: var(--color-pink-50);
-  --color-primary-100: var(--color-pink-100);
-  --color-primary-200: var(--color-pink-200);
-  --color-primary-300: var(--color-pink-300);
-  --color-primary-400: var(--color-pink-400);
-  --color-primary-500: var(--color-pink-500);
-  --color-primary-600: var(--color-pink-600);
-  --color-primary-700: var(--color-pink-700);
-  --color-primary-800: var(--color-pink-800);
-  --color-primary-900: var(--color-pink-900);
-  --color-primary-950: var(--color-pink-950);
+  /* Brand coral (vibrant, NOT for text on white) */
+  --color-coral-400: #FF7A5C;
+  --color-coral-500: #FF6B4A;
+
+  /* Accessible coral (for text, links, icons) */
+  --color-coral-a11y-500: #D94A2F;
+  --color-coral-a11y-600: #C73E28;
+
+  /* Map custom primary color scale to the coral palette */
+  --color-primary-50: #FFF0ED;
+  --color-primary-100: #FFE1DA;
+  --color-primary-200: #FFC2B5;
+  --color-primary-300: #FF9F8A;
+  --color-primary-400: var(--color-coral-400);
+  --color-primary-500: var(--color-coral-500);
+  --color-primary-600: var(--color-coral-a11y-500);
+  --color-primary-700: var(--color-coral-a11y-600);
+  --color-primary-800: #9E2F1E;
+  --color-primary-900: #7A2417;
+  --color-primary-950: #3D120B;
 }
 
 /* ============================================================
