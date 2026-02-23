@@ -71,7 +71,14 @@ Construit avec Astro v5 + Tailwind CSS v4, basé sur [tailwind-astro-starting-bl
 ├── Dockerfile
 ├── package.json
 ├── pnpm-lock.yaml
-└── tsconfig.json
+├── tsconfig.json
+├── README.md                      # Commandes de base (dev, build, preview)
+├── CONTEXT.md                     # Contexte du projet (objectif, stack, contraintes)
+├── STRUCTURE.MD                   # Ce fichier — arborescence et fichiers clés
+├── NEXT_STEPS.md                  # Tableau de bord : tâches faites et à faire
+├── CONVENTIONS.md                 # Conventions de nommage, patterns, standards
+├── DECISIONS.md                   # Journal des décisions techniques
+└── KNOWN_ISSUES.md                # Bugs connus et points à surveiller
 ```
 
 ---
