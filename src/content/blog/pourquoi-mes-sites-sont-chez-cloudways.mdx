@@ -1,0 +1,120 @@
+---
+title: "Pourquoi j'ai fini par poser mes valises chez Cloudways"
+summary: "Après être passé par O2Switch, Gandi, SiteGround et WP Serveur, la quasi-totalité de mes sites WordPress tourne aujourd'hui chez Cloudways. Voici pourquoi."
+postLayout: column
+date: "2026-02-24"
+lastmod: "2026-02-24"
+draft: false
+tags:
+  - wordpress
+  - hebergement-web
+  - outils
+---
+
+L'hébergement web, c'est un peu comme le choix d'un logement : on signe souvent un bail sans trop savoir ce qu'on s'apprête à vivre, et on change quand la douleur devient insupportable. J'ai essayé pas mal d'hébergeurs au fil des années — O2Switch, Gandi, SiteGround, WP Serveur — avant d'atterrir chez Cloudways. Et depuis, je n'ai pas vraiment envie de repartir.
+
+Voilà un retour d'expérience sans langue de bois sur ce choix, avec ses avantages réels et ses quelques limites à connaître.
+
+---
+
+## Un peu de contexte
+
+Quand on gère des sites WordPress — que ce soit pour soi ou pour des clients — le choix de l'hébergeur a un impact direct sur la qualité du travail au quotidien. Les performances, la stabilité, la facilité de déploiement, la réactivité du support en cas de problème : tout ça compte, et pas qu'un peu.
+
+J'ai commencé comme beaucoup, sur un hébergement mutualisé — O2Switch en l'occurrence, une valeur sûre dans la communauté WordPress francophone. Pratique pour démarrer, mais vite limité dès que les projets deviennent un peu sérieux — en termes de trafic, de personnalisation ou tout simplement de santé mentale.
+
+---
+
+## Ce qui m'a fait quitter les autres
+
+### O2Switch
+
+O2Switch, c'est souvent le premier hébergeur qu'on recommande dans la communauté WordPress francophone — et pour cause. Hébergeur français, offre mutualisée à prix fixe, support en français, infrastructure correcte : c'est une très bonne porte d'entrée. C'est d'ailleurs par là que j'ai commencé.
+
+Pour des projets simples, ça fait largement le travail. Mais avec le temps, et à mesure que les projets gagnent en complexité, les limites d'un mutualisé classique finissent par se faire sentir : ressources partagées, moins de contrôle sur la configuration serveur, environnements de staging moins souples à mettre en place. Rien de rédhibitoire pour un usage standard, mais pas suffisant quand on veut aller plus loin.
+
+### Gandi
+
+Gandi, c'est une boîte française que j'aime bien… pour l'image qu'elle renvoie. Mais soyons honnêtes : le prix du renouvellement des noms de domaine est franchement abusé. Pour un `.fr` ou un `.com`, on se retrouve à payer nettement plus cher qu'ailleurs — Namecheap, OVH ou Porkbun proposent souvent les mêmes extensions à deux ou trois fois moins. Difficile à justifier.
+
+L'offre hébergement, de son côté, m'a toujours semblé un peu rigide pour WordPress. Interface peu intuitive, perfs correctes sans être remarquables, pas vraiment pensé pour les devs. Rien de catastrophique, mais pas de quoi s'enthousiasmer non plus.
+
+### SiteGround
+
+SiteGround, c'est une référence dans la communauté WordPress, et à raison : leurs temps de chargement sont solides, leur support est réactif, et leur interface maison (Site Tools) est propre. Le problème ? Les prix ont sérieusement grimpé ces dernières années, et les offres d'entrée de gamme sont devenues moins compétitives. Pour plusieurs sites simultanément, la facture monte vite.
+
+### WP Serveur
+
+WP Serveur, c'est un hébergeur français spécialisé WordPress, plutôt bien considéré dans la communauté francophone. Support sympa, infra optimisée pour WP. Mais deux choses m'ont finalement poussé à chercher ailleurs.
+
+D'abord, certaines limitations côté contrôle serveur et configuration. Ensuite — et c'est ce qui m'a le plus frustré — le manque de flexibilité de leur grille tarifaire. Les offres sont découpées par paliers : 1, 3, 5, 10 sites... Quand tu en as 6, tu te retrouves à payer pour 10. Ils ont depuis ajouté une offre à 2 sites, mais ça reste une logique de paliers rigides qui ne colle pas toujours à la réalité du terrain.
+
+---
+
+## Pourquoi Cloudways ?
+
+### 1. Le rapport qualité-prix
+
+Cloudways, c'est un gestionnaire de cloud servers qui s'appuie sur des fournisseurs comme DigitalOcean, AWS, Google Cloud, Linode ou Vultr. Tu choisis ton provider, ta taille de serveur, et tu paies en fonction de la puissance réelle dont tu as besoin.
+
+Résultat : pour le prix d'un hébergement mutualisé premium, tu te retrouves avec un VPS correctement dimensionné, sans partager tes ressources avec 200 autres sites. Et si un projet grossit, tu scales en quelques clics.
+
+### 2. Une interface pensée pour les devs
+
+C'est probablement ce qui m'a le plus séduit. Cloudways propose une interface propre et logique qui te donne accès à ce dont tu as besoin sans t'obliger à mettre les mains dans le SSH pour la moindre config basique :
+
+- Gestion des applications (WordPress, mais aussi d'autres CMS)
+- Accès SFTP et SSH facilement configurables
+- Gestion des équipes et des accès par rôle (utile pour les projets clients)
+- Git déployable directement via leur interface
+- Variables d'environnement, redirections, SSL en un clic
+
+Ce n'est pas un panneau cPanel, et c'est tant mieux.
+
+### 3. Les performances
+
+Cloudways utilise par défaut une stack bien optimisée : Nginx, Varnish, Redis, et un cache applicatif intégré (Breeze, leur propre plugin). Sans toucher à grand-chose, les temps de réponse sont bons. Avec un peu de configuration, ils sont très bons.
+
+J'utilise principalement DigitalOcean comme provider backend, et les résultats sont constants. Pour des projets clients avec du trafic modéré à moyen, ça tourne nickel.
+
+### 4. Le support
+
+C'est là que beaucoup d'hébergeurs se cassent les dents. Chez Cloudways, le support est disponible 24/7 via chat en direct. Ils répondent vite — souvent en quelques minutes — et les agents savent vraiment de quoi ils parlent. Pas du copier-coller de doc, mais des réponses adaptées au problème. J'ai eu à les contacter pour des questions techniques pointues et je n'ai jamais eu l'impression de me battre contre un robot.
+
+### 5. Une vraie expertise WordPress, sans en faire une prison
+
+C'est un détail qui compte plus qu'il n'y paraît. Cloudways connaît bien WordPress — leur stack est optimisée pour, leur doc est fournie sur le sujet, et leur support sait de quoi il parle quand tu arrives avec un problème lié à WP. Mais contrairement à des hébergeurs 100 % WordPress comme WP Serveur, tu n'es pas enfermé dans une offre mono-CMS. Tu peux tout à fait faire tourner autre chose sur le même serveur — un site Astro, une app Node.js, un Laravel — sans changer d'hébergeur ni d'interface. Pour quelqu'un qui touche à des projets variés, c'est une vraie liberté.
+
+### 6. La gestion multi-sites et multi-clients
+
+C'est un cas d'usage courant pour les devs freelance ou en agence : gérer des dizaines de sites avec des clients différents, parfois sur des serveurs séparés. Cloudways permet de tout centraliser dans une interface unique, avec des accès personnalisés par projet. C'est propre, ça évite de jongler entre 15 panneaux différents.
+
+---
+
+## Et Hostinger dans tout ça ?
+
+J'aime bien Hostinger aussi, et je l'utilise sur certains projets. Pour du WordPress "standard" sans besoin de contrôle fin, leur offre est difficile à battre question prix. L'interface a bien évolué, les perfs sont honorables, et le support est réactif.
+
+C'est une bonne option pour des sites vitrines, des blogs ou des projets avec un budget serré. Là où Cloudways prend l'avantage, c'est dès que le projet devient plus complexe : e-commerce avec du trafic, architecture multi-environnements (staging/prod), ou besoin de contrôle avancé sur la configuration serveur.
+
+Les deux ont leur place dans ma boîte à outils — c'est une question de contexte.
+
+---
+
+## Ce que Cloudways n'est pas
+
+Soyons honnêtes : Cloudways n'est pas parfait, et ce n'est pas forcément la bonne solution dans tous les cas.
+
+- **Pas idéal pour les débutants** : l'interface est accessible, mais le modèle cloud/serveur peut être déroutant si on n'a pas de background technique. Il faut comprendre un minimum ce qu'est un serveur et comment ça fonctionne.
+- **Pas le moins cher pour un seul petit site** : si tu as un seul site perso avec 500 visites par mois, un mutualisé fera très bien l'affaire pour moins cher.
+- **Pas de gestion de domaine** : Cloudways ne gère pas les noms de domaine, il faut passer par un registrar externe (Gandi, OVH, Namecheap...). Ce n'est pas un défaut en soi, mais ça ajoute une couche de gestion.
+
+---
+
+## En résumé
+
+Si tu développes des sites WordPress de façon régulière — pour toi ou pour des clients — et que tu veux un hébergement fiable, flexible, et pensé pour les gens qui mettent les mains dans le cambouis, Cloudways est aujourd'hui ma référence.
+
+Pas parfait, pas le moins cher sur le papier, mais le meilleur compromis que j'ai trouvé entre performances, contrôle, support et prix réel. Et après avoir testé les autres, c'est pas rien.
+
+Pour les projets plus simples ou avec un budget limité, Hostinger reste une valeur sûre. Les deux cohabitent bien dans mon workflow — et c'est souvent la combinaison gagnante.
