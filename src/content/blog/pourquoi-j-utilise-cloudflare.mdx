@@ -1,0 +1,94 @@
+---
+title: "Pourquoi j'utilise Cloudflare (gratuit) pour gérer mes noms de domaine"
+summary: "Retour d'expérience sur l'utilisation de Cloudflare en version gratuite comme gestionnaire de DNS. Pourquoi ça vaut le coup, même quand on débute — et ce que ça change concrètement au quotidien."
+postLayout: column
+date: "2026-02-24"
+lastmod: "2026-02-24"
+draft: false
+related:
+  - deploiement-automatique-sur-netlify
+tags:
+  - devops
+  - outils
+---
+
+Gérer des noms de domaine, c'est souvent une corvée qu'on bâcle — on règle ça une fois à l'achat, on oublie, et on revient dessus seulement quand quelque chose plante. Pendant longtemps, j'ai fait pareil. DNS chez le registrar, configuration oubliée dans un coin, et une interface qui date de 2008.
+
+Depuis que j'utilise Cloudflare pour centraliser la gestion de mes domaines, j'ai vraiment simplifié la chose. Et ça ne m'a pas coûté un centime — la version gratuite suffit largement pour ce dont j'ai besoin.
+
+Voici pourquoi j'ai fait ce choix, et ce que ça change concrètement.
+
+---
+
+## Le problème de départ
+
+Comme beaucoup de développeurs web, j'ai des noms de domaine éparpillés : des domaines clients, des projets perso, des trucs en cours de construction. Chacun acheté à des moments différents, parfois chez des registrars différents.
+
+Le souci, c'est que les interfaces DNS des registrars sont souvent lentes, peu intuitives, et ne proposent pas grand-chose en dehors du strict minimum. Modifier un enregistrement et attendre plusieurs heures que ça se propage… c'est pénible, surtout quand on est en train de configurer un déploiement ou de migrer un site.
+
+---
+
+## Ce que j'utilise chez Cloudflare (et pourquoi c'est suffisant en gratuit)
+
+Je ne passe pas par Cloudflare pour acheter mes domaines — je les achète toujours chez mon registrar habituel. Ce que je fais, c'est **déléguer la gestion des DNS à Cloudflare**, ce qui se fait en deux étapes : importer le domaine dans Cloudflare, puis mettre à jour les nameservers chez le registrar pour pointer vers ceux de Cloudflare.
+
+Une fois ça en place, voilà ce que je gagne :
+
+### Une interface DNS vraiment agréable
+
+Ça a l'air con, mais l'interface de Cloudflare est propre, rapide, et intuitive. Ajouter un enregistrement A, CNAME, MX ou TXT prend 30 secondes. Pas besoin de chercher pendant 5 minutes où se cache l'option.
+
+### La propagation DNS en quelques minutes
+
+C'est probablement le truc que j'apprécie le plus. Là où d'autres registrars parlent de "24 à 48h", Cloudflare propage les changements DNS en **quelques minutes**. Concrètement, quand je [déploie un nouveau projet sur Netlify](/blog/deploiement-automatique-sur-netlify), ou que je reconfigure un site, ça prend effet quasi instantanément. C'est un gain de temps réel.
+
+### Le proxy Cloudflare (le petit nuage orange)
+
+Sur certains de mes domaines, j'active le proxy Cloudflare — l'icône nuage orange dans l'interface. Ce que ça fait : le trafic transite par les serveurs de Cloudflare avant d'arriver chez mon hébergeur. En pratique, ça apporte :
+
+- **Une couche de protection DDoS** de base, automatique
+- **Le masquage de l'IP réelle** du serveur
+- **Un CDN** pour les assets statiques, sans rien faire de plus
+
+Tout ça, en gratuit. Sur des projets perso ou des sites clients avec un trafic raisonnable, c'est très bien.
+
+### Les certificats SSL gérés automatiquement
+
+Cloudflare génère et renouvelle automatiquement les certificats SSL pour les domaines qu'il gère. C'est pratique pour avoir le HTTPS sans devoir penser à la rotation des certificats.
+
+### Les règles de redirection (Page Rules)
+
+En version gratuite, on a droit à 3 Page Rules. C'est limité, mais pour des redirections simples — par exemple rediriger `www` vers le domaine nu ou vice-versa — c'est suffisant. Pour des besoins plus complexes, Cloudflare propose désormais les "Redirect Rules" qui sont un peu plus flexibles.
+
+---
+
+## Ce que je n'utilise pas (encore)
+
+La version gratuite a ses limites. Je n'ai pas accès aux analytics avancés, ni aux règles de firewall complexes, ni à certaines fonctionnalités Workers. Pour des projets plus sérieux côté infrastructure, l'offre Pro (20$/mois) commence à avoir du sens. Mais pour l'instant, le gratuit couvre 100% de mes besoins.
+
+---
+
+## En résumé
+
+| Ce que ça apporte              | Disponible en gratuit ? |
+| ------------------------------ | ----------------------- |
+| Interface DNS claire et rapide | ✅                      |
+| Propagation DNS ultra-rapide   | ✅                      |
+| Proxy / CDN de base            | ✅                      |
+| Protection DDoS basique        | ✅                      |
+| SSL automatique                | ✅                      |
+| Redirections simples           | ✅ (3 Page Rules)       |
+| Analytics avancés              | ❌ (Pro)                |
+| Firewall rules avancées        | ❌ (Pro)                |
+
+---
+
+## Pour aller plus loin
+
+Si tu veux tester, c'est gratuit et sans engagement. Tu gardes ton domaine chez ton registrar habituel — tu changes juste les nameservers. Cloudflare importe même automatiquement tes enregistrements DNS existants lors de la configuration, ce qui évite les erreurs.
+
+Le site officiel : [cloudflare.com](https://www.cloudflare.com/)
+
+---
+
+Bref, ce n'est pas une révolution, mais c'est l'un de ces petits outils qu'on adopte une fois et qu'on ne remet plus en question. Si tu jonglais encore avec les DNS de ton registrar, ça vaut vraiment la peine de tester.
