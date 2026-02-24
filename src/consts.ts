@@ -27,7 +27,7 @@ export const SITE_METADATA = {
     },
     simpleAnalytics: false, // Activate Simple Analytics
     umami: {
-      site: "web2data.jeremymarchandeau.com",
+      site: "https://umami.lumafinch.com",
       dataId: "7d38947c-ca44-410d-bd49-924708cb4e94",
       host: "/script.js",
     },
