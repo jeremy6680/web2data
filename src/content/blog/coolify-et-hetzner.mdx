@@ -1,0 +1,121 @@
+---
+title: "Coolify + Hetzner : comment on a repris le contrôle de notre infra (et pourquoi on adore ça)"
+summary: "On a monté un VPS chez Hetzner avec ma femme, installé Coolify, et depuis on héberge nos propres apps, on teste des outils no-code et IA, avec des backups automatisés sur Backblaze B2. Retour d'expérience sur une stack qui change la vie."
+postLayout: column
+date: "2026-02-24"
+lastmod: "2026-02-24"
+draft: false
+tags:
+  - self-hosting
+  - devops
+  - outils
+---
+
+Je vais être direct : Coolify, c'est l'une des meilleures découvertes que j'ai faites ces derniers mois. Et pourtant, au départ, j'étais loin d'être convaincu que monter sa propre infra en valait la peine.
+
+Spoiler : ça en vaut complètement la peine.
+
+## Le contexte : pourquoi on a sauté le pas
+
+Avec ma femme, on cherchait depuis un moment à ne plus dépendre uniquement de services cloud clé-en-main (Heroku, Railway, et compagnie). Les raisons étaient multiples : le coût qui s'accumule, la dépendance à des plateformes qui peuvent changer leurs tarifs du jour au lendemain, et surtout l'envie de mieux comprendre ce qu'il se passe sous le capot.
+
+On a donc décidé de monter notre propre infrastructure chez **Hetzner**. Pour ceux qui ne connaissent pas, Hetzner c'est un hébergeur allemand au très bon rapport qualité/prix — largement plébiscité dans la communauté dev.
+
+Notre setup aujourd'hui :
+
+- **Serveur 1 (CX22 — 2 Go RAM, 40 Go, Ubuntu)** : c'est là que tourne Coolify
+- **Serveur 2 (CX32 — 4 Go RAM, 40 Go, Ubuntu)** : nos apps et nos terrains de jeu
+- **Backblaze B2** : stockage S3 compatible pour les sauvegardes, avec une rétention de 7 jours
+
+## Coolify, c'est quoi exactement ?
+
+En résumé, Coolify est un **PaaS open-source** (Platform as a Service) que tu héberges toi-même, et qui te permet de déployer des applications, des bases de données et des services depuis une interface web propre — exactement comme le feraient Heroku, Render ou Netlify, mais sur ton propre serveur.
+
+Concrètement, tu connectes tes serveurs à Coolify, et ensuite tu peux déployer :
+
+- Des apps depuis un repo Git (GitHub, GitLab, Gitea...)
+- Des images Docker
+- Des services pré-packagés (bases de données, outils, etc.)
+
+Tout ça sans toucher à la ligne de commande une fois l'installation initiale faite. Enfin presque — parce qu'on est devs, on aime bien garder la main de temps en temps.
+
+## Ce qu'on a installé sur notre deuxième serveur
+
+C'est là où ça devient vraiment fun. Le second serveur, c'est notre bac à sable. On y fait tourner :
+
+- **Actual Budget** — gestion de budget personnel, une alternative open-source à YNAB. Franchement excellent _(NB. à la base, notre installation Actual Budget était sur [Pikapods](https://www.pikapods.com/), on l'avait migrée vers notre propre serveur avec Coolify, mais on l'a depuis re-basculé vers PikaPods)_.
+- **DocMost** — une sorte de Notion/Confluence self-hostée pour nos notes et docs.
+- **Umami** — analytics web open-source, respectueux de la vie privée. Je l'utilise à la place de Google Analytics.
+
+Et en mode "test et expérimentation" (c'est quand même le sujet principal du blog) :
+
+- **n8n** — automatisation de workflows, très puissant
+- **Langflow** — interface visuelle pour construire des pipelines LLM
+- **Langfuse** — observabilité pour les applis LLM, indispensable quand on veut comprendre ce que font ses agents
+- **Flowise** — autre outil de création d'agents IA, plus accessible que LangGraph pour prototyper vite
+- **NocoDB** — alternative open-source à Airtable, base de données avec une interface spreadsheet
+
+Tout ça tourne sur un seul serveur à 4 Go de RAM. Évidemment, on ne fait pas tout tourner en même temps, mais c'est impressionnant de voir combien d'outils on peut héberger soi-même sans que ça explose.
+
+## Deux façons de l'installer — et les deux fonctionnent
+
+C'est l'un des points qui m'a agréablement surpris : Hetzner propose Coolify comme **app pré-installée** directement depuis sa console. Autrement dit, au moment de créer ton serveur, au lieu de choisir un OS classique, tu peux choisir "Coolify" — et il arrive déjà là, prêt à être activé.
+
+La procédure est simple :
+
+1. Tu crées ton serveur dans la Hetzner Console en sélectionnant Coolify comme app
+2. Tu te connectes en SSH au serveur (avec ta clé SSH ou le mot de passe root envoyé par email)
+3. La connexion SSH active Coolify et t'affiche l'URL de l'interface d'administration
+
+C'est tout. Pour les adeptes de la ligne de commande, il y a aussi une option via l'API Hetzner ou `hcloud-cli`, mais la console suffit largement.
+
+On a essayé les deux méthodes — installation manuelle et via l'app Hetzner — et les deux fonctionnent impeccablement. La [doc Hetzner sur Coolify](https://docs.hetzner.com/cloud/apps/list/coolify/) est courte, claire, et elle va droit au but. C'est représentatif de la qualité de leur documentation en général, d'ailleurs : pas de blabla, pas de captures d'écran en trop, juste ce qu'il faut.
+
+## Ce qui rend Coolify vraiment bien
+
+### 1. L'interface est claire et agréable
+
+Je m'attendais à un truc austère façon cPanel des années 2010. C'est tout le contraire. L'UI est moderne, lisible, et ça s'utilise vraiment bien. Ajouter un nouveau service prend littéralement deux minutes.
+
+### 2. Les déploiements depuis Git, ça marche vraiment
+
+Tu connectes ton repo, tu définis les variables d'environnement, tu choisis ta branche, et Coolify s'occupe du reste. On peut même configurer un déploiement automatique à chaque push. Pour mes petits projets de test Python ou Node, c'est parfait.
+
+### 3. La gestion des certificats SSL est automatique
+
+Coolify utilise Let's Encrypt et gère le renouvellement tout seul. Aucune config manuelle. C'est tellement appréciable quand on se rappelle le temps qu'on passait à bricoler Certbot à la main.
+
+### 4. Les backups automatisés vers Backblaze B2
+
+On a configuré des sauvegardes planifiées de nos bases de données directement vers notre bucket Backblaze B2. Rétention à 7 jours, déclenchement automatique, notifications si quelque chose merde. C'est exactement ce qu'on voulait : du backup dont on n'a pas à se préoccuper au quotidien, mais qui est là quand on en a besoin.
+
+### 5. Le projet est actif et la communauté est sympa
+
+Coolify est développé principalement par [Andras Bacsai](https://x.com/heyandras), qui est très présent et transparent sur l'avancement du projet. La feuille de route est publique, les releases sont fréquentes, et le Discord est actif. C'est rassurant quand on mise sur un outil open-source pour son infra perso.
+
+## Ce qu'il faut quand même savoir
+
+Je ne veux pas non plus vendre du rêve sans mentionner les points qui demandent un peu d'attention.
+
+**La mise en place initiale nécessite quelques bases en Linux — ou pas.** Si tu passes par l'app Hetzner, c'est vraiment accessible : tu cliques, tu te connectes en SSH une fois pour activer Coolify, et c'est parti. En revanche, si tu pars d'un VPS vierge pour installer Coolify manuellement, il faut se sentir à l'aise avec SSH, les clés, les ports ouverts, etc. Ce n'est pas insurmontable, mais c'est bon à savoir avant de se lancer.
+
+**La gestion des ressources demande un peu de vigilance.** Quand on empile plusieurs services sur un même serveur, il faut garder un œil sur la RAM et le CPU. Coolify propose des métriques de base, mais pour quelque chose de plus poussé, on va vite avoir besoin d'un outil dédié (Netdata, Grafana, etc.). Et parfois, c'est une vraie surprise : certaines apps qui semblent toutes légères en apparence sont en réalité de vraies goinfres en RAM. On ne s'en rend pas compte jusqu'au moment où on regarde les métriques et où on se demande ce qui bouffe autant.
+
+**Coolify n'est pas magique.** Si ton app est mal construite ou que ta config Docker est bancale, Coolify ne compensera pas. C'est un outil de déploiement, pas un correcteur de bugs.
+
+## Pourquoi je recommande cette stack
+
+Pour résumer, voilà ce que cette stack nous apporte concrètement :
+
+- **Économies réelles** : deux serveurs Hetzner + Backblaze B2, ça revient à une vingtaine d'euros par mois. Pour ce qu'on héberge, c'est imbattable.
+- **Liberté totale** : on installe ce qu'on veut, on configure comme on veut, pas de limites arbitraires.
+- **Apprentissage** : gérer sa propre infra, même à petite échelle, ça apprend des choses qu'on ne voit pas quand on reste sur des PaaS.
+- **Un vrai terrain d'expérimentation** : pour tester des outils IA et no-code, c'est idéal. On lance, on teste, on coupe si ça ne convient pas.
+
+---
+
+Si tu cherches à reprendre le contrôle de ton hébergement sans pour autant passer des heures à tout configurer à la main, Coolify + Hetzner est une combinaison que je recommande sans hésiter. Et si tu es curieux de te lancer dans le self-hosting pour explorer des outils IA en dehors des environnements cloud fermés, c'est clairement la bonne direction.
+
+Je ferai probablement des articles plus détaillés sur certains des outils qu'on héberge (n8n, Langfuse notamment), mais pour l'instant, c'est cool de poser le contexte et de partager l'enthousiasme.
+
+Parce que oui, c'est possible d'avoir sa propre infra sans être ops à plein temps. Et franchement, c'est satisfaisant.
