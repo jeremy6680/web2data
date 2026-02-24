@@ -27,9 +27,9 @@ export const SITE_METADATA = {
     },
     simpleAnalytics: false, // Activate Simple Analytics
     umami: {
-      site: "", // Add your site id here
-      dataId: "", // Add your data id here
-      host: "/umami.js", // Add your host here
+      site: "web2data.jeremymarchandeau.com",
+      dataId: "7d38947c-ca44-410d-bd49-924708cb4e94",
+      host: "/script.js",
     },
     // amplitudeApiKey: null, // Add your Amplitude Api Key here, not yet implemented
     matomo: {
