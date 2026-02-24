@@ -1,0 +1,227 @@
+---
+title: "CI/CD sur un site WordPress : mon setup avec BitBucket et Cloudways"
+summary: "Avant de migrer vers un site statique déployé sur Netlify, mon site perso tournait sous WordPress sur Cloudways, avec un déploiement automatisé via un webhook BitBucket et l'API Cloudways. Voici comment ça fonctionnait — et ce que j'en retiens."
+postLayout: column
+date: "2026-02-24"
+lastmod: "2026-02-24"
+draft: false
+related:
+  - deploiement-automatique-sur-netlify
+  - pourquoi-mes-sites-sont-chez-cloudways
+tags:
+  - ci-cd
+  - wordpress
+  - bitbucket
+  - cloudways
+  - devops
+---
+
+Quand on parle de CI/CD dans le monde WordPress, on n'est pas exactement sur le terrain du déploiement continu à la Netflix. Mais ça ne veut pas dire qu'on est obligé de faire du FTP à la main à chaque update. J'avais mis en place un pipeline automatisé sur mon ancien site ([jeremymarchandeau.com](https://jeremymarchandeau.com), désormais accessible à [wp.jeremymarchandeau.com](https://wp.jeremymarchandeau.com)) qui m'a bien rendu service pendant plusieurs années. Voilà comment ça marchait.
+
+---
+
+## Le contexte : WordPress sur Cloudways
+
+Mon site perso était hébergé sur **Cloudways**, un hébergement cloud managé qui s'appuie sur des infrastructures comme DigitalOcean, AWS ou GCP. L'idée derrière Cloudways, c'est de te donner accès à la puissance d'un VPS sans avoir à tout configurer toi-même : le serveur web (Apache ou Nginx), PHP, MySQL, les backups automatiques, le certificat SSL — tout ça est géré via une interface propre.
+
+Pour un site WordPress, c'est un bon compromis : tu n'es pas sur un hébergement mutualisé limité, mais tu n'as pas non plus à jouer à l'admin sys à plein temps.
+
+Le versioning du projet, lui, était géré sur **BitBucket**. J'utilisais déjà BitBucket chez Whodunit, donc autant rester dans le même outil pour mes projets perso.
+
+---
+
+## Ce qu'on versionne (et ce qu'on ne versionne pas)
+
+Un site WordPress, c'est un mélange de plusieurs choses :
+
+- Le **cœur WordPress** (qu'on ne versionne généralement pas)
+- Les **plugins** (idem, souvent gérés manuellement ou via Composer)
+- Le **thème custom** (là, c'est du code qu'on produit et qu'on versionne)
+- La **base de données** (hors scope du déploiement de code)
+
+Dans mon cas, je versionnais uniquement **mon thème sur mesure**. C'est le seul endroit où je produisais du code, donc le seul endroit où un pipeline de déploiement avait du sens.
+
+L'objectif : **quand je pushe sur la branche principale, les fichiers du thème se mettent à jour automatiquement sur le serveur**, sans passer par du SFTP ou une intervention manuelle.
+
+---
+
+## Le setup : clé SSH + webhook + API Cloudways
+
+Le mécanisme repose sur trois composants qui s'articulent ensemble.
+
+### 1. La clé SSH générée par Cloudways
+
+Cloudways propose un onglet **"Deployment via Git"** dans les paramètres de chaque application. C'est là que tout commence.
+
+Cloudways génère une paire de clés SSH. Tu télécharges la **clé publique** et tu l'ajoutes dans BitBucket, dans les **Access Keys** de ton repo (Settings → Security → Access keys). Ça permet à Cloudways de s'authentifier auprès de BitBucket et de puller le repo sans mot de passe.
+
+De l'autre côté, tu renseignes dans l'interface Cloudways l'adresse SSH de ton repo :
+
+```
+git@bitbucket.org:jmarchandeau/jeremymarchandeau.com-v2.git
+```
+
+Et tu sélectionnes la branche à déployer. À ce stade, Cloudways peut faire un `git pull` depuis son interface — mais c'est encore manuel. L'automatisation vient ensuite.
+
+### 2. Le script `gitautodeploy.php`
+
+Pour déclencher le déploiement automatiquement à chaque push BitBucket, j'utilise un script PHP à la racine du site qui appelle l'**API Cloudways**. Le principe : BitBucket appelle l'URL de ce script via un webhook, le script s'authentifie auprès de l'API Cloudways et lui demande de faire un `git pull`.
+
+```php
+<?php
+// Clé API et identifiants Cloudways
+const API_KEY = "VOTRE_CLE_API";
+const API_URL = "https://api.cloudways.com/api/v1";
+const EMAIL   = "votre@email.com";
+
+/**
+ * Envoie une requête à l'API Cloudways.
+ *
+ * @param string      $method      Méthode HTTP (GET, POST, etc.)
+ * @param string      $url         Endpoint de l'API (ex: /oauth/access_token)
+ * @param string|null $accessToken Token d'accès (null pour l'auth initiale)
+ * @param array       $post        Paramètres POST à envoyer
+ * @return object                  Réponse JSON décodée
+ */
+function callCloudwaysAPI($method, $url, $accessToken, $post = [])
+{
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+    curl_setopt($ch, CURLOPT_URL, API_URL . $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+    // Ajout du header d'autorisation si un token est fourni
+    if ($accessToken) {
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Authorization: Bearer ' . $accessToken]);
+    }
+
+    // Encodage et envoi des paramètres POST
+    if (count($post)) {
+        $encoded = '';
+        foreach ($post as $name => $value) {
+            $encoded .= urlencode($name) . '=' . urlencode($value) . '&';
+        }
+        $encoded = rtrim($encoded, '&');
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $encoded);
+        curl_setopt($ch, CURLOPT_POST, 1);
+    }
+
+    $output   = curl_exec($ch);
+    $httpcode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpcode !== 200) {
+        die('Erreur API Cloudways — code : ' . $httpcode . ' — réponse : ' . substr($output, 0, 1000));
+    }
+
+    return json_decode($output);
+}
+
+// Étape 1 : récupérer un access token OAuth
+$tokenResponse = callCloudwaysAPI('POST', '/oauth/access_token', null, [
+    'email'   => EMAIL,
+    'api_key' => API_KEY,
+]);
+
+$accessToken = $tokenResponse->access_token;
+
+// Étape 2 : déclencher le git pull sur l'application cible
+$gitPullResponse = callCloudwaysAPI('POST', '/git/pull', $accessToken, [
+    'server_id'   => $_GET['server_id'],
+    'app_id'      => $_GET['app_id'],
+    'git_url'     => $_GET['git_url'],
+    'branch_name' => $_GET['branch_name'],
+]);
+
+echo json_encode($gitPullResponse);
+```
+
+Le script reçoit quatre paramètres en GET : `server_id`, `app_id`, `git_url` et `branch_name`. Ces valeurs sont passées directement dans l'URL du webhook — on y revient juste après.
+
+> **Sécurité :** ce script est accessible publiquement. Dans une version plus robuste, on ajouterait une vérification du secret de webhook BitBucket (passé dans les headers de la requête) pour s'assurer que l'appel vient bien de BitBucket et pas de n'importe qui.
+
+### 3. Le webhook BitBucket
+
+Dernière pièce du puzzle : configurer BitBucket pour qu'il appelle ce script automatiquement à chaque push.
+
+Dans le repo BitBucket : **Settings → Webhooks → Add webhook**.
+
+L'URL du webhook ressemble à ça :
+
+```
+https://jeremymarchandeau.com/gitautodeploy.php
+  ?server_id=VOTRE_SERVER_ID
+  &app_id=VOTRE_APP_ID
+  &git_url=git@bitbucket.org:jmarchandeau/jeremymarchandeau.com-v2.git
+  &branch_name=main
+```
+
+Le `server_id` et l'`app_id` se récupèrent depuis le **dashboard Cloudways**, dans les paramètres de ton serveur et de ton application. Cloudways les affiche directement — note-les quelque part, tu en as besoin une seule fois pour construire l'URL du webhook.
+
+Tu choisis ensuite le trigger : **Push** suffit.
+
+---
+
+## Le workflow au quotidien
+
+Une fois tout en place, ça se passe comme ça :
+
+1. Je code en local
+2. Je commit et je pushe sur `main`
+3. BitBucket détecte le push et appelle l'URL du webhook
+4. `gitautodeploy.php` s'exécute, s'authentifie auprès de l'API Cloudways et déclenche un `git pull`
+5. Cloudways va chercher les nouveaux commits directement depuis BitBucket via SSH
+6. Le thème est à jour sur le serveur — en moins d'une minute
+
+C'est propre, c'est rapide, et ça ne dépend d'aucun service externe payant au-delà de Cloudways lui-même.
+
+---
+
+## Ce que j'aurais pu améliorer
+
+**Sécuriser le webhook.** BitBucket envoie un secret dans les headers de chaque appel webhook. Vérifier ce secret dans `gitautodeploy.php` avant d'appeler l'API Cloudways éviterait qu'un tiers puisse déclencher un déploiement en appelant l'URL directement.
+
+**Gérer la compilation des assets côté serveur.** Mon thème utilisait Sass et Webpack. Je compilais les assets en local avant de pusher, ce qui fonctionnait mais impliquait de versionner les fichiers compilés (CSS, JS minifié). Une meilleure approche : ajouter une étape de build dans BitBucket Pipelines avant le déploiement, pour que les assets soient toujours générés dans les mêmes conditions, quelle que soit la machine du développeur.
+
+**Un environnement de staging.** Cloudways facilite la création d'apps de staging. On aurait pu avoir deux webhooks : un pointant vers staging (déclenché à chaque push sur `develop`) et un vers la production (déclenché au merge sur `main`). Un classique que je n'ai jamais pris le temps de mettre en place.
+
+---
+
+## BitBucket + Cloudways vs GitHub + Netlify
+
+Maintenant que j'ai vécu les deux setups ([voir mon article sur le déploiement sur Netlify via Github](/blog/deploiement-automatique-sur-netlify)), voilà une comparaison franche.
+
+### La complexité de mise en place
+
+Le setup BitBucket + Cloudways demande **une configuration initiale non triviale** : générer et déployer la clé SSH, écrire et héberger le script PHP, configurer le webhook avec les bons paramètres. Ça prend une heure à faire proprement, et si tu ne l'as pas fait récemment, il y a quelques pièges à éviter.
+
+GitHub + Netlify, c'est dix minutes : tu connectes ton repo, tu indiques la commande de build et le dossier de sortie, et c'est plié. Netlify gère tout le reste.
+
+### La nature des projets
+
+La comparaison n'est pas vraiment équitable, parce que les deux setups ne servent pas les mêmes besoins.
+
+**BitBucket + Cloudways** est fait pour des projets avec un **serveur applicatif** : PHP, WordPress, bases de données. Tu as un vrai serveur configurable, avec accès SSH, gestion des processus, logs serveur, etc. C'est indispensable pour WordPress.
+
+**GitHub + Netlify** est conçu pour du **statique** : HTML, CSS, JS générés à la compilation. Pas de serveur PHP, pas de base de données. Mon site React/Vite en est l'exemple parfait.
+
+|                              | BitBucket + Cloudways              | GitHub + Netlify                          |
+| ---------------------------- | ---------------------------------- | ----------------------------------------- |
+| **Mise en place**            | ~1h, config manuelle               | ~10 min, guidé                            |
+| **Type de projet**           | Dynamique (PHP, WordPress)         | Statique (React, Vite, Astro…)            |
+| **Coût**                     | Cloudways : ~12 €/mois minimum     | Netlify : gratuit pour un usage perso     |
+| **Maintenance serveur**      | À surveiller                       | Aucune                                    |
+| **Flexibilité**              | Élevée (accès SSH, config serveur) | Limitée, mais suffisante pour du statique |
+| **Deploy previews**          | Non (pas nativement)               | Oui, par branche ou PR                    |
+| **Rollback**                 | Possible via Git                   | En un clic dans l'interface               |
+| **Mécanisme de déploiement** | Webhook → API → git pull           | Push GitHub → build automatique           |
+
+### Le bon outil pour le bon projet
+
+Ce n'est pas que l'un soit meilleur que l'autre — c'est qu'ils ne jouent pas dans la même catégorie.
+
+Pour un site WordPress, Cloudways reste une très bonne option, et le combo webhook BitBucket + API Cloudways fait le boulot efficacement. La mécanique est un peu artisanale comparée à Netlify, mais elle est fiable et donne un contrôle total sur ce qui est déployé et quand.
+
+Pour un site statique ou une SPA, Netlify est imbattable en termes de simplicité et de rapport fonctionnalités/coût. La comparaison avec Cloudways ne tient même plus vraiment — c'est deux outils pensés pour des contextes fondamentalement différents.
+
+Ma migration de WordPress vers React/Vite m'a conduit naturellement à changer de stack de déploiement. Ce n'était pas l'objectif premier, mais c'est l'une des bonnes surprises du changement : une infrastructure plus simple, sans serveur à maintenir, et gratuite pour un usage perso.
