@@ -17,11 +17,15 @@ Ce n'est pas comme ça que je travaille.
 
 Depuis que j'ai intégré les LLMs dans mon workflow de développement, j'ai adopté une approche que je qualifierais de **collaborative mais lucide** : je reste aux commandes, je comprends ce qui se passe, et j'utilise l'IA pour ce qu'elle fait vraiment bien — pas pour remplacer ma réflexion.
 
-## L'outil principal : Claude Code
+## Les outils : Claude Desktop et Claude Code
 
-Mon interlocuteur principal, c'est **Claude Code**. Pas une interface web séparée, pas un autre outil — Claude Code directement intégré dans VS Code, là où je passe une bonne partie de mes journées.
+En pratique, j'alterne entre deux outils selon ce que je suis en train de faire.
 
-Ce qui me plaît dans cette approche, c'est qu'elle est contextualisée : Claude Code lit mes fichiers, comprend l'arborescence de mon projet, et peut agir directement sur le code. On est loin du copier-coller entre une fenêtre de chat et son éditeur.
+**Claude Desktop**, c'est mon espace de réflexion. J'y crée des projets dédiés, j'y échange, j'itère. C'est là que je pose le contexte, que je discute des choix d'architecture, que je déroule un problème avant de coder. Claude a accès à mes fichiers locaux via l'intégration Filesystem, et à mon repo GitHub si je l'ai mis en public. On avance pas à pas, et je garde la main sur la direction.
+
+**Claude Code dans VS Code**, c'est mon outil d'exécution. Je le sollicite quand j'ai une tâche bien définie, souvent répétitive ou chronophage : générer du boilerplate, refactoriser un ensemble de fichiers, écrire de la doc PHPDoc sur des fonctions existantes, etc. Des choses où la valeur ajoutée de l'IA est immédiate et le risque de partir dans la mauvaise direction est limité.
+
+Les deux sont complémentaires. Je réfléchis avec Claude Desktop, j'exécute avec Claude Code.
 
 ## Ce que je lui demande (et ce que je ne lui demande pas)
 
