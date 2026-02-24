@@ -23,6 +23,9 @@ importers:
       '@astrojs/solid-js':
         specifier: ^5.1.3
         version: 5.1.3(jiti@2.6.1)(lightningcss@1.30.2)(solid-js@1.9.11)(yaml@2.8.2)
+      '@fontsource-variable/space-grotesk':
+        specifier: ^5.2.10
+        version: 5.2.10
       '@fontsource/onest':
         specifier: ^5.2.11
         version: 5.2.11
@@ -384,6 +387,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@fontsource-variable/space-grotesk@5.2.10':
+    resolution: {integrity: sha512-yJQO/o35/hAP3CFnpdFTwQku2yzJOae2HIpBmqkOVoxhhXJaQP3g+b6Jrz7u+eI7A5ZdCIf88uMWpBJdFiGr5w==}
 
   '@fontsource/onest@5.2.11':
     resolution: {integrity: sha512-YDOHuJ+HFf4rl6+vBzEoAGul+GyEOIlziepq+7UDT4839LyiFU1clVZqNmqmCRjwWidPTMUJIv1k9e+5UtuQOw==}
@@ -2781,6 +2787,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.12':
     optional: true
+
+  '@fontsource-variable/space-grotesk@5.2.10': {}
 
   '@fontsource/onest@5.2.11': {}
 
