@@ -1,0 +1,113 @@
+---
+title: "Pourquoi j'utilise Umami (et pas Google Analytics) pour mes sites perso"
+summary: "Umami, Matomo, Google Analytics — trois outils, trois contextes différents. Voici comment je choisis mon outil analytics selon le projet, et pourquoi la vie privée des utilisateurs n'est pas une option."
+postLayout: column
+date: "2026-02-25"
+lastmod: "2026-02-25"
+draft: false
+tags:
+  - analytics
+  - outils
+  - open-source
+---
+
+Je ne suis pas du genre à installer Google Analytics sur tous mes projets par réflexe. Ça fait quelques années que je cherche des alternatives plus respectueuses de la vie privée — et depuis que j'ai adopté Umami pour mes sites perso, je ne suis pas près de revenir en arrière.
+
+Dans cet article, je t'explique pourquoi j'ai fait ce choix, comment je l'articule avec Matomo (que j'utilise côté clients), et ce que je pense de Google Analytics au passage.
+
+---
+
+## Le problème avec Google Analytics
+
+Commençons par l'éléphant dans la pièce. Google Analytics, c'est puissant. C'est gratuit. C'est ce que tout le monde utilise, donc il y a une tonne de ressources, de tutos, de gens à qui demander de l'aide.
+
+Mais voilà ce que ça implique concrètement :
+
+- **Tes données partent chez Google.** Google les utilise. C'est le deal.
+- **Côté RGPD**, ça devient vite un casse-tête. La CNIL a d'ailleurs sanctionné plusieurs sites français pour l'utilisation de GA (l'arrêt de 2022 sur les transferts de données vers les États-Unis, notamment).
+- **Une bannière de cookies est obligatoire** si tu utilises GA dans sa configuration par défaut — parce que les cookies de tracking tiers entrent dans la catégorie des données personnelles.
+- GA4, la version actuelle, est franchement moins intuitive que l'ancienne. Beaucoup de gens que je connais galèrent à retrouver des infos pourtant basiques.
+
+Bref, pour des sites perso où le volume de trafic n'est pas énorme et où mes besoins analytics restent simples, GA c'est un bazooka pour tuer une mouche — et un bazooka qui a des effets secondaires.
+
+---
+
+## Umami, mon choix pour les sites perso
+
+[Umami](https://umami.is/) est une solution analytics open-source, légère, pensée pour la simplicité et le respect de la vie privée. Le projet a été créé en 2020 — je l'ai découvert un an après sa sortie, en 2021.
+
+À l'époque, je l'avais installé sur [Railway](https://railway.app/), avec une base de données PostgreSQL. C'était un peu fastidieux, et pour être honnête, je ne comprenais pas tout ce que je faisais. Venant du monde WordPress, j'étais avant tout familier avec MySQL et MariaDB — PostgreSQL, c'était un peu terra incognita.
+
+Récemment, j'ai [réinstallé Umami beaucoup plus simplement via Coolify](/blog/coolify-et-hetzner), qui propose Umami comme application préconfigurée en quelques clics. Si tu n'as pas de serveur à toi, [PikaPods](https://www.pikapods.com/) propose aussi une installation clé en main pour environ 2 $/mois — une option très accessible si tu veux tester sans te prendre la tête.
+
+Je l'auto-héberge sur un VPS. Ça prend vingt minutes à installer si t'as déjà un serveur qui tourne.
+
+### Ce que j'aime dans Umami
+
+**La vie privée par défaut.** Umami ne collecte aucune donnée personnelle identifiable. Pas de cookies de tracking. Pas besoin de bannière de consentement dans la plupart des cas (à vérifier selon ton contexte légal, mais en pratique, sur un site perso, t'es tranquille). Les données restent sur ton serveur, point.
+
+**L'interface est claire et agréable.** Un seul écran avec les métriques essentielles : pages vues, visiteurs uniques, sources de trafic, pages les plus visitées, durée de session, et quelques infos sur les navigateurs/OS/pays. C'est lisible en dix secondes. C'est tout ce dont j'ai besoin.
+
+**Le script est ultra-léger.** On parle d'environ 2 Ko. Aucun impact sur les perfs de ton site.
+
+**Multi-sites.** Un seul dashboard pour gérer plusieurs sites. Pratique quand tu gères plusieurs projets perso en parallèle.
+
+**Le code est ouvert.** Tu peux l'auditer, le forker, contribuer. C'est ça l'open-source.
+
+### Ce qu'Umami ne fait pas
+
+Umami est volontairement minimaliste. Tu n'auras pas :
+
+- De suivi des conversions poussé
+- D'entonnoirs de conversion
+- De segmentation avancée
+- D'intégration native avec d'autres outils marketing
+
+Sur des projets perso ou des petits sites de portfolio, franchement, ce n'est pas un souci. Mais si ton client a besoin de suivre un funnel d'achat ou des événements complexes, Umami n'est pas le bon outil — et c'est précisément là qu'intervient Matomo.
+
+---
+
+## Matomo pour les sites clients
+
+Côté client (freelance, agence), j'utilise [Matomo](https://matomo.org/) — aussi en self-hosted. Matomo, c'est l'alternative open-source qui se rapproche le plus de Google Analytics en termes de fonctionnalités : entonnoirs de conversion, heatmaps, enregistrements de sessions, e-commerce tracking, segments, rapports personnalisés…
+
+Je l'utilise depuis 2017 — à l'époque, l'outil s'appelait encore **Piwik**. Le rebranding en Matomo a eu lieu début 2018, mais le projet existait déjà depuis plusieurs années et avait déjà une belle maturité. Si tu veux une alternative open-source sérieuse à GA pour des projets clients, c'est clairement la référence.
+
+C'est clairement plus complet qu'Umami, et ça se voit aussi dans la complexité de l'installation et de la configuration.
+
+### Un point important : la configuration de Matomo
+
+Matomo peut être utilisé de façon très respectueuse de la vie privée — mais ce n'est pas le cas avec la configuration par défaut. **Il faut le configurer correctement** pour que ça soit vraiment RGPD-friendly.
+
+Quelques réglages indispensables :
+
+- **Anonymisation des adresses IP** (par défaut, Matomo conserve les adresses IP complètes — il faut activer l'anonymisation)
+- **Durée de conservation des données** à limiter
+- **Désactivation des cookies si possible**, via le mode sans cookie (tracking sans consentement dans certains cas, mais là encore, à vérifier selon ton contexte)
+- **Serveur hébergé en Europe** (ou dans un pays offrant un niveau de protection équivalent)
+
+Avec une bonne configuration, Matomo peut légalement être utilisé sans bannière de consentement dans certains cas — la CNIL a validé cette approche sous conditions. C'est l'un de ses gros avantages par rapport à GA.
+
+Certains clients demandent quand même Google Analytics — souvent parce que leur équipe marketing est habituée à l'interface, ou parce qu'ils veulent conserver une continuité avec des données historiques. Dans ce cas, je mets en place GA, mais je les accompagne pour configurer correctement le bandeau de consentement et les paramètres de confidentialité. Ce n'est pas mon choix par défaut, mais ce n'est pas non plus une catastrophe si c'est fait proprement (à noter qu'on peut migrer de Google Analytics vers Matomo - c'est notamment un service que l'on proposait chez Whodunit).
+
+---
+
+## Récapitulatif : qui utilise quoi dans mon cas
+
+| Contexte                | Outil                | Pourquoi                                              |
+| ----------------------- | -------------------- | ----------------------------------------------------- |
+| Sites perso             | Umami (self-hosted)  | Simple, léger, privacy-first, aucun cookie            |
+| Sites clients           | Matomo (self-hosted) | Complet, open-source, RGPD-friendly si bien configuré |
+| Quand le client insiste | Google Analytics     | Avec bandeau de consentement et config sérieuse       |
+
+---
+
+## Et toi ?
+
+Si tu gères des sites perso et que t'as jamais vraiment remis en question ton setup analytics, je t'encourage à jeter un œil à Umami. L'installation est simple, la doc est claire, et tu auras en dix minutes un outil qui fait le job sans te créer des maux de tête juridiques.
+
+Et si tu travailles avec des clients, la conversation autour des outils analytics est souvent une bonne occasion de leur expliquer les enjeux de la vie privée — et de te positionner comme quelqu'un qui pense au-delà du simple "ça marche".
+
+---
+
+_Tu utilises un autre outil analytics que je n'ai pas mentionné ? Dis-moi en commentaire ce que tu en penses._

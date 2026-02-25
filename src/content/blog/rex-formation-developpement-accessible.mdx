@@ -1,0 +1,73 @@
+---
+title: "REX : formation développement accessible et RGAA chez Access42"
+summary: "Retour d'expérience sur la formation 'Développer des sites web accessibles et conformes au RGAA' d'Access42, suivie à distance en 2024. Ce que j'ai appris, ce que je regrette, et pourquoi l'accessibilité web devrait être une priorité pour tout développeur."
+postLayout: column
+date: "2026-02-25"
+lastmod: "2026-02-25"
+draft: false
+tags:
+  - rex
+  - accessibilite
+  - qualite-web
+  - formation
+---
+
+Il y a des formations qu'on suit parce qu'on doit cocher une case. Et il y a des formations qui changent vraiment ta façon de travailler. La formation **"Développer des sites web accessibles et conformes au RGAA"** d'[Access42](https://formations.access42.net/formations/formation-developpement-accessible/), c'est clairement la deuxième catégorie.
+
+Je l'ai suivie à distance en 2024, quand j'étais encore chez Whodunit, en binôme avec mon collègue **Simon Janin**, excellent développeur frontend et personne d'une gentillesse remarquable — ce genre de collègue qui rend même les journées chargées plus agréables.
+
+Voici mon retour honnête.
+
+---
+
+## Pourquoi l'accessibilité web, c'est important
+
+On a tendance à penser que l'accessibilité, c'est pour une minorité d'utilisateurs. C'est une erreur de perception. En France, plus de **14 millions de personnes âgées de plus de 15 ans vivent avec un handicap** _(source : [DREES](https://drees.solidarites-sante.gouv.fr/publications-communique-de-presse-documents-de-reference/panoramas-de-la-drees/241128_Panorama_Handicap2024))_. Mais les bénéficiaires d'un web accessible, c'est bien plus large que ça : les personnes âgées, celles qui naviguent au soleil sur mobile, celles qui ont une connexion lente, celles qui utilisent un clavier plutôt qu'une souris, etc.
+
+Un site accessible, c'est un site mieux construit, point. Le RGAA (Référentiel Général d'Amélioration de l'Accessibilité) est le cadre réglementaire français qui définit les obligations d'accessibilité pour les organismes publics et certaines entreprises privées. Mais au-delà de la conformité légale, c'est aussi une question d'éthique : on construit des choses pour tout le monde, pas pour une tranche de la population.
+
+En tant que [développeur certifié Opquast](/blog/certification-opquast-mon-retour-d-experience) — qui place la qualité web au cœur des pratiques — m'intéresser au RGAA était une suite logique. C'est la même philosophie : bien faire les choses, pour les bonnes raisons.
+
+---
+
+## Ce que j'ai appris
+
+La formation d'Access42 est organisée en deux temps : un module en ligne pour acquérir les bases en autonomie, puis des journées en groupe pour la pratique et les échanges. Le format hybride fonctionne vraiment bien.
+
+Voici les grands axes de ce que j'en ai retenu :
+
+**Structurer le HTML pour de vrai.** On croit souvent bien maîtriser HTML quand on fait du web depuis des années. Cette formation m'a forcé à remettre en question des réflexes. La hiérarchie des titres, la sémantique des éléments, les régions de page (`<main>`, `<nav>`, `<header>`...) — tout ça a de l'importance pour les lecteurs d'écran et les technologies d'assistance.
+
+**ARIA, mais avec modération.** L'API WAI-ARIA permet d'enrichir la sémantique HTML pour les technologies d'assistance. Mais le premier principe qu'on apprend : ne pas utiliser ARIA si un élément HTML natif suffit. Le meilleur ARIA, c'est souvent pas d'ARIA.
+
+**Les formulaires, terrain miné.** Les formulaires accessibles, c'est un sujet à part entière. Labels correctement associés, messages d'erreur compréhensibles, focus visible, gestion du clavier... C'est là où beaucoup de projets décrochent.
+
+**Les images, au-delà de l'`alt`.** Distinguer une image décorative d'une image informative, gérer les images complexes (graphiques, infographies), les images-liens — il y a beaucoup plus de nuances que le simple fait de renseigner ou non un attribut `alt`.
+
+**Les composants interactifs.** Modales, menus déroulants, onglets, accordéons... Access42 fournit des patterns de référence pour implémenter ces composants de façon accessible. C'est du concret, applicable directement dans les projets.
+
+**Les contrastes et la présentation.** CSS peut jouer des tours à l'accessibilité : texte trop petit, contrastes insuffisants, informations transmises uniquement par la couleur. On apprend à vérifier et corriger tout ça méthodiquement.
+
+Dans l'ensemble, c'est une formation très pratique. On ne fait pas que lire des critères RGAA dans le vide — on les applique sur des exercices concrets, on corrige des erreurs réelles, on teste avec des outils (NVDA, inspecteur de contraste, etc.).
+
+---
+
+## Ce que je regrette
+
+Une chose : **ne pas avoir tenté la certification**.
+
+La formation propose en inter-entreprises une certification reconnue par l'État, enregistrée au Répertoire Spécifique de France Compétences. À l'époque, je n'ai pas sauté le pas — par manque de temps, peut-être un peu par manque de confiance aussi.
+
+C'est dommage. La certification aurait été un signal fort dans mon parcours, surtout dans le contexte de ma reconversion vers la data et l'IA, où valoriser chaque brique de compétences compte. Et honnêtement, le niveau atteint à l'issue de la formation le permettait largement.
+
+Si tu suis cette formation : passe la certif. Tu ne le regretteras pas.
+
+---
+
+## Le mot de la fin
+
+Access42, c'est la référence française en accessibilité numérique. Leur formation est sérieuse, bien construite, et animée par des gens qui pratiquent au quotidien — pas des formateurs qui récitent un support de cours.
+
+Après cette formation, ma façon de coder a changé. Pas radicalement du jour au lendemain, mais progressivement : je regardais différemment mes balises HTML, je testais le focus clavier, je vérifiais les contrastes avant de valider un design. Ce genre de formation, ça s'inscrit dans la durée.
+
+Et franchement, si tu travailles dans le web sans avoir jamais posé la question de l'accessibilité, c'est le bon moment de commencer.
