@@ -1,0 +1,127 @@
+---
+title: "Easy Peasy CMS : retour sur mon premier projet back-end (2014)"
+summary: "En 2014, j'ai construit un CMS from scratch avec Laravel 4.2 pour ma formation. Douze ans plus tard, je retrouve le code et le mémoire. Voici un regard honnête sur ce qui tenait la route, ce qui ne tenait pas, et ce que ça m'a appris."
+postLayout: column
+date: "2026-02-19"
+lastmod: "2026-02-19"
+draft: false
+tags:
+  - laravel
+  - rex
+---
+
+Décembre 2014. Je venais de terminer ma formation Développeur Multimédia au CEFII. Pour en sortir diplômé, il fallait livrer un projet de fin d'études. J'avais choisi de construire un CMS from scratch. Douze ans plus tard, je retrouve le code et le mémoire qui vont avec. L'occasion d'un regard honnête sur ce que j'avais fait de bien, de moins bien, et ce que ça m'a appris.
+
+---
+
+## Le projet en deux mots
+
+**Easy Peasy CMS** était un système de gestion de contenu léger, orienté blog, construit avec Laravel 4.2 et Foundation 5. L'objectif affiché : offrir une alternative minimaliste à WordPress, avec un éditeur Markdown, un système de templating simple, et une interface inspirée de Ghost.
+
+Fonctionnalités couvertes : gestion des articles, des pages, des commentaires, des utilisateurs, des menus, upload de photos, authentification, réinitialisation de mot de passe.
+
+Bref, un bon périmètre pour un projet de fin de formation — peut-être même un peu trop large, on y reviendra.
+
+---
+
+## Ce que j'avais (plutôt) bien fait
+
+### Choisir un framework dès le départ
+
+Utiliser Laravel 4.2 plutôt que du PHP procédural pur, c'était probablement la meilleure décision du projet. Pas parce que c'était courageux — c'était surtout un bon conseil reçu au bon moment. Mais le framework m'a forcé à structurer le code : controllers, models, views, migrations. Sans ça, le projet aurait vraisemblablement fini en soupe de fichiers `index.php`.
+
+### La séparation validation / gestion
+
+J'avais créé deux couches dans `app/Lib/` : une pour la validation, une pour la logique métier. Avec des interfaces pour définir les contrats, et de l'injection de dépendances dans les constructeurs. En relisant ça aujourd'hui, c'est mieux que ce à quoi je m'attendais — mais c'était aussi largement inspiré des tutoriels Laravel de l'époque, soyons honnêtes.
+
+```php
+public function __construct(
+    UserCreateValidator $create_validation,
+    UserUpdateValidator $update_validation,
+    UserGestion $user_gestion
+) { ... }
+```
+
+### La protection CSRF
+
+Le filtre CSRF était appliqué sur toutes les routes POST/PUT/DELETE. C'est une base, mais une base que beaucoup oublient sur un premier projet back-end.
+
+### Quelques réflexes accessibilité
+
+Les icônes du back-office avaient leurs `aria-hidden="true"` et leurs `title`. Rien de transcendant, mais le fait d'y avoir pensé à l'époque dit quelque chose sur ce qui m'avait été enseigné — et sur ce que je voulais retenir.
+
+### Le responsive pensé dès le wireframe
+
+Les maquettes intégraient déjà les versions tablette et mobile. C'était une contrainte du cahier des charges, pas une initiative spontanée — mais au moins elle a été prise au sérieux jusqu'au bout.
+
+---
+
+## Les erreurs commises
+
+### Scope creep en plein développement
+
+C'est l'erreur classique, et je n'y ai pas échappé. L'upload de photos et la gestion du menu n'étaient pas dans le cahier des charges initial. Je les ai ajoutés en cours de route, ce qui m'a forcé à réécrire des parties déjà codées et a rallongé les délais — 4 mois au lieu de 3 prévus.
+
+**Le cahier des charges est un contrat, pas une suggestion.** Je me le rappelle encore régulièrement.
+
+### Des credentials en dur dans le code
+
+Le fichier `app/config/database.php` contient en clair `'password' => 'root'`. Le seeder crée un admin avec le mot de passe `easypeasy`. Ces fichiers sont commités dans le repo public sur GitHub.
+
+En 2014, les `.env` n'étaient pas encore la norme absolue sous Laravel 4 — mais c'est quand même une erreur de sécurité évidente avec le recul.
+
+### Des TODO et bugs non résolus en livraison
+
+Le code est parsemé de commentaires révélateurs :
+
+```php
+/* BUG LORSQUE CE CODE EST ACTIVE */
+/* @TODO : Faire fonctionner le Validator de l'Update !! */
+// BUG A CORRIGER - IMPOSSIBLE DE SUPPRIMER UNE PAGE
+```
+
+Livrer avec des bugs connus et documentés dans le code, c'est au moins honnête — mais c'est surtout le symptôme d'un manque de temps et d'une absence totale de tests.
+
+### Zéro test automatisé
+
+Le fichier `ExampleTest.php` est le squelette généré par Laravel, jamais touché. Pour un CMS avec authentification, gestion de rôles et plusieurs CRUD imbriqués, c'était risqué. Rien ne filet les régressions.
+
+### De la logique métier dans les vues
+
+Quelques requêtes Eloquent appelées directement depuis les templates Blade — dans `menu/create.blade.php` par exemple. La logique n'a pas sa place dans la vue. Laravel 4 permettait mieux, j'aurais pu faire mieux.
+
+### Des dépendances chargées depuis des CDN externes
+
+Les scripts Lepture Editor et marked.js étaient chargés depuis `http://lab.lepture.com/editor/` — un domaine externe, sans versioning, sans fallback. Si le CDN disparaît, l'éditeur Markdown avec lui.
+
+---
+
+## Ce que ça m'a appris
+
+### Voir un projet dans son ensemble
+
+C'était l'objectif déclaré dans le mémoire, et c'est exactement ce que j'en ai retiré. Avant Easy Peasy, je n'avais jamais géré le cycle complet : expression des besoins, wireframing, conception technique, développement, mise en ligne, documentation. Tenir tous ces fils en même temps, ça ne s'apprend pas autrement qu'en le faisant.
+
+### Le back-end, enfin
+
+Développeur front-end en agence, je laissais tout ce qui touchait aux données au dev back. Ce projet m'a donné la confiance pour m'en emparer. La logique MVC, les migrations, les relations Eloquent, la validation — autant de patterns que j'utilise encore aujourd'hui sous d'autres formes. En Analytics Engineering avec dbt, par exemple, la séparation des couches (staging / marts) n'est pas sans rappeler un bon MVC.
+
+### L'importance des deadlines
+
+Sans l'échéance imposée par la formation, ce projet n'aurait probablement jamais été livré. C'est une vérité universelle sur les side projects : sans contrainte temporelle, on dérive. J'en ai fait une règle depuis.
+
+### La documentation, ça a de la valeur
+
+Rédiger le README, le wiki, le mémoire — ça m'a appris à formaliser ma pensée technique. Douze ans plus tard, ce mémoire me permet de retrouver exactement ce que j'avais en tête à l'époque. Aucun message de commit ne donne ça.
+
+---
+
+## Ce que je ferais différemment aujourd'hui
+
+Un `.env` dès le départ, des tests PHPUnit dès la première fonctionnalité, et une séparation stricte entre la logique des vues et celle des controllers. Je versionnerais les dépendances front proprement avec npm plutôt que des CDN.
+
+Mais surtout, je resterais dans le périmètre du cahier des charges initial. La discipline du scope, c'est peut-être la leçon la plus durable que ce projet m'ait donnée.
+
+---
+
+_Easy Peasy CMS dort quelque part sur GitHub depuis décembre 2014 (allez, pour les curieux, [je vous facilite la tâche](https://github.com/jeremy6680/easy-peasy-cms) !). Le code est imparfait, les bugs sont documentés, les credentials sont en dur. Mais il tourne — ou tournait. Et il a tout déclenché._
