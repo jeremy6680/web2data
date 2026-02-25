@@ -1,5 +1,6 @@
 ---
-import { SITE_METADATA, NAVIGATION } from "@/consts";
+import { NAVIGATION } from "@/consts";
+import type { NavItem } from "@/consts";
 import HeaderLink from "./HeaderLink.astro";
 import Logo from "./Logo.astro";
 import MobileNav from "@/solid/MobileNav.tsx";
@@ -8,6 +9,14 @@ import SearchButton from "@/solid/SearchButton.tsx";
 import { useTranslations } from "@/i18n";
 
 const t = useTranslations();
+
+function isDropdown(item: NavItem): item is Extract<NavItem, { children: unknown }> {
+  return 'children' in item;
+}
+
+const visibleLinks = NAVIGATION.filter(
+  (item) => isDropdown(item) || (item as { href: string }).href !== "/"
+);
 ---
 
 <header class="flex items-center justify-between py-10">
@@ -18,14 +27,42 @@ const t = useTranslations();
   </div>
   <div class="flex items-center leading-5 space-x-4 sm:space-x-6">
     {
-      NAVIGATION.filter((link) => link.href !== "/").map((link) => (
-        <HeaderLink
-          href={link.href}
-          class="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
-        >
-          {t(link.title)}
-        </HeaderLink>
-      ))
+      visibleLinks.map((link) =>
+        isDropdown(link) ? (
+          <div class="relative group hidden sm:block">
+            <button
+              class="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-1"
+              aria-haspopup="true"
+            >
+              {t(link.title as any)}
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mt-0.5">
+                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div class="absolute left-0 top-full pt-2 hidden group-hover:block z-10">
+              <ul class="bg-white dark:bg-gray-900 shadow-lg rounded-md py-1 min-w-[130px] border border-gray-100 dark:border-gray-700">
+                {link.children.map((child) => (
+                  <li>
+                    <HeaderLink
+                      href={child.href}
+                      class="block px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    >
+                      {t(child.title as any)}
+                    </HeaderLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        ) : (
+          <HeaderLink
+            href={(link as { href: string }).href}
+            class="hidden sm:block font-medium text-gray-900 dark:text-gray-100"
+          >
+            {t(link.title as any)}
+          </HeaderLink>
+        )
+      )
     }
     <div class="flex gap-4">
       <SearchButton client:only="solid-js" />

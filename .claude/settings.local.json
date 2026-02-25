@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx astro sync)",
+      "Bash(npx astro build)"
+    ]
+  }
+}

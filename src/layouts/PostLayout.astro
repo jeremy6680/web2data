@@ -7,6 +7,7 @@ import RootLayout from "./RootLayout.astro";
 import { type CollectionEntry, getEntries, render } from "astro:content";
 import FormattedDate from "../components/FormattedDate.astro";
 import Tag from "../components/Tag.astro";
+import Category from "../components/Category.astro";
 import ScrollTopAndComments from "@/components/solidjs/ScrollTopAndComments.tsx";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import PostCover from "../components/PostCover.astro";
@@ -217,6 +218,18 @@ const { Content, headings } = await render(post);
             <div
               class="divide-gray-200 text-sm font-medium leading-5 dark:divide-gray-700 xl:col-start-1 xl:row-start-2 xl:divide-y"
             >
+              {
+                post.data.category && (
+                  <div class="py-4 xl:py-8">
+                    <h2 class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      {t('layouts.postLayout.category')}
+                    </h2>
+                    <div class="flex flex-wrap">
+                      <Category slug={post.data.category.id} />
+                    </div>
+                  </div>
+                )
+              }
               {
                 tags && (
                   <div class="py-4 xl:py-8">

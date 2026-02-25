@@ -1,0 +1,25 @@
+---
+import Link from "./Link.astro";
+import { type CollectionEntry, getEntry } from "astro:content";
+
+interface Props {
+  category?: CollectionEntry<"categories">;
+  slug?: string;
+}
+
+let CategoryProp = Astro.props.category;
+
+if (!CategoryProp && Astro.props.slug) {
+  CategoryProp = await getEntry("categories", Astro.props.slug);
+}
+---
+
+{CategoryProp && (
+  <Link
+    href={`/categories/${CategoryProp.id}`}
+    class="mr-3 text-sm font-medium uppercase hover:opacity-80"
+    style="color: #008094"
+  >
+    {CategoryProp.data.name}
+  </Link>
+)}

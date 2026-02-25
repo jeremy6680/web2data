@@ -1,13 +1,19 @@
 import Link from "@/solid/Link.tsx";
 import { NAVIGATION } from '@/consts';
-import { For } from "solid-js";
+import type { NavItem } from '@/consts';
+import { For, createSignal } from "solid-js";
 import { useTranslations } from "@/i18n";
 
 const t = useTranslations();
 
+function isDropdown(item: NavItem): item is Extract<NavItem, { children: unknown[] }> {
+  return 'children' in item;
+}
+
 export default function MobileNav() {
   let buttonRef!: HTMLButtonElement;
   let menuRef!: HTMLDivElement;
+  const [openDropdown, setOpenDropdown] = createSignal<string | null>(null);
 
   const toggleMenu = () => {
     const isNavHidden = document.body.style.overflow === '';
@@ -41,13 +47,41 @@ export default function MobileNav() {
         </div>
         <nav class="fixed mt-8 h-full">
           <For each={NAVIGATION}>
-            {({ href, title }) => (
-              <div class="px-12 py-4">
-                <Link href={href} class="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100">
-                  {t(title)}
-                </Link>
-              </div>
-            )}
+            {(item) =>
+              isDropdown(item) ? (
+                <div class="px-12 py-4">
+                  <button
+                    class="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100 flex items-center gap-2"
+                    onClick={() => setOpenDropdown(openDropdown() === item.title ? null : item.title)}
+                  >
+                    {t(item.title as any)}
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"
+                      class={`w-5 h-5 transition-transform ${openDropdown() === item.title ? 'rotate-180' : ''}`}>
+                      <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                    </svg>
+                  </button>
+                  {openDropdown() === item.title && (
+                    <div class="mt-2 ml-4">
+                      <For each={item.children}>
+                        {(child) => (
+                          <div class="py-2">
+                            <Link href={child.href} class="text-xl tracking-widest text-gray-700 dark:text-gray-300">
+                              {t(child.title as any)}
+                            </Link>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div class="px-12 py-4">
+                  <Link href={(item as { href: string }).href} class="text-2xl font-bold tracking-widest text-gray-900 dark:text-gray-100">
+                    {t(item.title as any)}
+                  </Link>
+                </div>
+              )
+            }
           </For>
         </nav>
       </div>

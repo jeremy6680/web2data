@@ -1,0 +1,56 @@
+---
+import { getCollection, type CollectionEntry, render } from "astro:content";
+
+import { ITEMS_PER_PAGE } from "@/consts";
+import { excludeDrafts, sortBlogPosts } from "@/functions";
+import ListWithTagsLayout from "@/layouts/ListWithTagsLayout.astro";
+import type { Page } from "astro";
+import { useTranslations } from "@/i18n";
+
+const t = useTranslations();
+
+interface Props {
+  page: Page<CollectionEntry<"blog">>;
+  entry: CollectionEntry<"categories">;
+}
+
+export async function getStaticPaths({ paginate }) {
+  const categories = await getCollection("categories");
+  const posts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
+
+  return categories.flatMap((entry) => {
+    const categoryPosts = posts.filter(
+      (post) => (post.data as any).category?.id === entry.id
+    );
+    return paginate(categoryPosts, {
+      pageSize: ITEMS_PER_PAGE,
+      params: { slug: entry.id },
+      props: { entry },
+    });
+  });
+}
+
+const { page, entry } = Astro.props;
+const { Content } = await render(entry);
+
+let robots;
+let titleTemplate = "";
+if (page.currentPage > 1) {
+  robots = "noindex, follow";
+  titleTemplate = t("seo.pagination.page", { page: `${page.currentPage}` });
+}
+---
+
+<ListWithTagsLayout
+  title={entry.data.name}
+  description={entry.data.description}
+  page={page}
+  {robots}
+  {titleTemplate}
+  breadcrumbs={[
+    { label: t("nav.home"), href: "/" },
+    { label: t("nav.categories") },
+  ]}
+>
+  <Content />
+</ListWithTagsLayout>

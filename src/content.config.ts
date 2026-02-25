@@ -27,6 +27,7 @@ const blog = defineCollection({
       cover: image().optional(),
       date: z.coerce.date(),
       tags: z.array(reference("tags")).default(["default"]),
+      category: reference("categories").optional(),
       lastmod: z.coerce.date().optional(),
       draft: z.boolean().default(false),
       summary: z.string(),
@@ -48,4 +49,12 @@ const tags = defineCollection({
   }),
 });
 
-export const collections = { blog, authors, tags };
+const categories = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/categories" }),
+  schema: z.object({
+    name: z.string(),
+    description: z.string(),
+  }),
+});
+
+export const collections = { blog, authors, tags, categories };

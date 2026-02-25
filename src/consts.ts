@@ -77,12 +77,24 @@ export const ITEMS_PER_PAGE = 5;
 
  You should add translations for these in src/i18n/ui.ts or use as is.
  */
-export const NAVIGATION = [
+export type NavLink = { href: string; title: string };
+export type NavDropdown = { title: string; children: NavLink[] };
+export type NavItem = NavLink | NavDropdown;
+
+export const NAVIGATION: NavItem[] = [
   { href: "/", title: "nav.home" },
+  {
+    title: "nav.categories",
+    children: [
+      { href: "/categories/web", title: "nav.web" },
+      { href: "/categories/data", title: "nav.data" },
+      { href: "/categories/ia", title: "nav.ia" },
+    ],
+  },
   { href: "/tags", title: "nav.tags" },
   { href: "/projects", title: "nav.projects" },
   { href: "/about", title: "nav.about" },
-] as const;
+];
 
 export const POST_METADATA = {
   defaultLayout: "column", // Default layout for blog posts, options: simple and column
