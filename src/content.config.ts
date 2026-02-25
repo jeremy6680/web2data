@@ -4,9 +4,10 @@ import { POST_METADATA } from "./consts";
 
 const authors = defineCollection({
   loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/authors" }),
-  schema: z.object({
+  schema: ({ image }) =>
+    z.object({
     name: z.string(),
-    avatar: z.string().optional(),
+    avatar: image().optional(),
     occupation: z.string().optional(),
     shortBio: z.string(),
     company: z.string().optional(),
