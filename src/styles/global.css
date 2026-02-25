@@ -69,6 +69,14 @@
   h6 {
     font-family: var(--font-heading);
   }
+
+  /* Shift the primary (orange/coral) palette to lighter stops in dark mode
+     so elements pop against the dark background with better contrast. */
+  :root.dark {
+    --color-primary-400: #FFC2B5;
+    --color-primary-500: #FF9F8A;
+    --color-primary-600: #FF7A5C;
+  }
 }
 
 .task-list-item::before {
