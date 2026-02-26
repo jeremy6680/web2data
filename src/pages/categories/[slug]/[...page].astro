@@ -4,7 +4,7 @@ import { getCollection, type CollectionEntry, render } from "astro:content";
 import { ITEMS_PER_PAGE } from "@/consts";
 import { excludeDrafts, sortBlogPosts } from "@/functions";
 import ListWithTagsLayout from "@/layouts/ListWithTagsLayout.astro";
-import type { Page } from "astro";
+import type { GetStaticPathsOptions, Page } from "astro";
 import { useTranslations } from "@/i18n";
 
 const t = useTranslations();
@@ -12,9 +12,10 @@ const t = useTranslations();
 interface Props {
   page: Page<CollectionEntry<"blog">>;
   entry: CollectionEntry<"categories">;
+  categoryPosts: CollectionEntry<"blog">[];
 }
 
-export async function getStaticPaths({ paginate }) {
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
   const categories = await getCollection("categories");
   const posts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
 
@@ -25,12 +26,12 @@ export async function getStaticPaths({ paginate }) {
     return paginate(categoryPosts, {
       pageSize: ITEMS_PER_PAGE,
       params: { slug: entry.id },
-      props: { entry },
+      props: { entry, categoryPosts },
     });
   });
 }
 
-const { page, entry } = Astro.props;
+const { page, entry, categoryPosts } = Astro.props;
 const { Content } = await render(entry);
 
 let robots;
@@ -45,6 +46,7 @@ if (page.currentPage > 1) {
   title={entry.data.name}
   description={entry.data.description}
   page={page}
+  filteredPosts={categoryPosts}
   {robots}
   {titleTemplate}
   breadcrumbs={[

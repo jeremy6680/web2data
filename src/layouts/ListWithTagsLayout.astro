@@ -21,22 +21,23 @@ interface Props {
   page: Page<CollectionEntry<"blog">>;
   robots?: string;
   breadcrumbs?: BreadcrumbItem[];
+  filteredPosts?: CollectionEntry<"blog">[];
 }
 
 const tags = await getCollection("tags");
-const posts = await getCollection("blog");
+const allPosts = await getCollection("blog");
+
+const { title, description, robots, page, titleTemplate, breadcrumbs, filteredPosts } = Astro.props;
+const postsForSidebar = filteredPosts ?? allPosts;
 
 function tagCount(id: CollectionEntry<"tags">["id"]) {
-  if (!posts) return 0;
-  return posts.filter((post) => post.data.tags.some((ref) => ref.id === id))
+  return postsForSidebar.filter((post) => post.data.tags.some((ref) => ref.id === id))
     .length;
 }
 
 function isSamePath(path: string) {
   return Astro.url.pathname === path;
 }
-
-const { title, description, robots, page, titleTemplate, breadcrumbs } = Astro.props;
 const hasDefaultSlot = Astro.slots.has("default");
 const isBlogPage = Astro.url.pathname === "/" || Astro.url.pathname.startsWith("/blog");
 ---
