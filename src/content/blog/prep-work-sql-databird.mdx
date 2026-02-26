@@ -1,0 +1,201 @@
+---
+title: "SQL avancé : ce que j'ai (re)appris avant de rejoindre Databird"
+summary: "Je manipule des bases de données MySQL depuis plus de 12 ans — mais du SQL avancé, jamais vraiment. Retour sur le prep work SQL de la formation Analytics Engineer de Databird — jointures avancées, sous-requêtes, CTE, tables temporaires : voilà ce qui m'attendait."
+postLayout: column
+date: "2026-02-26"
+lastmod: "2026-02-26"
+draft: false
+related:
+  - prep-work-analytics-engineer-databird
+  - comment-je-me-reconvertis-dans-la-data
+tags:
+  - sql
+  - data-analytics
+  - analytics-engineering
+category: data
+---
+
+Ça fait plus de 12 ans que je travaille avec des bases de données MySQL et MariaDB. Requêtes `SELECT`, `INSERT`, `UPDATE`, `DELETE`… tout ça, je connaissais. C'est le quotidien de n'importe quel développeur WordPress un peu sérieux.
+
+Mais du SQL vraiment avancé — les jointures complexes, les sous-requêtes imbriquées, les CTE — je n'y avais quasiment jamais eu recours. J'avais les bases, pas les outils.
+
+En avril, je rejoins la formation **Analytics Engineer chez Databird**. Et avant le début officiel, il y a un prep work obligatoire en 5 modules. Un travail préparatoire pour s'assurer que tout le monde arrive avec un niveau SQL suffisant.
+
+Voilà ce que j'en retiens.
+
+---
+
+## Ce que je savais déjà
+
+Les fondamentaux : je les avais. Les modules 1 et 2 du prep work couvrent les bases des bases de données relationnelles, la syntaxe `SELECT / FROM / WHERE / ORDER BY`, les fonctions d'agrégation (`COUNT`, `SUM`, `AVG`, `MAX`, `MIN`), et les premières jointures.
+
+Rien de nouveau pour moi, mais c'était utile de reposer les bases proprement — notamment la distinction entre DDL (_Data Definition Language_, pour la structure) et DML (_Data Manipulation Language_, pour les données). Des concepts que j'appliquais sans forcément connaître ces termes.
+
+Ce qui était nouveau, en revanche, c'est ce qui est venu ensuite.
+
+---
+
+## Les jointures : au-delà de l'INNER JOIN
+
+Je connaissais l'`INNER JOIN`. C'est probablement la jointure la plus utilisée : elle combine deux tables et ne renvoie que les lignes qui ont une correspondance dans les deux.
+
+Ce que j'avais beaucoup moins pratiqué, c'est le reste.
+
+**`LEFT JOIN`** : affiche toutes les lignes de la table de gauche, qu'elles aient une correspondance ou non avec la table de droite. Très utile pour repérer les enregistrements orphelins — par exemple, les clients qui n'ont jamais passé commande.
+
+```sql
+SELECT c.id_client, c.nom, o.id_order
+FROM clients c
+LEFT JOIN orders o ON c.id_client = o.id_client;
+-- Affiche tous les clients, y compris ceux sans commande (NULL dans id_order)
+```
+
+**`RIGHT JOIN`** : l'inverse. Toutes les lignes de la table de droite. En pratique, on peut toujours réécrire un `RIGHT JOIN` en `LEFT JOIN` en inversant l'ordre des tables — c'est d'ailleurs ce que conseille le cours.
+
+**`FULL JOIN`** : toutes les lignes des deux tables. Moins courant, plus coûteux en performance.
+
+---
+
+## UNION, INTERSECT, EXCEPT : superposer plutôt qu'accoler
+
+Là où les jointures _accolent_ deux tables (horizontalement), les **unions** les _superposent_ (verticalement). La condition : les deux tables doivent avoir la même structure.
+
+- **`UNION`** : toutes les valeurs des deux tables, sans doublons.
+- **`UNION ALL`** : toutes les valeurs, doublons inclus.
+- **`INTERSECT`** : uniquement les valeurs communes aux deux tables.
+- **`EXCEPT`** : les valeurs de la table A qui ne sont pas dans la table B.
+
+À noter : `INTERSECT` et `EXCEPT` n'existent pas en MySQL natif. C'est une limitation à connaître si on travaille sur cet environnement.
+
+---
+
+## Les sous-requêtes : des requêtes dans les requêtes
+
+Une sous-requête, c'est simplement une requête imbriquée dans une autre. On peut les placer dans le `SELECT`, le `FROM` ou le `WHERE`.
+
+**Dans le `SELECT`** : pour ajouter une valeur calculée à chaque ligne.
+
+```sql
+SELECT
+  id_client,
+  nom,
+  (SELECT COUNT(*) FROM orders WHERE orders.id_client = clients.id_client) AS nb_commandes
+FROM clients;
+```
+
+**Dans le `FROM`** : la sous-requête agit comme une table temporaire.
+
+```sql
+SELECT *
+FROM (
+  SELECT id_client, COUNT(*) AS nb_commandes
+  FROM orders
+  GROUP BY id_client
+) AS stats
+WHERE nb_commandes > 3;
+```
+
+**Dans le `WHERE`** : pour filtrer selon le résultat d'une autre requête.
+
+```sql
+SELECT nom
+FROM clients
+WHERE id_client IN (
+  SELECT id_client FROM orders WHERE date_order > '2024-01-01'
+);
+```
+
+Il y a aussi **`WHERE EXISTS`**, qui est une alternative aux jointures quand on veut juste vérifier l'existence d'une correspondance — et qui peut être plus performant sur de gros volumes.
+
+---
+
+## CASE WHEN : de la logique conditionnelle dans SQL
+
+`CASE WHEN` permet d'ajouter de la logique conditionnelle directement dans une requête — l'équivalent d'un `if / else` en programmation.
+
+Exemple concret : catégoriser des utilisateurs par tranche d'âge.
+
+```sql
+SELECT
+  member_id,
+  CASE
+    WHEN DATEDIFF(NOW(), birthday) / 365 BETWEEN 18 AND 24 THEN '18-24 ans'
+    WHEN DATEDIFF(NOW(), birthday) / 365 BETWEEN 25 AND 39 THEN '25-39 ans'
+    WHEN DATEDIFF(NOW(), birthday) / 365 BETWEEN 40 AND 60 THEN '40-60 ans'
+    ELSE '60 ans et plus'
+  END AS age_category
+FROM members;
+```
+
+Couplé à un `GROUP BY` et un `COUNT(*)`, ça devient un outil d'analyse très puissant — et assez élégant.
+
+---
+
+## Les CTE : Common Table Expressions
+
+C'est probablement le concept qui m'a le plus intéressé dans ce prep work.
+
+Un **CTE** (_Common Table Expression_) est une table temporaire nommée, définie en début de requête avec la clause `WITH`. Elle n'existe que le temps de l'exécution de la requête, mais elle permet de **structurer des requêtes complexes en étapes lisibles**.
+
+L'exemple du module : reprendre l'exercice sur les tranches d'âge, mais en rendant le code bien plus propre.
+
+```sql
+-- Étape 1 : on crée le CTE avec les catégories d'âge
+WITH age_categories AS (
+  SELECT
+    member_id,
+    CASE
+      WHEN DATEDIFF(NOW(), birthday) / 365 BETWEEN 18 AND 24 THEN '18-24 ans'
+      WHEN DATEDIFF(NOW(), birthday) / 365 BETWEEN 25 AND 39 THEN '25-39 ans'
+      WHEN DATEDIFF(NOW(), birthday) / 365 BETWEEN 40 AND 60 THEN '40-60 ans'
+      ELSE '60 ans et plus'
+    END AS age_category
+  FROM members
+)
+
+-- Étape 2 : on l'utilise comme une table normale
+SELECT
+  age_category,
+  COUNT(*) AS nb_membres,
+  ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM members), 2) AS pourcentage
+FROM age_categories
+GROUP BY age_category;
+```
+
+Sans CTE, cette requête serait une sous-requête imbriquée difficile à lire. Avec, on suit facilement le raisonnement. C'est exactement ce qu'on cherche quand on écrit du SQL qui sera relu par des collègues — ou par soi-même trois mois plus tard.
+
+---
+
+## Les tables temporaires
+
+Autre outil utile pour les traitements complexes : les **tables temporaires** (`CREATE TEMPORARY TABLE`).
+
+Contrairement aux CTE, qui n'existent que pendant l'exécution d'une requête, une table temporaire persiste pendant toute la durée de la session SQL. Elle est automatiquement supprimée à la fermeture.
+
+```sql
+-- Créer une table temporaire à partir d'une requête
+CREATE TEMPORARY TABLE commandes_recentes AS
+SELECT id_client, COUNT(*) AS nb_commandes
+FROM orders
+WHERE date_order > '2024-01-01'
+GROUP BY id_client;
+
+-- On peut ensuite l'utiliser dans d'autres requêtes de la session
+SELECT c.nom, cr.nb_commandes
+FROM clients c
+INNER JOIN commandes_recentes cr ON c.id_client = cr.id_client;
+```
+
+C'est particulièrement utile quand on a besoin de réutiliser le même résultat intermédiaire plusieurs fois dans une session — évite de recalculer la même sous-requête à chaque fois.
+
+---
+
+## Ce que ça change pour moi
+
+Pendant 12 ans, mon SQL était fonctionnel. Je savais récupérer des données, faire des jointures simples, gérer les bases. Mais j'opérais toujours avec les outils basiques.
+
+Ce prep work m'a donné un vocabulaire et des techniques que je n'avais jamais vraiment structurés : les différents types de jointures, l'utilisation raisonnée des sous-requêtes, la logique des CTE pour écrire du code SQL maintenable.
+
+C'est précisément le genre de fondation qui manquait pour passer d'un SQL de développeur web à un SQL d'analyste — et c'est pour ça que je le partage ici.
+
+La formation commence en avril. La suite au prochain épisode.
