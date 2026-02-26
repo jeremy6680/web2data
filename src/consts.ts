@@ -33,8 +33,8 @@ export const SITE_METADATA = {
     },
     // amplitudeApiKey: null, // Add your Amplitude Api Key here, not yet implemented
     matomo: {
-      id: "", // Add your Matomo id here
-      url: "", // Add your Matomo url here
+      id: "13", // Add your Matomo id here
+      url: "https://stats.jeremymarchandeau.com/", // Add your Matomo url here
     },
     minimalAnalyticsId: null, // Add your Minimal Analytics id here
   },
