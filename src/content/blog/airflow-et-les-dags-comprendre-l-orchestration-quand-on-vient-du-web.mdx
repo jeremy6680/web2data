@@ -1,0 +1,172 @@
+---
+title: "Airflow et les DAGs : comprendre l'orchestration de données quand on vient du web"
+summary: "Apache Airflow, c'est l'outil incontournable pour orchestrer des pipelines de données. Mais pour un dev web, les DAGs, c'est quoi exactement ? Voici une explication concrète, avec des parallèles avec ce qu'on connaît déjà."
+postLayout: column
+date: "2026-02-26"
+lastmod: "2026-02-26"
+draft: false
+related:
+  - comment-je-me-reconvertis-dans-la-data
+tags:
+  - airflow
+  - python
+  - data-engineering
+  - analytics-engineering
+category: data
+---
+
+Dans le cadre de ma [formation Analytics Engineer chez DataBird](/blog/comment-je-me-reconvertis-dans-la-data), on m'a demandé de lire la doc officielle d'Apache Airflow sur les DAGs avant d'attaquer Docker et les premiers pipelines. Et franchement, au premier coup d'œil, j'ai eu la même réaction que beaucoup : _"c'est quoi ce truc ?"_
+
+Alors j'ai pris le temps de digérer ça, et je t'explique tout ici — avec des analogies tirées du développement web, parce que c'est de là qu'on vient tous les deux.
+
+---
+
+## C'est quoi un DAG, concrètement ?
+
+DAG, c'est l'acronyme de **Directed Acyclic Graph** — graphe orienté acyclique en français. Dit comme ça, ça fait peur. Mais l'idée derrière est simple.
+
+Un DAG dans Airflow, c'est **un workflow** : une série de tâches à exécuter dans un ordre précis, avec des dépendances entre elles. Airflow s'occupe de savoir dans quel ordre lancer les tâches, quand les relancer en cas d'échec, et comment suivre leur état.
+
+Le DAG lui-même ne fait rien. Il décrit juste **comment** et **quand** les tâches s'exécutent — pas **ce qu'elles font**. C'est une distinction importante.
+
+> **Analogie web** : imagine un `Makefile` ou un script de déploiement CI/CD (GitHub Actions, par exemple). Tu définis des étapes, des dépendances entre elles, et l'outil s'occupe de les exécuter dans le bon ordre. Un DAG, c'est exactement ça, mais pour des pipelines de données.
+
+---
+
+## Un DAG, ça ressemble à quoi en code ?
+
+C'est du **Python**. Voilà un exemple minimal :
+
+```python
+import datetime
+from airflow.sdk import DAG
+from airflow.providers.standard.operators.empty import EmptyOperator
+
+with DAG(
+    dag_id="mon_premier_dag",
+    start_date=datetime.datetime(2024, 1, 1),
+    schedule="@daily",
+):
+    EmptyOperator(task_id="ma_tache")
+```
+
+On crée un DAG avec un identifiant unique (`dag_id`), une date de départ, et une fréquence d'exécution (`@daily`, `@weekly`, ou une expression cron comme `"0 8 * * *"`).
+
+À l'intérieur du DAG, on déclare des **tâches** (`task_id`). Ici, `EmptyOperator` est juste un placeholder — dans la vraie vie, ce serait une tâche qui exécute du SQL, un script Python, un appel API, etc.
+
+---
+
+## Les dépendances entre tâches
+
+C'est là que ça devient intéressant. Dans un DAG, les tâches ne s'exécutent pas forcément en parallèle ni dans un ordre aléatoire — elles ont des **dépendances**.
+
+```python
+from airflow.sdk import DAG
+from airflow.providers.standard.operators.empty import EmptyOperator
+
+with DAG("exemple_dependances", schedule="@daily", start_date=...):
+    extract = EmptyOperator(task_id="extract")
+    transform = EmptyOperator(task_id="transform")
+    load = EmptyOperator(task_id="load")
+
+    # extract doit s'exécuter avant transform, qui doit s'exécuter avant load
+    extract >> transform >> load
+```
+
+L'opérateur `>>` (ou `<<` dans l'autre sens) définit l'ordre d'exécution. C'est lisible, presque naturel.
+
+> **Analogie web** : c'est comme les hooks WordPress ou les middlewares Express.js — tu chaînes des actions dans un ordre défini, et chacune dépend de la précédente.
+
+---
+
+## La notion de "DAG Run"
+
+Chaque fois qu'un DAG s'exécute (manuellement ou selon son planning), Airflow crée une **DAG Run** — une instance d'exécution distincte.
+
+Ça permet de faire du **backfill** : si tu as un nouveau DAG qui tourne tous les jours et que tu veux le faire tourner rétroactivement sur les 3 derniers mois, Airflow peut lancer 90 DAG Runs en parallèle, chacune couvrant une journée différente.
+
+> **Analogie web** : imagine une tâche cron WordPress (`wp-cron`) qui rate plusieurs exécutions et que tu veux relancer manuellement pour chaque date manquée. La logique est similaire, mais Airflow le gère nativement et proprement.
+
+---
+
+## Le contrôle du flux : branching, trigger rules
+
+Par défaut, une tâche ne s'exécute que si **toutes ses tâches parentes ont réussi**. Mais on peut modifier ce comportement.
+
+### Branching
+
+Tu peux créer des **branches conditionnelles** : selon le résultat d'une tâche, Airflow empruntera un chemin ou un autre.
+
+```python
+from airflow.sdk import task
+
+@task.branch(task_id="choix_de_chemin")
+def choisir_chemin():
+    if condition:
+        return "chemin_a"
+    else:
+        return "chemin_b"
+```
+
+### Trigger rules
+
+Par défaut, une tâche attend que toutes ses parentes réussissent (`all_success`). Mais d'autres options existent :
+
+- `all_done` — les parentes sont terminées, succès ou échec
+- `one_success` — au moins une parente a réussi
+- `none_failed` — aucune parente n'a échoué (les skippées sont ok)
+
+> **Analogie web** : c'est proche des conditions dans un workflow CI/CD (`if: success()`, `if: always()`, etc.) ou des promesses JavaScript enchaînées avec `.then()` et `.catch()`.
+
+---
+
+## Les DAGs dynamiques
+
+Puisque les DAGs sont du code Python, on peut les générer dynamiquement. Par exemple, créer automatiquement une tâche pour chaque fichier dans un dossier, ou pour chaque entrée dans une config.
+
+```python
+with DAG("dag_dynamique", ...):
+    options = ["source_a", "source_b", "source_c"]
+    for option in options:
+        EmptyOperator(task_id=f"traiter_{option}")
+```
+
+> **Analogie web** : c'est comme générer des routes ou des menus WordPress dynamiquement à partir d'une config ou d'une BDD. La structure change selon les données.
+
+---
+
+## Comment Airflow découvre les DAGs
+
+Airflow scanne un dossier (`DAGS_FOLDER`) à la recherche de fichiers Python. Il n'exécute que les objets DAG déclarés **au niveau global** du fichier (pas dans des fonctions ou des classes). Un DAG déclaré à l'intérieur d'une fonction ne sera pas découvert.
+
+Astuce : Airflow ignore les fichiers qui ne contiennent pas les mots `airflow` et `dag` (insensible à la casse) pour optimiser les performances. Comme un `.gitignore`, il existe aussi un `.airflowignore` pour exclure certains fichiers.
+
+> **Analogie web** : c'est proche du fonctionnement de WordPress qui scanne le dossier `wp-content/plugins/` — il découvre les plugins automatiquement selon des conventions de nommage et de structure.
+
+---
+
+## Setup et teardown
+
+En data engineering, il est fréquent d'avoir besoin de :
+
+1. **Créer** une ressource (un cluster, une connexion, une table temporaire)
+2. **Travailler** avec cette ressource
+3. **Nettoyer** après
+
+Airflow gère ça nativement avec des tâches de **setup** et **teardown** — le teardown s'exécute toujours, même si le job a planté.
+
+> **Analogie web** : c'est l'équivalent d'un `try/catch/finally` ou d'un `beforeEach/afterEach` dans les tests unitaires.
+
+---
+
+## Ce que j'en retiens
+
+Honnêtement, au début la documentation Airflow peut sembler aride. Mais une fois qu'on comprend le concept central — _un DAG, c'est juste un graphe de tâches ordonnées, écrit en Python_ — tout devient beaucoup plus logique.
+
+Ce qui m'a le plus aidé, c'est de me rappeler que ça ressemble beaucoup à des outils que je connais déjà : les workflows CI/CD, les hooks WordPress, les scripts de déploiement. La logique de dépendances et d'ordonnancement, on l'applique déjà au quotidien dans le dev web — Airflow apporte juste un cadre formel, une interface visuelle, et une robustesse industrielle pour le faire à l'échelle de la data.
+
+La prochaine étape pour moi : installer Airflow dans Docker et créer mes premiers vrais DAGs. À suivre.
+
+---
+
+_Cet article fait partie de ma série sur ma reconversion du web vers la data. Si tu es dans la même démarche, n'hésite pas à me contacter._

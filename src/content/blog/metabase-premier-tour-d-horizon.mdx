@@ -1,0 +1,111 @@
+---
+title: "Metabase : premier tour d'horizon d'un outil de data viz fait pour les devs"
+summary: "Je découvre Metabase dans le cadre de ma formation Analytics Engineer chez DataBird. Premier tour de l'interface, comparaisons avec Tableau et quelques parallèles avec le monde du web."
+postLayout: column
+date: "2026-02-26"
+lastmod: "2026-02-26"
+draft: false
+related:
+  - comment-je-me-reconvertis-dans-la-data
+tags:
+  - outils
+  - metabase
+  - data-analytics
+  - analytics-engineering
+  - data-visualization
+category: data
+---
+
+[La formation Analytics Engineer chez DataBird](/blog/comment-je-me-reconvertis-dans-la-data) m'a glissé dans les mains un nouveau jouet : **Metabase**. L'outil est présenté comme essentiel pour un Analytics Engineer, et sera utilisé dans le cadre du projet final. Pour l'instant, je n'en sais pas beaucoup plus. Alors autant en profiter pour faire un premier tour, à tête reposée, avant que la formation ne s'emballe.
+
+Dans cet article, je partage mes premières impressions, en m'appuyant sur [la documentation officielle](https://www.metabase.com/learn/metabase-basics/overview/tour-of-metabase) — et en faisant quelques comparaisons avec ce que je connais déjà : Tableau (vu dans [la formation Data Analytics de DeepLearning.ai](/blog/data-analytics-deeplearning)), et parfois Excel/Google Sheets quand c'est pertinent.
+
+---
+
+## C'est quoi, Metabase ?
+
+Metabase est un outil open source de **business intelligence** (BI). En clair : tu connectes une base de données, tu poses des questions sur tes données, et l'outil les transforme en visualisations — graphiques, tableaux, dashboards.
+
+C'est l'équivalent de Tableau ou Power BI, mais dans une version qui cible davantage les équipes techniques et les startups. Il est auto-hébergeable, gratuit en version open source, et l'interface mise clairement sur la **simplicité d'utilisation**.
+
+Là où Tableau se positionne souvent côté business analyst ou data analyst, Metabase semble vouloir rendre l'analyse de données accessible à un public plus large — y compris des gens qui ne savent pas écrire une ligne de SQL.
+
+---
+
+## Ce qu'on peut faire avec Metabase
+
+### Connecter ses sources de données
+
+On peut connecter Metabase à une grande variété de bases de données : PostgreSQL, MySQL, BigQuery, MongoDB, Snowflake, Redshift, et bien d'autres. Un peu comme quand on connecte WordPress à une base MySQL, sauf qu'ici l'objectif c'est l'analyse, pas la persistance des données d'un CMS.
+
+Il est aussi possible d'**importer directement des fichiers CSV** pour faire de l'analyse ad hoc. C'est l'équivalent de coller des données dans un Google Sheets, mais avec des outils de visualisation bien plus puissants derrière.
+
+### Interroger les données : deux modes
+
+Metabase propose deux façons de poser des questions à sa base de données.
+
+**Le Query Builder** — aussi appelé "notebook editor" — est une interface visuelle. On choisit une table, on filtre, on regroupe, on agrège, sans écrire une ligne de code. C'est un peu l'équivalent des formules `SUMIF` ou des tableaux croisés dynamiques dans Excel, mais en beaucoup plus fluide et scalable.
+
+**L'éditeur SQL natif** permet d'écrire directement ses requêtes pour ceux qui préfèrent garder le contrôle. On peut même référencer des questions sauvegardées comme si c'étaient des tables ou des vues SQL :
+
+```sql
+WITH gizmo_orders AS {{#123}}
+SELECT *
+FROM gizmo_orders
+WHERE status = 'completed'
+```
+
+Cette syntaxe `{{#123}}` est propre à Metabase — c'est une façon d'encapsuler des requêtes réutilisables. L'esprit est proche des [snippets SQL](https://www.metabase.com/learn/metabase-basics/querying-and-dashboards/sql-in-metabase/snippets) ou des CTEs, mais avec une couche d'abstraction supplémentaire côté UI.
+
+### Visualiser les résultats
+
+Metabase propose **18 types de visualisations** différents : graphiques en barres, en lignes, en aires, scatter plots, cartes, jauges, entonnoirs, tableaux... On est dans les clous de ce que fait Tableau, même si Tableau reste plus puissant pour les visualisations complexes et la personnalisation poussée.
+
+Ce qui est sympa, c'est que Metabase tente de **deviner automatiquement** la visualisation la plus adaptée à tes résultats. Pas toujours parfait, mais pratique pour démarrer vite.
+
+### Construire des dashboards
+
+On peut regrouper plusieurs questions dans un **dashboard interactif**, auquel on ajoute des filtres. Ces filtres se connectent aux différentes cartes du dashboard, permettant de tout filtrer d'un coup (par date, par région, par statut...).
+
+Metabase permet aussi le **drill-through** : cliquer sur un point d'un graphique pour en voir le détail. C'est une feature qu'on retrouve aussi dans Tableau, et c'est vraiment utile pour explorer les données sans multiplier les vues.
+
+### Les modèles : entre les vues SQL et les composants réutilisables
+
+Metabase introduit le concept de **modèles** — des questions pré-construites qu'on utilise comme point de départ pour de nouvelles analyses. En gros, tu crée une fois "Commandes actives des 30 derniers jours", et n'importe qui peut partir de là pour sa propre analyse.
+
+Pour un dev web, c'est un peu comme créer un composant React ou un partial Twig : tu encapsules de la logique réutilisable pour éviter la répétition. Sauf qu'ici, c'est de la logique de données, pas du rendu UI.
+
+### Les métriques : standardiser les calculs
+
+Les **métriques** permettent de définir _officiellement_ comment calculer un indicateur clé — par exemple, le chiffre d'affaires. Une fois créée, toute l'équipe peut y faire référence dans ses propres questions, sans risquer d'avoir cinq définitions différentes du même KPI.
+
+C'est un peu l'équivalent d'une **source de vérité unique**, ce qu'on appelle dans le monde de la data un _single source of truth_. En WordPress, ça ressemblerait à définir une fonction dans `functions.php` plutôt que de dupliquer la logique dans chaque template.
+
+---
+
+## Ce qui me semble différent de Tableau
+
+J'ai découvert Tableau dans le cadre de la formation Data Analytics de DeepLearning.ai. Les deux outils ont des points communs évidents, mais aussi des différences notables.
+
+Tableau est clairement pensé pour des **analystes confirmés** qui veulent créer des visualisations très personnalisées et esthétiquement soignées. L'interface est puissante mais avec une courbe d'apprentissage plus raide. Le drag-and-drop y est omniprésent.
+
+Metabase, lui, semble pensé pour être **rapidement opérationnel** — même pour des non-data people. L'interface est plus épurée, le query builder plus intuitif pour quelqu'un qui a un profil technique mais pas analyste. Et surtout : il est **open source et auto-hébergeable**, ce qui correspond mieux à mes convictions en termes d'infrastructure (on en a déjà parlé avec [mon setup Hetzner/Coolify](/blog/coolify-et-hetzner)).
+
+---
+
+## Ce que j'ai encore à explorer
+
+Ce tour d'horizon est forcément superficiel — je n'ai pas encore mis les mains dans l'interface. Ce que j'ai envie de creuser :
+
+- Le query builder en pratique : à quel point est-il puissant sans SQL ?
+- Les modèles et métriques : comment ça s'intègre dans un workflow Analytics Engineer ?
+- L'hébergement : est-ce que ça tournera bien sur mon VPS Hetzner via Coolify ?
+- Le projet final de la formation : j'ai hâte de voir quel cas concret sera proposé.
+
+---
+
+## Conclusion
+
+Metabase s'annonce comme un outil sérieux, bien conçu, et accessible. Pour un profil comme le mien — développeur en reconversion vers la data — le fait qu'il soit open source, auto-hébergeable, et qu'il propose à la fois une interface no-code et un éditeur SQL, c'est exactement ce qu'il me faut.
+
+Je n'ai pas encore eu l'occasion de l'utiliser vraiment, mais le tour de la documentation officielle m'a convaincu qu'il mérite le temps qu'on lui consacre. La suite dans quelques semaines, quand la formation DataBird commencera vraiment à s'y plonger.
