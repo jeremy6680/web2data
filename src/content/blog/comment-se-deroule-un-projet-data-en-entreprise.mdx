@@ -1,0 +1,102 @@
+---
+title: "Comment se déroule un projet data en entreprise ?"
+summary: "Qui fait quoi, dans quel ordre, et pourquoi ? Un retour sur ce que j'ai appris sur la structure d'un projet data — vu par un développeur web habitué aux projets WordPress."
+postLayout: column
+date: "2026-02-25"
+lastmod: "2026-02-25"
+draft: false
+related:
+  - comment-je-me-reconvertis-dans-la-data
+tags:
+  - analytics-engineering
+category: data
+---
+
+Quand j'ai commencé le prep-work de la formation Analytics Engineer chez Databird, le premier module portait sur la façon dont un projet data se structure en entreprise. C'est clairement l'un des contenus qui m'a le plus appris — non pas parce que c'était complexe, mais parce que c'était un univers que je ne connaissais pas du tout.
+
+En développement web, on a nos habitudes : brief → maquette → dev → recette → mise en ligne. Ça marche, plus ou moins. Mais dans le monde de la data, les intervenants, les étapes et les enjeux sont différents. Voici ce que j'en ai retenu.
+
+---
+
+## Les différents acteurs d'un projet data
+
+Première chose qui m'a frappé : les rôles sont très clairement délimités. En web, ça dépend beaucoup du contexte — dans une grande structure, tu peux avoir des devs front, des devs back, des QA, des experts SEO, des UX designers… Mais dans les agences de petite ou moyenne taille comme celles où j'ai travaillé, les profils étaient plutôt polyvalents : un chef de projet, un designer, un ou deux développeurs qui pouvaient toucher à tout, et un client. En data, même dans des équipes de taille comparable, la spécialisation est apparemment plus marquée d'emblée.
+
+**Le Data Engineer** s'occupe de l'infrastructure : collecter les données depuis différentes sources, les stocker dans des data lakes, les transférer dans des data warehouses via des processus ETL ou ELT. C'est lui qui s'assure que les données sont disponibles, fiables et accessibles. En gros, c'est le "backend" de la data — il construit le tuyau, il ne fait pas l'analyse.
+
+**Le Data Analyst** (ou Data Scientist) utilise ces données pour en tirer des insights. Il extrait les données via SQL, les nettoie, les explore, réalise des analyses statistiques et produit des visualisations à destination des équipes métier. C'est lui qui répond aux questions business avec des données.
+
+**L'Analytics Engineer** — [le rôle vers lequel je me forme](comment-je-me-reconvertis-dans-la-data) — se situe entre les deux. Il s'assure que les données sont bien transformées, documentées, testées, et réutilisables. Il applique des bonnes pratiques de software engineering à la donnée : code maintenable, versionnement, tests de qualité.
+
+**Le Chef de projet data** cadre le projet : il évalue la faisabilité, priorise les sujets, mobilise les ressources. C'est lui qui fait le lien entre les besoins métier et les équipes techniques.
+
+Et puis il y a les **équipes métier** — finance, marketing, logistique… Ce sont elles qui posent les questions et qui, in fine, prennent les décisions. Le data analyst ne décide pas : il analyse et présente. La décision reste côté métier.
+
+---
+
+## La maturité data d'une entreprise : un concept qui n'existe pas en web
+
+Avant même de démarrer un projet data, il faut comprendre dans quel contexte on travaille. Et ça passe par une notion que je n'avais jamais rencontrée en web : la **maturité data**.
+
+Le cours présente un framework en **cinq piliers** pour évaluer où en est une entreprise :
+
+- **Infrastructure** : quels outils pour collecter, stocker et rendre les données accessibles ?
+- **Personnes & culture** : est-ce que tout le monde utilise la data, ou c'est réservé à quelques initiés ?
+- **Outils** : Python, SQL, Power BI, Tableau — qu'est-ce qui est utilisé, et de façon cohérente ?
+- **Organisation** : pôle data centralisé ou réparti dans chaque département ?
+- **Processus** : comment les équipes non-techniques posent leurs questions aux équipes data ? Ticketing, wikis, sessions Q&A…
+
+À partir de là, on peut situer une entreprise sur une échelle à quatre niveaux :
+
+- **Data Reactive** : zéro culture data, des fichiers Excel éparpillés, des analyses ad hoc sans standards.
+- **Data Scaling** : on commence à poser les bases d'une infrastructure, on fait des proof of concept.
+- **Data Progressive** : infrastructure cloud en place, culture data qui se développe, outils standardisés.
+- **Data Fluent** : la data est intégrée dans toutes les décisions, chaque département a des compétences solides.
+
+Pourquoi c'est utile ? Parce que ça conditionne tout. Un projet data ambitieux dans une entreprise Data Reactive, ça ne peut pas marcher — l'infrastructure n'est pas là, les gens ne sont pas formés, les processus n'existent pas. Évaluer la maturité, c'est calibrer les ambitions.
+
+En web, on n'a pas vraiment l'équivalent. On peut évaluer la qualité technique d'un site, l'état du code, les pratiques de sécurité… mais pas "à quel point une entreprise est prête à faire du web". En data, cette question est structurante.
+
+---
+
+## Les étapes d'un projet data
+
+Une fois le contexte posé, un projet data suit une roadmap assez claire. Quatre grandes phases, dans l'ordre.
+
+### 1. Le cadrage (~20% du temps)
+
+C'est là que tout se joue. On définit la problématique, on identifie les KPI, on organise l'équipe. Le cours insiste beaucoup là-dessus, et je comprends pourquoi : en web, on peut se permettre de commencer à coder et d'ajuster en cours de route. En data, si tu pars dans la mauvaise direction, tu peux passer des semaines à analyser des données qui ne répondent pas à la vraie question.
+
+Deux outils sont présentés pour cadrer efficacement.
+
+La méthode des **5 Pourquoi** (5 Why) : on part d'un symptôme, et on creuse en demandant "pourquoi ?" cinq fois de suite jusqu'à trouver la cause racine. Exemple : le projet data est en retard → pourquoi ? → le nettoyage des données a pris plus de temps → pourquoi ? → les données sources étaient mal vérifiées → pourquoi ? → il n'y a pas de processus de validation → pourquoi ? → personne n'a jamais mis en place de procédure qualité. La solution, c'est d'adresser cette cause racine, pas le symptôme.
+
+La méthode **MoSCoW** pour prioriser les tâches : **Must Have** (indispensable), **Should Have** (important mais pas bloquant), **Could Have** (sympa à avoir), **Will Not Have** (exclu pour cette itération). Je l'avais croisée en gestion de projet web, mais rarement appliquée aussi rigoureusement qu'en data.
+
+### 2. La récolte des données (~20% du temps)
+
+Une fois les KPI définis, on va chercher les données. On accède au data warehouse, on teste des requêtes SQL pour vérifier que les données existent et sont dans le bon état. Si des données manquent ou nécessitent un traitement spécial (web scraping, API externe), c'est le moment de l'identifier et de faire appel au data engineer si besoin.
+
+C'est aussi une phase de communication intense avec les équipes métier : est-ce que les données disponibles correspondent vraiment à ce qu'on cherche à mesurer ?
+
+### 3. L'analyse
+
+C'est le cœur du travail. On nettoie les données (doublons, valeurs manquantes, formats incohérents), on explore (statistiques descriptives, distributions, corrélations), puis on approfondit avec des analyses plus ciblées : cohortes, A/B tests, modèles prédictifs selon le niveau de maturité du projet.
+
+En web, on a l'équivalent dans le debugging : on inspecte, on teste, on creuse. La différence, c'est qu'ici on travaille avec des volumes potentiellement énormes et que chaque décision sur le nettoyage peut impacter l'ensemble des résultats.
+
+### 4. La restitution
+
+Le résultat d'un projet data, ce n'est pas du code déployé — c'est une analyse présentée à des humains qui vont prendre des décisions. La restitution passe par des dashboards (Tableau, Power BI…), du storytelling adapté à l'audience, et des recommandations claires.
+
+Le data analyst présente ses conclusions et expose les limites de l'analyse. Mais il ne décide pas. C'est une posture différente de celle du développeur web, qui livre quelque chose de "fini". Ici, on livre des éléments pour décider — et la boucle peut recommencer.
+
+---
+
+## Ce qui change par rapport à un projet web
+
+La comparaison la plus frappante pour moi, c'est la place du métier. En développement web, le client valide des maquettes, teste le site, et signe. Le processus est relativement séquentiel. En data, les équipes métier sont impliquées à chaque étape — au cadrage pour définir les bonnes questions, pendant l'analyse pour valider les hypothèses, et à la restitution pour interpréter les résultats.
+
+L'approche agile présentée dans le cours insiste là-dessus : livrer rapidement des résultats partiels pour avoir du feedback, plutôt que de travailler six semaines dans son coin avant de montrer quelque chose. C'est la même philosophie qu'en web, mais avec un enjeu différent : en data, si tu réponds à la mauvaise question, aucun test utilisateur ne va te le dire. C'est le métier qui valide.
+
+L'autre différence notable : la **documentation**. En web, on documente souvent "quand on a le temps" (c'est-à-dire rarement). En data, la documentation des modèles, des métriques et des requêtes est structurante — c'est ce qui permet à l'équipe de réutiliser le travail existant sans repartir de zéro à chaque projet. C'est d'ailleurs l'une des raisons d'être de l'analytics engineering, mais ça, c'est pour un autre article.

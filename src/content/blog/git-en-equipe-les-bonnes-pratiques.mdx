@@ -1,0 +1,234 @@
+---
+title: "Git en équipe : les bonnes pratiques que tout développeur devrait connaître"
+summary: "Je connais Git depuis des années. Mais le préparer pour l'Analytics Engineering m'a rappelé à quel point certaines pratiques — branches, pull requests, gestion des conflits — font toute la différence quand on travaille à plusieurs."
+postLayout: column
+date: "2026-02-25"
+lastmod: "2026-02-25"
+draft: false
+related:
+  - comment-je-me-reconvertis-dans-la-data
+tags:
+  - git
+  - bonnes-pratiques
+category: web
+---
+
+Le module Git du prep-work Databird pour la [formation Analytics Engineer](/blog/comment-je-me-reconvertis-dans-la-data), je l'ai parcouru assez vite. Pas parce que c'était inintéressant, mais parce que Git fait partie de mon quotidien depuis des années. Commits, branches, push, pull requests… je navigue là-dedans sans trop y penser.
+
+Petite précision : je suis clairement "team GUI". J'utilise **Sourcetree** depuis de nombreuses années pour tout ce qui est gestion de branches, visualisation de l'historique, résolution de conflits. Plus récemment, j'ai commencé à faire mes commits, push et pull directement depuis l'**interface intégrée de VS Code** — pratique quand tu es déjà dans l'éditeur. La ligne de commande, je la connais, mais je ne vais pas prétendre que c'est mon terrain de jeu favori.
+
+Ça ne change rien aux principes — Git reste Git, peu importe l'interface. Mais c'est important de le dire, parce que beaucoup de devs sont dans ce cas et se sentent parfois "moins légitimes" que ceux qui tapent tout dans le terminal. À tort.
+
+Cet article n'est pas un tutoriel Git de plus. C'est plutôt une mise au point sur les pratiques qui font la différence quand on travaille en équipe — que ce soit sur du code PHP, du JavaScript, ou des requêtes SQL. Et que tu passes par un GUI ou un terminal.
+
+---
+
+## Git, c'est quoi exactement ?
+
+Pour ceux qui débarquent : **Git** est un système de contrôle de version. Il enregistre l'historique des modifications d'un projet, permet de travailler sur plusieurs versions en parallèle, et facilite la collaboration entre plusieurs personnes sur les mêmes fichiers.
+
+**GitHub** (ou Bitbucket, GitLab…) est la plateforme qui héberge le dépôt distant — c'est ce qui permet à plusieurs personnes de travailler sur le même projet depuis leurs machines respectives.
+
+En développement web, on l'utilise pour versionner du code. En data, on l'utilise pour versionner des requêtes SQL, des modèles dbt, des notebooks Python, des scripts d'automatisation. Le paradigme est exactement le même. Et ça, c'est une bonne nouvelle si tu viens du web.
+
+---
+
+## Les bases : ce que tout le monde devrait maîtriser
+
+Avant de parler bonnes pratiques, un rappel rapide des opérations essentielles. Je les donne sous forme de commandes pour que ce soit universel, mais sache que **tout ce qui suit peut se faire sans toucher au terminal** — via Sourcetree, VS Code, GitHub Desktop, ou n'importe quel autre client Git.
+
+```bash
+# Initialiser un dépôt local
+git init
+
+# Vérifier l'état du dépôt
+git status
+
+# Ajouter des fichiers à la zone de staging
+git add nom-du-fichier
+git add .  # tous les fichiers modifiés
+
+# Créer un commit
+git commit -m "Message descriptif du changement"
+
+# Lier le dépôt local à un dépôt distant
+git remote add origin https://github.com/utilisateur/projet.git
+
+# Envoyer les modifications vers le dépôt distant
+git push -u origin main
+
+# Récupérer les modifications depuis le dépôt distant
+git pull
+```
+
+Dans Sourcetree ou VS Code, ces opérations se font via des boutons et des menus — mais elles correspondent exactement aux mêmes actions. L'interface change, la logique reste identique.
+
+Rien de révolutionnaire. Mais c'est à partir d'ici que les choses se compliquent — ou plutôt, que les mauvaises habitudes apparaissent.
+
+---
+
+## Travailler avec des branches : pourquoi et comment
+
+La branche est le concept central du travail collaboratif avec Git. Une **branche** est une copie isolée du projet sur laquelle tu travailles sans impacter le reste de l'équipe.
+
+```bash
+# Créer une nouvelle branche et basculer dessus
+git checkout -b ma-nouvelle-fonctionnalite
+
+# Lister les branches existantes
+git branch
+
+# Revenir sur la branche principale
+git checkout main
+```
+
+Dans Sourcetree, créer une branche se fait en deux clics depuis le panneau latéral. Dans VS Code, c'est accessible directement depuis la barre de statut en bas à gauche — tu cliques sur le nom de la branche courante, et tu as l'option d'en créer une nouvelle. Dans les deux cas, c'est la même opération.
+
+La règle d'or : **on ne travaille jamais directement sur `main` (ou `master`)**. Jamais. Même si tu es seul. Et surtout si tu es en équipe.
+
+Maintenant que c'est dit, je dois avouer que j'ai pris la très mauvaise habitude de faire exactement l'inverse sur mes projets perso. Commit direct sur main, push, et on n'en parle plus. C'est confortable quand on est seul et qu'on est pressé — jusqu'au jour où ça pose un problème. Donc : faites ce que je dis, pas ce que je fais.
+
+Pourquoi cette règle existe ? Parce que `main` doit toujours être dans un état stable et déployable. Si tu pousses du code cassé directement dessus, tu bloques tout le monde. En travaillant sur une branche dédiée, tu peux expérimenter, rater, recommencer — sans aucune conséquence sur le reste du projet.
+
+### Nommer ses branches correctement
+
+Un truc simple qui change tout en équipe : avoir une convention de nommage claire pour les branches. Par exemple :
+
+```
+feature/ajout-filtre-date
+fix/correction-calcul-taux
+chore/mise-a-jour-dependances
+```
+
+En data, on retrouve le même principe avec des noms comme `feature/model-orders` ou `fix/metric-revenue`. La logique est identique.
+
+---
+
+## Les commits : l'art du message clair
+
+Un commit, c'est une photo de l'état du projet à un instant T. Son message doit permettre à n'importe quel membre de l'équipe — y compris toi dans six mois — de comprendre **ce qui a changé et pourquoi**.
+
+### Ce qu'on voit trop souvent
+
+```
+git commit -m "fix"
+git commit -m "modifs"
+git commit -m "encore des trucs"
+git commit -m "ça marche"
+```
+
+C'est inutile. Un historique comme ça ne raconte rien.
+
+### Ce qu'on devrait viser
+
+```
+git commit -m "Fix conversion rate calculation on mobile"
+git commit -m "Add date filter to orders query"
+git commit -m "Refactor customers model to remove duplicates"
+```
+
+_Note : à des fins pédagogiques, les exemples de cet article sont en français. Mais dans les faits, tout mon code est exclusivement en anglais — messages de commit inclus. Je considère ça comme une bonne pratique de base : n'importe qui, où qu'il ou elle soit dans le monde, devrait pouvoir lire et comprendre ton code si besoin. L'anglais est la lingua franca du développement, autant l'adopter dès le départ._
+
+Quelques règles simples :
+
+- Commencer par un verbe à l'infinitif ou à l'impératif
+- Être précis sans être verbeux
+- Un commit = une modification logique cohérente (pas "j'ai tout changé en même temps")
+
+Et un principe important : **commit souvent, push régulièrement**. Ne pas accumuler 3 jours de travail dans un seul commit géant. Ça rend le code impossible à relire, et la résolution de conflits cauchemardesque.
+
+---
+
+## Les Pull Requests : le vrai outil de collaboration
+
+C'est là où beaucoup de développeurs solo ou junior sous-estiment Git. La **Pull Request** (PR) — ou Merge Request chez GitLab — c'est la demande formelle de fusionner une branche dans une autre. Et c'est bien plus qu'une formalité technique.
+
+### Ce que permet une PR
+
+Quand tu ouvres une PR, tu invites ton équipe à relire ton travail **avant** qu'il soit intégré. Ça permet de :
+
+- Détecter des bugs ou des erreurs logiques que tu n'as pas vus
+- Poser des questions sur des choix de conception
+- Partager de la connaissance — quelqu'un apprend quelque chose en relisant ton code
+- Documenter ce qui a changé et pourquoi
+
+```
+# Pousser ta branche vers le dépôt distant
+git push -u origin ma-nouvelle-fonctionnalite
+
+# Ensuite, sur GitHub : bouton "Compare & pull request"
+```
+
+### Écrire une bonne description de PR
+
+Une PR sans description, c'est une PR qui ne sera pas bien relue. La description doit répondre à trois questions :
+
+- **Qu'est-ce que ça fait ?** → ce que la PR apporte concrètement
+- **Pourquoi ce changement ?** → le contexte, le problème que ça résout
+- **Comment tester ?** → les étapes pour vérifier que ça fonctionne
+
+En data, une bonne PR de modèle SQL inclut souvent aussi un aperçu des résultats avant/après pour montrer que les chiffres ont du sens.
+
+---
+
+## Gérer les conflits : inévitable, pas catastrophique
+
+Un **conflit** se produit quand deux personnes ont modifié les mêmes lignes dans le même fichier, et que Git ne sait pas quelle version garder. C'est la partie qui stresse le plus les débutants. Et c'est la plus facile à apprivoiser quand on comprend ce qui se passe.
+
+En ligne de commande, Git marque les conflits directement dans le fichier :
+
+```
+<<<<<<< HEAD
+Version du code dans main
+=======
+Version du code dans ma branche
+>>>>>>> ma-branche
+```
+
+Tout ce qu'il y a entre `<<<<<<< HEAD` et `=======` vient de `main`. Entre `=======` et `>>>>>>>` vient de ta branche. Tu choisis ce que tu gardes, tu supprimes les marqueurs, et tu fais un commit.
+
+En pratique, je gère rarement les conflits dans le terminal. Sourcetree propose une interface de résolution visuelle où les deux versions s'affichent côte à côte — c'est beaucoup plus lisible. VS Code fait la même chose nativement, avec des boutons "Accept Current Change / Accept Incoming Change / Accept Both" qui apparaissent directement dans l'éditeur. Pour des conflits simples, c'est imbattable.
+
+```bash
+git add fichier-resolu.sql
+git commit -m "Résolution du conflit sur le modèle orders"
+```
+
+**La vraie façon d'éviter les conflits** : communiquer avec son équipe, découper le travail en tâches indépendantes, et merger régulièrement plutôt que d'attendre d'avoir divergé pendant deux semaines.
+
+---
+
+## Revenir en arrière : le filet de sécurité
+
+L'un des grands avantages de Git, c'est de pouvoir explorer l'historique du projet et revenir à un état antérieur si besoin.
+
+```bash
+# Voir l'historique des commits
+git log --oneline
+
+# Revenir temporairement à un commit précédent (mode lecture seule)
+git checkout abc1234
+
+# Revenir sur la branche courante
+git checkout main
+```
+
+Note importante : `git checkout` sur un commit te met en mode "detached HEAD" — tu peux regarder, mais pas modifier. Pour vraiment revenir à un état précédent et repartir de là, il faut utiliser `git revert` ou `git reset`, avec un peu plus de précaution.
+
+---
+
+## Git en data : exactement les mêmes principes
+
+Ce qui m'a conforté dans l'idée que Git est une compétence universelle, c'est de voir que les bonnes pratiques sont identiques en data et en web.
+
+En analytics engineering, on versionne des modèles SQL, des fichiers de configuration dbt, des scripts Python. On travaille avec des branches `feature/`, on ouvre des PRs, on fait relire le code par un collègue avant de merger. La seule différence, c'est que les "fichiers" sont des requêtes et des transformations de données plutôt que du PHP ou du JavaScript.
+
+Si tu viens du web et que tu maîtrises Git, tu as une longueur d'avance réelle. Ce n'est pas un détail — c'est une compétence centrale.
+
+---
+
+## Le résumé en une phrase
+
+Git, c'est facile à apprendre seul. C'est l'utiliser en équipe, avec des branches propres, des commits clairs et des pull requests bien rédigées, qui fait la différence entre un projet maintenable et un projet chaotique.
+
+Peu importe si tu travailles sur du code web ou sur des pipelines de données.

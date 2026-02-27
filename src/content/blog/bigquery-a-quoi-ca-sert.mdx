@@ -1,0 +1,170 @@
+---
+title: "BigQuery : à quoi ça sert, qui l'utilise, comment ça marche ?"
+summary: "Je n'avais jamais entendu parler de BigQuery avant de commencer ma formation en analytics engineering. Voici ce que j'en ai compris — expliqué simplement, sans prérequis data."
+postLayout: column
+date: "2026-02-25"
+lastmod: "2026-02-25"
+draft: false
+related:
+  - comment-je-me-reconvertis-dans-la-data
+tags:
+  - data-visualization
+category: data
+---
+
+Avant de commencer le prep-work de ma [formation Analytics Engineer](/blog/comment-je-me-reconvertis-dans-la-data) chez Databird, je n'avais jamais entendu parler de BigQuery. Pas vraiment. J'avais vaguement croisé le nom, mais je n'aurais pas su expliquer à quoi ça sert ni qui l'utilise.
+
+Après avoir suivi le module dédié, j'ai une vision beaucoup plus claire. Et comme c'est le genre de sujet qu'on survole souvent trop vite ("c'est un data warehouse, voilà"), j'ai envie de prendre le temps de l'expliquer proprement — avec mes mots, depuis mon angle de développeur web qui découvre la data.
+
+---
+
+## D'abord : c'est quoi un data warehouse ?
+
+Avant de parler de BigQuery, il faut comprendre ce qu'est un **data warehouse** — un entrepôt de données.
+
+Imagine une entreprise qui génère des données partout : les ventes sur son site e-commerce, les campagnes marketing, les tickets support, les stocks en entrepôt, les données CRM… Ces données vivent dans des systèmes différents, dans des formats différents, parfois même dans des pays différents.
+
+Un **data warehouse**, c'est l'endroit où toutes ces données sont centralisées, nettoyées, structurées, et rendues disponibles pour être analysées. C'est la source de vérité de l'entreprise. Quand le directeur financier veut savoir combien de chiffre d'affaires a été généré le mois dernier par segment client, c'est dans le data warehouse qu'on va chercher la réponse.
+
+BigQuery est l'un de ces data warehouses. Il est développé par Google et hébergé sur Google Cloud Platform.
+
+---
+
+## BigQuery dans la Modern Data Stack
+
+Pour comprendre la place de BigQuery, il faut visualiser ce qu'on appelle la **Modern Data Stack** — l'architecture typique d'une équipe data moderne.
+
+```
+Sources de données
+(site web, CRM, marketing, logistique…)
+         ↓
+   Ingestion / ELT
+(Fivetran, Airbyte…)
+         ↓
+   Data Lake
+(stockage brut — Google Cloud Storage)
+         ↓
+   Transformation
+(dbt, dataform…)
+         ↓
+   BigQuery
+(data warehouse — données propres et structurées)
+         ↓
+   Visualisation
+(Looker, Power BI, Tableau, Metabase…)
+```
+
+BigQuery se situe au centre de cette chaîne. C'est là où les données arrivent après avoir été collectées et chargées, et c'est depuis là qu'elles sont consommées par les outils de visualisation et d'analyse.
+
+Une nuance importante : BigQuery n'est pas le seul data warehouse du marché. Il y a aussi **Snowflake**, **Amazon Redshift**, **Azure Synapse**… La logique est la même partout. BigQuery a été mis en avant dans la formation Databird car il s'intègre bien dans l'écosystème Google Cloud et son modèle de tarification est accessible pour commencer.
+
+---
+
+## ELT, pas ETL : une différence qui compte
+
+En web, si tu as déjà manipulé des données entre systèmes, tu as peut-être croisé le terme **ETL** : Extract, Transform, Load. On extrait les données, on les transforme, puis on les charge dans la destination.
+
+BigQuery (et les data stacks modernes en général) favorise l'approche **ELT** : Extract, Load, Transform. On charge les données brutes d'abord, et on les transforme ensuite — directement dans BigQuery, avec du SQL.
+
+Pourquoi ce changement ? Parce que BigQuery est conçu pour traiter des volumes massifs très rapidement. Il est beaucoup plus efficace de charger toutes les données brutes et de faire les transformations en SQL dans BigQuery, plutôt que de les préparer à l'avance avant de les charger.
+
+---
+
+## La structure des données dans BigQuery
+
+BigQuery organise les données en trois niveaux hiérarchiques :
+
+**Projet → Dataset → Table**
+
+- Le **projet** est le conteneur le plus haut niveau (par exemple : `mon-entreprise-data`)
+- Le **dataset** regroupe des tables liées entre elles (par exemple : `dataset_marketing`, `dataset_logistique`)
+- La **table** contient les données elles-mêmes, structurées en lignes et colonnes
+
+On retrouve aussi deux notions proches qu'il ne faut pas confondre :
+
+- **Data Lake** : stockage brut de données non transformées, toutes sources confondues. C'est l'entrepôt de matières premières.
+- **Data Mart** : sous-ensemble du data warehouse, dédié à un département ou un usage précis. Le marketing a son data mart, la finance a le sien — chacun contient les données pertinentes pour ce département, déjà transformées et prêtes à être analysées.
+
+---
+
+## Comment on interagit avec BigQuery ?
+
+Via du **SQL**. C'est la bonne nouvelle si tu viens du web : BigQuery utilise un dialecte SQL standard, avec quelques spécificités propres à Google. Si tu sais écrire des requêtes SQL, tu peux démarrer sur BigQuery sans trop de dépaysement.
+
+```sql
+-- Exemple de requête basique dans BigQuery
+SELECT
+  user_id,
+  COUNT(order_id) AS nombre_commandes,
+  SUM(revenue) AS chiffre_affaires
+FROM `mon-projet.dataset_ventes.orders`
+WHERE DATE(created_at) >= '2025-01-01'
+GROUP BY user_id
+ORDER BY chiffre_affaires DESC
+LIMIT 100;
+```
+
+La syntaxe notable de BigQuery : les tables sont référencées avec le format `` `projet.dataset.table` `` — c'est ce qui permet d'interroger des données dans n'importe quel projet ou dataset auquel tu as accès.
+
+---
+
+## La gestion des accès : IAM
+
+BigQuery utilise le système **IAM** (Identity and Access Management) de Google Cloud pour contrôler qui peut faire quoi. On attribue des **rôles** à des utilisateurs ou des applications :
+
+- **BigQuery Viewer** : peut lire les données, pas les modifier
+- **BigQuery Data Editor** : peut lire et modifier les données
+- **BigQuery Admin** : contrôle total
+
+On peut aussi créer des **comptes de service** — des identités associées à des applications plutôt qu'à des humains. C'est ce qu'on utilise pour connecter BigQuery à Power BI, à dbt, ou à n'importe quel outil externe : on crée un compte de service, on lui attribue les bons droits, et on génère une clé d'authentification que l'outil utilise pour se connecter.
+
+Si tu viens de WordPress, tu peux faire le parallèle avec les rôles utilisateurs (Subscriber, Editor, Administrator…). Le principe est le même — qui a le droit de voir quoi, de modifier quoi. La granularité et les enjeux sont juste beaucoup plus importants.
+
+---
+
+## La tarification à l'usage : un nouveau paradigme
+
+C'est l'un des points qui m'a le plus surpris. BigQuery ne facture pas un abonnement mensuel fixe. Il facture **l'usage**, selon trois dimensions :
+
+- **Le stockage** : ce que tu stockes dans BigQuery (avec un palier gratuit généreux au départ)
+- **L'analyse** : le volume de données scanné par tes requêtes SQL
+- **Le streaming** : le déplacement de données en temps réel
+
+Sur le stockage, c'est assez prévisible. Sur l'analyse, en revanche, ça peut vite surprendre : une requête mal optimisée qui scanne une table de plusieurs teraoctets peut coûter cher. D'où l'importance d'écrire des requêtes efficaces.
+
+Deux techniques sont particulièrement importantes pour maîtriser les coûts :
+
+- **Le partitionnement** : diviser une table en sous-ensembles selon une colonne (souvent la date). Une requête filtrée sur une date ne scannera que la partition concernée, pas l'ensemble de la table.
+- **Le clustering** : trier les données dans une table selon des colonnes fréquemment utilisées dans les filtres. BigQuery peut alors éliminer des blocs de données sans les scanner.
+
+```sql
+-- Créer une table partitionnée par date et clusterisée par pays
+CREATE TABLE `mon-projet.dataset.commandes`
+PARTITION BY DATE(created_at)
+CLUSTER BY country_code
+AS SELECT * FROM `mon-projet.dataset.commandes_brutes`;
+```
+
+Ce paradigme change la façon de penser l'optimisation. En web, une requête SQL lente, c'est un problème de performance. Dans BigQuery, une requête inefficace, c'est aussi un problème de coût. Les deux dimensions sont liées.
+
+---
+
+## À qui s'adresse BigQuery ?
+
+BigQuery est conçu pour les équipes data de taille variable, dans des entreprises qui :
+
+- génèrent ou collectent des volumes de données importants
+- ont besoin de centraliser des données provenant de sources multiples
+- veulent faire de l'analyse SQL sans gérer eux-mêmes l'infrastructure
+
+Il n'est pas réservé aux grandes entreprises. Des startups s'en servent dès le départ — GCP offre un généreux niveau gratuit pour commencer, et la scalabilité est l'un des points forts de BigQuery : les mêmes requêtes fonctionnent sur 1 million de lignes ou sur 1 milliard.
+
+Les profils qui l'utilisent au quotidien : data analysts (pour les requêtes d'analyse), data engineers (pour les pipelines d'ingestion), analytics engineers (pour la transformation et la modélisation). Les équipes métier peuvent aussi l'interroger via des outils de visualisation connectés, sans écrire de SQL eux-mêmes.
+
+---
+
+## Ce que j'en retiens
+
+BigQuery m'a semblé être un outil bien pensé pour son usage. La courbe d'apprentissage est accessible si tu connais SQL — ce qui est souvent le cas quand on vient du web. Ce qui demande plus d'adaptation, c'est la façon de penser l'architecture des données (data lake, data warehouse, data mart) et la gestion des coûts liés aux requêtes.
+
+Pour quelqu'un qui vient du web, le plus gros changement conceptuel, c'est peut-être ça : on ne "gère pas un serveur de base de données". On interroge un service managé, on paie pour ce qu'on consomme, et la scalabilité est automatique. C'est un modèle différent — mais une fois qu'on l'a intégré, ça fait beaucoup de sens.
