@@ -61,8 +61,8 @@ export const ui = {
     "nav.parcours": "Journey",
     "nav.tuto": "Tutorial",
     "nav.bonnes-pratiques": "Best Practices",
-    "nav.qualite-web": "Web Quality",
     "nav.outils": "Tools",
+    "nav.organisation": "Organization",
     "nav.open-source": "Open Source",
 
     // Layouts
@@ -106,7 +106,8 @@ export const ui = {
     "pages.home.readMoreAbout": "En savoir plus sur {title}",
     "pages.home.readMore": "Lire la suite",
     "pages.technos.title": "Technos",
-    "pages.technos.description": "Toutes les technologies et outils utilisés sur le blog",
+    "pages.technos.description":
+      "Toutes les technologies et outils utilisés sur le blog",
     "pages.technos.allTechnos": "Toutes les technos",
     "pages.technos.noTechnos": "Aucune techno trouvée",
     "pages.technos.viewPosts": "Voir tous les articles avec la techno {techno}",
@@ -152,8 +153,8 @@ export const ui = {
     "nav.parcours": "Parcours",
     "nav.tuto": "Tuto",
     "nav.bonnes-pratiques": "Bonnes pratiques",
-    "nav.qualite-web": "Qualité web",
     "nav.outils": "Outils",
+    "nav.organisation": "Organisation",
     "nav.open-source": "Open Source",
 
     // Layouts
