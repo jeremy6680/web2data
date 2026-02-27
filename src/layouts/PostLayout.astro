@@ -6,8 +6,9 @@ import Link from "../components/Link.astro";
 import RootLayout from "./RootLayout.astro";
 import { type CollectionEntry, getEntries, render } from "astro:content";
 import FormattedDate from "../components/FormattedDate.astro";
-import Tag from "../components/Tag.astro";
+import Techno from "../components/Techno.astro";
 import Category from "../components/Category.astro";
+import Domain from "../components/Domain.astro";
 import ScrollTopAndComments from "@/components/solidjs/ScrollTopAndComments.tsx";
 import Breadcrumbs from "../components/Breadcrumbs.astro";
 import PostCover from "../components/PostCover.astro";
@@ -29,7 +30,7 @@ const { post, next, prev } = Astro.props as Props;
 const authors: CollectionEntry<"authors">[] = await getEntries(
   post.data.authors
 );
-const tags: CollectionEntry<"tags">[] = await getEntries(post.data.tags);
+const technos: CollectionEntry<"technos">[] = await getEntries(post.data.technos);
 const related: CollectionEntry<"blog">[] = await getEntries(post.data.related);
 
 const articleOgDetails = {
@@ -37,7 +38,7 @@ const articleOgDetails = {
   modifiedTime: post.data.lastmod,
   authors: authors.map(({ data }) => data.name),
   authorTwitter: authors.map(({ data }) => data.twitter).at(0),
-  tags: tags.map(({ data }) => data.name),
+  tags: technos.map(({ data }) => data.name),
   cover: post.data.cover,
 };
 
@@ -219,6 +220,18 @@ const { Content, headings } = await render(post);
               class="divide-gray-200 text-sm font-medium leading-5 dark:divide-gray-700 xl:col-start-1 xl:row-start-2 xl:divide-y"
             >
               {
+                post.data.domaine && (
+                  <div class="py-4 xl:py-8">
+                    <h2 class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                      {t('layouts.postLayout.domaine')}
+                    </h2>
+                    <div class="flex flex-wrap">
+                      <Domain slug={post.data.domaine.id} />
+                    </div>
+                  </div>
+                )
+              }
+              {
                 post.data.category && (
                   <div class="py-4 xl:py-8">
                     <h2 class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
@@ -231,14 +244,14 @@ const { Content, headings } = await render(post);
                 )
               }
               {
-                tags && (
+                technos && (
                   <div class="py-4 xl:py-8">
                     <h2 class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">
-                      {t('layouts.postLayout.tags')}
+                      {t('layouts.postLayout.technos')}
                     </h2>
                     <div class="flex flex-wrap">
-                      {tags.map((tag) => (
-                        <Tag tag={tag} />
+                      {technos.map((techno) => (
+                        <Techno techno={techno} />
                       ))}
                     </div>
                   </div>

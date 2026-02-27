@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(npx astro sync)",
-      "Bash(npx astro build)"
+      "Bash(npx astro build)",
+      "Bash(npx astro check)",
+      "Bash(grep -l \"outils\\\\|open-source\" /Users/jeremymarchandeau/Code/personal/projects/web2data/src/content/blog/*.mdx)",
+      "Bash(grep -l \"  - outils\\\\|  - open-source\" /Users/jeremymarchandeau/Code/personal/projects/web2data/src/content/blog/*.mdx)",
+      "Read(//Users/jeremymarchandeau/Code/personal/projects/web2data/src/content/blog/**)",
+      "Bash(ls /Users/jeremymarchandeau/Code/personal/projects/web2data/src/pages/categories/[slug]/)"
     ]
   }
 }

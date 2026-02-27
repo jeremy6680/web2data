@@ -84,14 +84,29 @@ export type NavItem = NavLink | NavDropdown;
 export const NAVIGATION: NavItem[] = [
   { href: "/", title: "nav.home" },
   {
-    title: "nav.categories",
+    title: "nav.domaines",
     children: [
-      { href: "/categories/web", title: "nav.web" },
-      { href: "/categories/data", title: "nav.data" },
-      { href: "/categories/ia", title: "nav.ia" },
+      { href: "/domaines/web", title: "nav.web" },
+      { href: "/domaines/data", title: "nav.data" },
+      { href: "/domaines/ia", title: "nav.ia" },
+      { href: "/domaines/infra", title: "nav.infra" },
+      { href: "/domaines/hors-sujet", title: "nav.hors-sujet" },
     ],
   },
-  { href: "/tags", title: "nav.tags" },
+  {
+    title: "nav.categories",
+    children: [
+      { href: "/categories/rex", title: "nav.rex" },
+      { href: "/categories/formation", title: "nav.formation" },
+      { href: "/categories/parcours", title: "nav.parcours" },
+      { href: "/categories/tuto", title: "nav.tuto" },
+      { href: "/categories/bonnes-pratiques", title: "nav.bonnes-pratiques" },
+      { href: "/categories/outils", title: "nav.outils" },
+      { href: "/categories/organisation", title: "nav.organisation" },
+      { href: "/categories/open-source", title: "nav.open-source" },
+    ],
+  },
+  { href: "/technos", title: "nav.technos" },
   { href: "/projects", title: "nav.projects" },
   { href: "/about", title: "nav.about" },
 ];

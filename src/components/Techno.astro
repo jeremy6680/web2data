@@ -1,0 +1,23 @@
+---
+import Link from "./Link.astro";
+import { type CollectionEntry, getEntry } from "astro:content";
+
+interface Props {
+  techno?: CollectionEntry<"technos">;
+  slug?: CollectionEntry<"technos">["id"];
+}
+let TechnoProp = Astro.props.techno;
+
+if (!TechnoProp && Astro.props.slug) {
+  TechnoProp = await getEntry("technos", Astro.props.slug);
+}
+---
+
+{TechnoProp && (
+  <Link
+    href={`/technos/${TechnoProp.id}`}
+    class="mr-3 text-sm font-medium uppercase text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
+  >
+    {TechnoProp.data.name}
+  </Link>
+)}
