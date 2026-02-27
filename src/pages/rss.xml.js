@@ -10,9 +10,9 @@ export async function GET(context) {
         title: t('siteMetadata.title'),
         description: t('siteMetadata.description'),
         site: context.site,
-        items: posts.map(({ id, data: { title, summary, tags, date } }) => ({
+        items: posts.map(({ id, data: { title, summary, technos, date } }) => ({
             title,
-            categories: tags.map((ref) => ref.id), // TODO: add tags name in the future
+            categories: technos.map((ref) => ref.id), // TODO: add technos name in the future
             pubDate: date,
             description: summary,
             link: `/blog/${id}/`,
