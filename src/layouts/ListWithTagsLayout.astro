@@ -5,8 +5,9 @@ import { type CollectionEntry } from "astro:content";
 import Link from "../components/Link.astro";
 import Pagination from "../components/Pagination.astro";
 import RootLayout from "./RootLayout.astro";
-import Tag from "../components/Tag.astro";
+import Techno from "../components/Techno.astro";
 import Category from "../components/Category.astro";
+import Domain from "../components/Domain.astro";
 import FormattedDate from "../components/FormattedDate.astro";
 import Breadcrumbs, { type BreadcrumbItem } from "../components/Breadcrumbs.astro";
 import type { Page } from "astro";
@@ -24,14 +25,14 @@ interface Props {
   filteredPosts?: CollectionEntry<"blog">[];
 }
 
-const tags = await getCollection("tags");
+const technos = await getCollection("technos");
 const allPosts = await getCollection("blog");
 
 const { title, description, robots, page, titleTemplate, breadcrumbs, filteredPosts } = Astro.props;
 const postsForSidebar = filteredPosts ?? allPosts;
 
-function tagCount(id: CollectionEntry<"tags">["id"]) {
-  return postsForSidebar.filter((post) => post.data.tags.some((ref) => ref.id === id))
+function technoCount(id: CollectionEntry<"technos">["id"]) {
+  return postsForSidebar.filter((post) => post.data.technos.some((ref) => ref.id === id))
     .length;
 }
 
@@ -57,7 +58,7 @@ const isBlogPage = Astro.url.pathname === "/" || Astro.url.pathname.startsWith("
       <div>
         <ul>
           {
-            page.data.map(({ id, data: { date, title, summary, tags, category: catRef } }) => (
+            page.data.map(({ id, data: { date, title, summary, technos: postTechnos, domaine: domaineRef, category: catRef } }) => (
               <li class="py-5">
                 <article class="space-y-2 flex flex-col xl:space-y-0">
                   <dl>
@@ -79,9 +80,10 @@ const isBlogPage = Astro.url.pathname === "/" || Astro.url.pathname.startsWith("
                         </Link>
                       </h3>
                       <div class="flex flex-wrap items-center">
+                        {domaineRef && <Domain slug={domaineRef.id} />}
                         {catRef && <Category slug={catRef.id} />}
-                        {tags.map(({ id }) => (
-                          <Tag slug={id} />
+                        {postTechnos.map(({ id }) => (
+                          <Techno slug={id} />
                         ))}
                       </div>
                     </div>
@@ -116,19 +118,19 @@ const isBlogPage = Astro.url.pathname === "/" || Astro.url.pathname.startsWith("
           }
           <ul>
             {
-              tags.filter(({ id }) => tagCount(id) > 0).map(({ id, data }) => (
+              technos.filter(({ id }) => technoCount(id) > 0).map(({ id, data }) => (
                 <li class="my-3">
-                  {isSamePath(`/tag/${id}`) ? (
+                  {isSamePath(`/technos/${id}`) ? (
                     <h3 class="inline py-2 px-3 uppercase text-sm font-bold text-primary-500">
-                      {`${data.name} (${tagCount(id)})`}
+                      {`${data.name} (${technoCount(id)})`}
                     </h3>
                   ) : (
                     <Link
-                      href={`/tags/${id}`}
+                      href={`/technos/${id}`}
                       class="py-2 px-3 uppercase text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-500"
-                      aria-label={`View posts tagged ${data.name}`}
+                      aria-label={`Voir les articles avec la techno ${data.name}`}
                     >
-                      {`${data.name} (${tagCount(id)})`}
+                      {`${data.name} (${technoCount(id)})`}
                     </Link>
                   )}
                 </li>

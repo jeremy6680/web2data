@@ -26,8 +26,9 @@ const blog = defineCollection({
       title: z.string(),
       cover: image().optional(),
       date: z.coerce.date(),
-      tags: z.array(reference("tags")).default(["default"]),
+      technos: z.array(reference("technos")).default(["default"]),
       category: reference("categories").optional(),
+      domaine: reference("domaines").optional(),
       lastmod: z.coerce.date().optional(),
       draft: z.boolean().default(false),
       summary: z.string(),
@@ -41,8 +42,8 @@ const blog = defineCollection({
     }),
 });
 
-const tags = defineCollection({
-  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/tags" }),
+const technos = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/technos" }),
   schema: z.object({
     name: z.string(),
     description: z.string(),
@@ -57,4 +58,12 @@ const categories = defineCollection({
   }),
 });
 
-export const collections = { blog, authors, tags, categories };
+const domaines = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/domaines" }),
+  schema: z.object({
+    name: z.string(),
+    description: z.string(),
+  }),
+});
+
+export const collections = { blog, authors, technos, categories, domaines };

@@ -26,7 +26,7 @@ const { post, next, prev } = Astro.props as Props;
 const authors: CollectionEntry<"authors">[] = await getEntries(
   post.data.authors
 );
-const tags: CollectionEntry<"tags">[] = await getEntries(post.data.tags);
+const technos: CollectionEntry<"technos">[] = await getEntries(post.data.technos);
 // const related: CollectionEntry<'blog'>[] = await getEntries(post.data.related);
 
 const articleOgDetails = {
@@ -34,7 +34,7 @@ const articleOgDetails = {
   modifiedTime: post.data.lastmod,
   authors: authors.map(({ data }) => data.name),
   authorTwitter: authors.map(({ data }) => data.twitter).at(0),
-  tags: tags.map(({ data }) => data.name),
+  tags: technos.map(({ data }) => data.name),
   cover: post.data.cover,
 };
 

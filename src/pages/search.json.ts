@@ -12,8 +12,8 @@ export const GET: APIRoute = async () => {
     summary: post.data.summary,
     content: post.body, // Include the markdown content for full-text search
     date: post.data.date.toISOString(),
-    // Normalize tags to strings - tags can be either string references or objects
-    tags: post.data.tags.map((tag) => (typeof tag === "string" ? tag : tag.id)),
+    // Normalize technos to strings
+    tags: post.data.technos.map((techno) => (typeof techno === "string" ? techno : techno.id)),
   }));
 
   return new Response(JSON.stringify(searchData), {

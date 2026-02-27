@@ -1,0 +1,57 @@
+---
+import { getCollection, type CollectionEntry, render } from "astro:content";
+
+import { ITEMS_PER_PAGE } from "@/consts";
+import { excludeDrafts, sortBlogPosts } from "@/functions";
+import ListWithTagsLayout from "@/layouts/ListWithTagsLayout.astro";
+import type { Page } from "astro";
+import { useTranslations } from "@/i18n";
+
+const t = useTranslations();
+
+interface Props {
+  page: Page<CollectionEntry<"blog">>;
+  entry: CollectionEntry<"technos">;
+}
+
+export async function getStaticPaths({ paginate }: { paginate: any }) {
+  const technos = await getCollection("technos");
+  const posts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
+
+  return technos.flatMap((entry) => {
+    const technoPosts = posts.filter((post) =>
+      post.data.technos.some((ref) => ref.id === entry.id)
+    );
+    return paginate(technoPosts, {
+      pageSize: ITEMS_PER_PAGE,
+      params: { slug: entry.id },
+      props: { entry },
+    });
+  });
+}
+
+const { page, entry } = Astro.props;
+const { Content } = await render(entry);
+
+let robots;
+let titleTemplate = "";
+if (page.currentPage > 1) {
+  robots = "noindex, follow";
+  titleTemplate = t("seo.pagination.page", { page: `${page.currentPage}` });
+}
+---
+
+<ListWithTagsLayout
+  title={entry.data.name}
+  description={entry.data.description}
+  page={page}
+  {robots}
+  {titleTemplate}
+  breadcrumbs={[
+    { label: t("nav.home"), href: "/" },
+    { label: t("nav.technos"), href: "/technos" },
+    { label: entry.data.name },
+  ]}
+>
+  <Content />
+</ListWithTagsLayout>

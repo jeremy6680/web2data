@@ -1,45 +1,44 @@
 ---
 import { getCollection, type CollectionEntry, render } from "astro:content";
 
-// import ListLayout from "@/layouts/ListLayout.astro";
 import { ITEMS_PER_PAGE } from "@/consts";
 import { excludeDrafts, sortBlogPosts } from "@/functions";
 import ListWithTagsLayout from "@/layouts/ListWithTagsLayout.astro";
-import type { Page } from "astro";
+import type { GetStaticPathsOptions, Page } from "astro";
 import { useTranslations } from "@/i18n";
 
 const t = useTranslations();
 
 interface Props {
   page: Page<CollectionEntry<"blog">>;
-  entry: CollectionEntry<"tags">;
+  entry: CollectionEntry<"domaines">;
+  domainePosts: CollectionEntry<"blog">[];
 }
 
-export async function getStaticPaths({ paginate }) {
-  const tags = await getCollection("tags");
+export async function getStaticPaths({ paginate }: GetStaticPathsOptions) {
+  const domaines = await getCollection("domaines");
   const posts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
 
-  return tags.flatMap((entry) => {
-    const tagPosts = posts.filter((post) =>
-      post.data.tags.some((ref) => ref.id === entry.id)
+  return domaines.flatMap((entry) => {
+    const domainePosts = posts.filter(
+      (post) => post.data.domaine?.id === entry.id
     );
-    return paginate(tagPosts, {
+    return paginate(domainePosts, {
       pageSize: ITEMS_PER_PAGE,
       params: { slug: entry.id },
-      props: { entry },
+      props: { entry, domainePosts },
     });
   });
 }
 
-const { page, entry } = Astro.props;
+const { page, entry, domainePosts } = Astro.props;
 const { Content } = await render(entry);
 
 let robots;
 let titleTemplate = "";
 if (page.currentPage > 1) {
-  // Ask search engines to not index paginated pages
   robots = "noindex, follow";
-  titleTemplate = t("seo.pagination.page", { page: `${page.currentPage}` }); // `%s - Page ${page.currentPage}`;
+  titleTemplate = t("seo.pagination.page", { page: `${page.currentPage}` });
 }
 ---
 
@@ -47,11 +46,12 @@ if (page.currentPage > 1) {
   title={entry.data.name}
   description={entry.data.description}
   page={page}
+  filteredPosts={domainePosts}
   {robots}
   {titleTemplate}
   breadcrumbs={[
     { label: t("nav.home"), href: "/" },
-    { label: t("nav.tags"), href: "/tags" },
+    { label: t("nav.domaines") },
     { label: entry.data.name },
   ]}
 >
