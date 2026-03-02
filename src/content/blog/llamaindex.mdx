@@ -1,0 +1,193 @@
+---
+title: "LlamaIndex et le RAG agentique : ce que j'ai appris sur DeepLearning.AI"
+summary: "Retour sur deux cours DeepLearning.AI dédiés à LlamaIndex : du router query engine aux workflows événementiels, en passant par le RAG agentique et les agents multi-documents. Et comment ça se compare à CrewAI et LangGraph."
+postLayout: column
+date: "2025-05-21"
+lastmod: "2025-05-21"
+draft: false
+related:
+  - crewai-multi-agent-systems
+  - langchain-et-langgraph
+domaine: ia
+category: rex
+technos:
+  - llamaindex
+---
+
+J'ai suivi deux cours sur DeepLearning.AI centrés sur LlamaIndex : _Building Agentic RAG with LlamaIndex_ et _Event-Driven Agentic Document Workflows_. Deux cours assez différents dans leur approche, mais qui se complètent bien. Voici ce que j'en retiens.
+
+---
+
+## C'est quoi LlamaIndex, au fond ?
+
+LlamaIndex est un framework Python conçu pour connecter des LLMs à tes propres données. Son truc, c'est de rendre le RAG (Retrieval Augmented Generation) à la fois simple à mettre en place et capable de gérer des cas d'usage complexes.
+
+Si tu ne connais pas le RAG : en gros, plutôt que de compter sur la mémoire statique du LLM (qui a une date de coupure et ne connaît pas tes données internes), tu vas chercher les informations pertinentes dans tes documents, et tu les injectes dans le contexte avant de poser ta question. Le LLM répond alors avec tes données. Simple. Efficace.
+
+Là où LlamaIndex va plus loin, c'est avec ce qu'ils appellent le **RAG agentique** : au lieu d'un simple aller-retour "question → recherche → réponse", tu as un agent qui peut enchaîner plusieurs étapes, choisir le bon outil, raisonner sur les résultats intermédiaires, et mémoriser le contexte.
+
+---
+
+## Cours 1 : Building Agentic RAG with LlamaIndex
+
+### Le Router Query Engine — le point de départ
+
+Le premier concept clé du cours, c'est le **router**. Imagine que tu as deux façons d'interroger un document : soit tu poses une question précise (tu veux un extrait spécifique), soit tu demandes un résumé global. Deux besoins différents, deux outils différents.
+
+LlamaIndex te permet de créer deux index sur le même document :
+
+- un **summary index** qui retourne tous les nœuds du document
+- un **vector index** qui récupère les chunks les plus proches sémantiquement de ta question
+
+Chacun devient un **query tool**, avec une description en langage naturel. Le router — via un sélecteur LLM — choisit automatiquement lequel utiliser selon la question posée.
+
+```python
+summary_tool = QueryEngineTool.from_defaults(
+    query_engine=summary_engine,
+    description="Useful for summarization questions about the document",
+)
+
+vector_tool = QueryEngineTool.from_defaults(
+    query_engine=vector_engine,
+    description="Useful for retrieving specific context from the document",
+)
+
+query_engine = RouterQueryEngine(
+    selector=LLMSingleSelector.from_defaults(),
+    query_engine_tools=[summary_tool, vector_tool],
+    verbose=True,
+)
+```
+
+Ce qui est intéressant : en mode `verbose`, tu vois exactement quel outil a été sélectionné et pourquoi. Pratique pour débugger.
+
+### Tool Calling — inférer les paramètres, pas juste l'outil
+
+L'étape suivante va un cran plus loin. Le LLM ne choisit plus seulement _quel_ outil appeler — il infère aussi _avec quels paramètres_.
+
+Par exemple, tu encapsules une fonction de recherche vectorielle dans un `FunctionTool`. Cette fonction peut accepter des filtres de métadonnées (numéro de page, section, etc.). Le LLM va inférer ces filtres à partir de la question.
+
+```python
+def vector_query(query: str, page_numbers: Optional[List[str]] = None) -> str:
+    """Perform vector search over the document, with optional page filter."""
+    ...
+
+vector_query_tool = FunctionTool.from_defaults(
+    name="vector_tool",
+    fn=vector_query,
+)
+```
+
+Résultat : une recherche nettement plus précise. C'est une des forces de LlamaIndex — la granularité du contrôle sur la récupération.
+
+### L'agent reasoning loop — on passe au multi-step
+
+La troisième leçon introduit la boucle de raisonnement à plusieurs étapes. Au lieu d'un seul appel d'outil, l'agent peut enchaîner plusieurs actions avant de donner sa réponse finale.
+
+L'architecture repose sur deux composants :
+
+- **Agent Worker** : exécute la prochaine étape
+- **Agent Runner** : orchestre les tâches et retourne la réponse finale
+
+Ce qui m'a particulièrement intéressé, c'est l'API bas niveau : tu peux exécuter l'agent step by step, inspecter les étapes terminées et à venir, et même **injecter de nouveaux inputs en cours d'exécution**. C'est précieux pour le débogage et pour les interfaces utilisateur qui veulent montrer ce que fait l'agent en temps réel.
+
+### Multi-document agent — scale up
+
+La dernière leçon du cours étend tout ça à plusieurs documents. Pour trois papers (Meta GPT, LongLora, SelfRag), tu crées six outils (vector + summary par document), et tu les passes à l'agent.
+
+Le hic : avec beaucoup de documents, tu te retrouves avec des dizaines d'outils. Ça sature le contexte du LLM. La solution ? **Tool-level retrieval** : tu indexes les outils eux-mêmes, et tu ne passes à l'agent que les outils pertinents pour la requête en cours.
+
+```python
+# On indexe les outils avec un ObjectIndex
+obj_index = ObjectIndex.from_objects(all_tools, index_cls=VectorStoreIndex)
+# L'ObjectRetriever récupère les outils pertinents à la volée
+obj_retriever = obj_index.as_retriever(similarity_top_k=3)
+```
+
+C'est élégant. Et ça permet de construire des assistants de recherche multi-documents vraiment scalables.
+
+---
+
+## Cours 2 : Event-Driven Agentic Document Workflows
+
+Le deuxième cours change d'approche. On ne construit plus des agents de recherche interactifs, mais des **workflows automatisés pour le traitement de documents**.
+
+L'idée de fond : un workflow, c'est une classe Python dont les méthodes (les "steps") s'enchaînent via des événements. Chaque step reçoit un événement, fait son travail, et émet un nouvel événement.
+
+```
+StartEvent → step_1 → CustomEvent → step_2 → StopEvent
+```
+
+### Pourquoi l'architecture événementielle ?
+
+Ça permet naturellement de faire du **branchement**, du **looping**, et de l'**exécution concurrente**. Par exemple :
+
+```python
+# Lancer plusieurs tâches en parallèle
+context.send_event(QueryEvent(query=field_1))
+context.send_event(QueryEvent(query=field_2))
+
+# Attendre que toutes les réponses soient revenues
+responses = await context.collect_events(ev, [ResponseEvent] * num_fields)
+```
+
+LlamaIndex génère même une représentation HTML interactive du workflow, ce qui aide à visualiser les flux.
+
+### Le use case concret : remplir un formulaire de candidature
+
+Le cours construit un agent qui :
+
+1. Parse un CV avec **LlamaParse** et le stocke dans un vector store
+2. Parse un formulaire de candidature pour en extraire les champs
+3. Pour chaque champ, génère une requête et interroge le RAG (en parallèle)
+4. Agrège les réponses et génère le formulaire complété
+
+### Human-in-the-loop et feedback vocal
+
+La partie la plus intéressante du cours : l'ajout d'une boucle de feedback humain. Si l'agent doute ou si une réponse est incorrecte, le workflow se met en pause et attend l'input de l'utilisateur.
+
+```
+generate answers → ask for feedback → [ok ?] → StopEvent
+                                    → [not ok] → loop back with feedback
+```
+
+Et pour finir, le cours intègre Whisper pour accepter du feedback vocal transcrit en texte. Le workflow lui-même ne change pas — seule la façon dont le feedback est capturé change. Propre.
+
+---
+
+## Comparaison avec CrewAI et LangGraph
+
+J'ai aussi suivi des cours sur [CrewAI](/blog/crewai-multi-agent-systems) et [LangGraph](/blog/langchain-et-langgraph). Voici comment je positionne les trois frameworks :
+
+|                             | LlamaIndex                     | CrewAI                      | LangGraph                    |
+| --------------------------- | ------------------------------ | --------------------------- | ---------------------------- |
+| **Focus principal**         | RAG & traitement de documents  | Agents multi-rôles          | Graphes de contrôle d'état   |
+| **Abstraction**             | Moyenne (assez explicite)      | Haute (très déclaratif)     | Basse (beaucoup de contrôle) |
+| **Modèle de collaboration** | Un agent + outils de retrieval | Équipes d'agents avec rôles | Graphes avec états partagés  |
+| **Human-in-the-loop**       | Oui (InputRequiredEvent)       | Limité                      | Oui (interrupt_before)       |
+| **Persistance d'état**      | Non natif                      | Non natif                   | Oui (checkpointers)          |
+| **Courbe d'apprentissage**  | Modérée                        | Faible                      | Élevée                       |
+
+**CrewAI** est le plus accessible des trois. Tu définis des agents avec des rôles, des backstories et des goals, tu leur assignes des tâches, et tu lances l'équipe. Très bien pour les use cases de type "pipeline collaboratif" (recherche → rédaction → révision). Mais tu sacrifies du contrôle pour la simplicité.
+
+**LangGraph** est à l'opposé : tu construis des graphes de nodes et d'edges, tu gères explicitement l'état, et tu as un contrôle fin sur chaque transition. La persistance via checkpointers est native, et le "time travel" (reprendre à un état antérieur) est une killer feature. C'est plus verbeux, mais aussi plus prévisible en production.
+
+**LlamaIndex** se distingue clairement par son orientation **documents et RAG**. Si ton problème implique de l'indexation, de la récupération sémantique ou du traitement de documents à grande échelle, c'est le bon choix. L'architecture événementielle des workflows est puissante et lisible. Mais si tu as besoin de multi-agents avec des rôles très différents, CrewAI ou LangGraph seront plus adaptés.
+
+En pratique, rien n'empêche de combiner — LlamaIndex peut servir de couche RAG pour des agents construits avec LangGraph, par exemple.
+
+---
+
+## Ce que j'en retiens
+
+Deux choses principales après ces cours.
+
+D'abord, le passage du RAG simple au RAG agentique est un vrai saut qualitatif. La différence entre "je cherche et je réponds" et "je décompose, je raisonne, j'enchaîne plusieurs outils" est énorme pour les cas d'usage complexes. Et LlamaIndex rend ce saut accessible.
+
+Ensuite, l'architecture événementielle de LlamaIndex Workflows est un bon modèle mental pour concevoir des agents. L'idée que chaque step émet des événements — et que tu peux les collecter, les brancher, les paralléliser — est plus claire que certaines abstractions de plus haut niveau.
+
+Ce que je n'ai pas encore pratiqué en conditions réelles : la robustesse sur de gros volumes de documents, et la gestion des erreurs dans les workflows complexes. C'est sur ma liste.
+
+---
+
+Tu veux approfondir ? Les deux cours sont disponibles gratuitement sur [DeepLearning.AI](https://learn.deeplearning.ai/). Et si tu veux comparer avec les autres frameworks, j'ai aussi rédigé des retours sur [CrewAI](/blog/crewai-multi-agent-systems) et [LangGraph](/blog/langchain-et-langgraph).
