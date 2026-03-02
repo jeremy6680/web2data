@@ -1,0 +1,244 @@
+---
+title: "LangChain et LangGraph : ce que j'ai retenu de deux cours DeepLearning.AI"
+summary: "Retour d'expérience sur deux cours DeepLearning.AI consacrés à LangChain et LangGraph. De la construction d'une chaîne LLM basique jusqu'aux agents persistants avec human-in-the-loop — ce que j'en retiens concrètement."
+postLayout: column
+date: "2025-05-09"
+lastmod: "2025-05-09"
+draft: false
+domaine: ia
+category: rex
+technos:
+  - python
+  - langchain
+  - langgraph
+---
+
+Quand je me suis lancé sérieusement dans la data et l'IA, l'une des premières choses qui m'a sauté aux yeux, c'est à quel point l'écosystème Python autour des LLMs avait explosé. Au milieu de tout ça, deux noms revenaient en boucle : **LangChain** et **LangGraph**. J'ai donc suivi les deux cours correspondants sur DeepLearning.AI, le premier en mars 2025, le second en avril. Voici ce que j'en ai retenu.
+
+---
+
+## Pourquoi ces deux cours ?
+
+[DeepLearning.AI](https://learn.deeplearning.ai/) propose une ribambelle de cours courts (en général 1h à 2h) sur des sujets très ciblés. C'est un bon format pour un développeur qui veut monter en compétence rapidement sans s'engager sur des mois de formation. Les deux cours LangChain/LangGraph sont co-construits avec Harrison Chase, le créateur de LangChain lui-même — ce qui donne une certaine légitimité au contenu.
+
+Les deux cours se suivent logiquement :
+
+- **LangChain for LLM Application Development** : les fondamentaux du framework.
+- **AI Agents in LangGraph** : la suite naturelle, pour builder des agents plus complexes et mieux contrôlés.
+
+---
+
+## Cours 1 — LangChain for LLM Application Development
+
+### C'est quoi LangChain ?
+
+LangChain est un framework open-source (dispo en Python et JavaScript) qui simplifie le développement d'applications basées sur des LLMs. L'idée centrale : éviter de réinventer la roue avec du "glue code" à chaque projet.
+
+Les composants de base sont simples à retenir :
+
+- **Models** : les LLMs eux-mêmes (GPT, Claude, etc.)
+- **Prompts** : des templates réutilisables pour guider le modèle
+- **Indexes** : comment on ingère et organise les données
+- **Chains** : les workflows qui assemblent tout ça
+- **Agents** : les cas avancés où le LLM prend des décisions
+
+### Les prompts, c'est plus que du texte
+
+Ce qui m'a frappé d'emblée, c'est la notion de `PromptTemplate`. Au lieu de bricoler des f-strings à la main, LangChain pousse à créer des templates paramétrés, réutilisables et partageables. C'est un changement d'état d'esprit — le prompt devient un composant à part entière.
+
+```python
+from langchain.prompts import ChatPromptTemplate
+
+prompt_template = ChatPromptTemplate.from_template(
+    "Traduis le texte suivant du {style_source} vers le {style_cible} :\n{texte}"
+)
+
+prompt = prompt_template.format_messages(
+    style_source="anglais formel",
+    style_cible="français familier",
+    texte="I would appreciate your prompt response."
+)
+```
+
+### La mémoire, ou comment éviter le goldfish syndrome
+
+Les LLMs sont **sans état** (stateless) par nature. À chaque appel, le modèle repart de zéro. LangChain propose plusieurs types de mémoire pour contourner ça :
+
+| Type                              | Ce que ça fait                                                    |
+| --------------------------------- | ----------------------------------------------------------------- |
+| `ConversationBufferMemory`        | Stocke tout l'historique                                          |
+| `ConversationBufferWindowMemory`  | Garde uniquement les `k` derniers échanges                        |
+| `ConversationSummaryBufferMemory` | Résume les anciens échanges via le LLM quand les tokens débordent |
+| `Vector Data Memory`              | Stocke des embeddings pour retrouver les infos pertinentes        |
+
+Pour un chatbot basique, `ConversationBufferWindowMemory` suffit souvent. Pour des conversations longues et complexes, la version avec résumé devient indispensable.
+
+### Les chaînes : assembler des étapes
+
+Une Chain, c'est juste LLM + prompt. Mais on peut les composer. Le cas qui illustre bien le principe :
+
+```
+Avis client (en japonais)
+   → Chain 1 : traduction en anglais
+   → Chain 2 : résumé en 1 phrase
+   → Chain 3 : détection de la langue originale
+   → Chain 4 : réponse dans la langue originale
+```
+
+Il y a aussi les **Router Chains** : le LLM lui-même décide vers quelle chaîne spécialisée router la question (physique, maths, biologie…). Un peu comme un dispatcher intelligent.
+
+### RAG en version simplifiée
+
+Le cours couvre aussi le **Question & Answer sur des documents** — ce qu'on appelle RAG (Retrieval-Augmented Generation) dans le jargon. Le principe :
+
+1. Découper le document en chunks
+2. Transformer chaque chunk en embedding (vecteur numérique)
+3. Stocker ces vecteurs dans une base vectorielle
+4. À la question de l'utilisateur, retrouver les chunks les plus proches sémantiquement
+5. Passer ces chunks + la question au LLM pour obtenir une réponse
+
+```python
+from langchain.vectorstores import DocArrayInMemorySearch
+from langchain.embeddings import OpenAIEmbeddings
+
+# Création de la base vectorielle
+vectorstore = DocArrayInMemorySearch.from_documents(
+    docs,
+    embedding=OpenAIEmbeddings()
+)
+
+# Retrieval QA Chain
+qa_chain = RetrievalQA.from_chain_type(
+    llm=ChatOpenAI(),
+    retriever=vectorstore.as_retriever(),
+    chain_type="stuff"  # ou map_reduce, refine, map_rerank
+)
+```
+
+En tant que dev web, j'ai trouvé une belle analogie : c'est un peu comme une recherche full-text dans WordPress, mais à la sémantique plutôt qu'aux mots-clés exacts.
+
+### Les agents : le LLM comme moteur de décision
+
+La dernière partie du cours introduit les agents. L'idée clé : au lieu d'appeler le LLM pour générer du texte, on lui donne **des outils** (recherche web, Wikipedia, fonctions Python custom) et on le laisse décider lequel utiliser selon la question.
+
+```python
+from langchain.agents import initialize_agent, load_tools, AgentType
+
+tools = load_tools(["ddg-search", "wikipedia"], llm=llm)
+
+agent = initialize_agent(
+    tools,
+    llm,
+    agent=AgentType.CHAT_ZERO_SHOT_REACT_DESCRIPTION,
+    handle_parsing_errors=True
+)
+```
+
+---
+
+## Cours 2 — AI Agents in LangGraph
+
+### Pourquoi LangGraph ?
+
+LangChain est bien pour construire des chaînes linéaires. Mais un agent réel, ça boucle. Il réfléchit, agit, observe le résultat, reconsidère, agit à nouveau. LangChain basique gère mal ça. **LangGraph** a été conçu précisément pour ça : modéliser le comportement d'un agent comme un **graphe cyclique**.
+
+### Construire un agent from scratch d'abord
+
+Avant de plonger dans LangGraph, le cours fait construire un agent ReAct (Reasoning + Acting) en pur Python. C'est pédagogiquement très bien fait : on comprend que le pattern est simple —
+
+```
+Thought → Action → Pause → Observation → ... → Answer
+```
+
+— et que LangGraph n'est finalement qu'une abstraction propre au-dessus de cette boucle.
+
+### Les composants de LangGraph
+
+LangGraph organise l'agent en **nœuds** (nodes) et **arêtes** (edges) :
+
+- **Nodes** : des fonctions Python — typiquement l'appel au LLM et l'exécution des outils
+- **Edges** : des connexions fixes entre nœuds
+- **Conditional Edges** : des connexions conditionnelles (ex : si le LLM a demandé un outil → aller sur le nœud "action", sinon → terminer)
+
+L'**état** (state) de l'agent est partagé entre tous les nœuds. Il accumule les messages et les résultats intermédiaires.
+
+```python
+from langgraph.graph import StateGraph, END
+from typing import TypedDict, Annotated
+import operator
+
+class AgentState(TypedDict):
+    messages: Annotated[list, operator.add]
+
+# Construction du graphe
+graph = StateGraph(AgentState)
+graph.add_node("llm", call_llm)
+graph.add_node("action", execute_tools)
+graph.add_conditional_edges("llm", should_continue, {"continue": "action", "end": END})
+graph.add_edge("action", "llm")
+graph.set_entry_point("llm")
+
+agent = graph.compile()
+```
+
+### La recherche agentique (agentic search)
+
+Petit détail qui m'a marqué : la distinction entre **recherche pour humains** et **recherche pour agents**.
+
+DuckDuckGo renvoie des pages HTML que tu dois scraper et parser. Tavily (l'outil utilisé dans le cours) renvoie directement du JSON structuré, filtré et scoré par pertinence. Pour un agent qui doit agir sur les résultats, la différence est énorme.
+
+C'est un peu l'équivalent d'une API REST bien conçue vs. un site web qu'on est obligé de scraper — même donnée, mais utilisabilité radicalement différente.
+
+### Persistence et streaming
+
+Deux fonctionnalités qui font passer LangGraph dans la catégorie "production-ready" :
+
+- **Persistence** : l'état de l'agent est sauvegardé (SQLite, Redis, Postgres). On peut reprendre une conversation là où on l'a laissée, ou faire tourner plusieurs conversations en parallèle via des `thread_id`.
+- **Streaming** : voir les étapes intermédiaires en temps réel — super utile pour le debug, mais aussi pour l'UX finale (afficher "l'agent cherche…", "l'agent rédige…").
+
+### Human in the loop
+
+C'est la partie que j'ai trouvée la plus intéressante du cours. LangGraph permet de **pauser** l'exécution avant certains nœuds, d'inspecter l'état, de le modifier si besoin, puis de reprendre. Ça donne un contrôle granulaire sur ce que fait l'agent.
+
+Cas d'usage concret : un agent qui doit envoyer un email ou exécuter du code. Avant d'agir, il présente son plan à l'humain. L'humain corrige si besoin, puis valide. L'agent reprend.
+
+C'est aussi ce qui permet le **time travel** : revenir à un état précédent, brancher une nouvelle direction, comme si on rejouait la partie d'un point de sauvegarde.
+
+### Le projet final : un rédacteur d'essais
+
+Le cours termine sur un agent plus complexe : un rédacteur d'essais avec une boucle de révision.
+
+```
+Plan → Recherche → Rédaction → Critique → Recherche complémentaire → Rédaction (v2) → ...
+```
+
+Le graphe gère un compteur de révisions et s'arrête quand le max est atteint. Chaque nœud a son propre prompt spécialisé. C'est un bon exemple de **flow engineering** — concevoir les chemins d'information optimaux pour une tâche complexe.
+
+---
+
+## Ce que j'en retiens
+
+Ces deux cours m'ont donné une base solide pour comprendre comment fonctionnent les frameworks d'agents LLM. Quelques takeaways honnêtes :
+
+**Ce qui m'a convaincu :**
+
+- Le passage de "chaîne linéaire" (LangChain) à "graphe cyclique" (LangGraph) est une vraie évolution conceptuelle, pas juste du marketing.
+- La notion d'état persistant change tout pour les applications réelles.
+- Le human-in-the-loop est sous-estimé — c'est ce qui rend les agents dignes de confiance en production.
+
+**Ce qui m'a moins convaincu :**
+
+- LangChain évolue vite et la rétrocompatibilité est parfois douloureuse. Certains exemples du cours utilisent des APIs déjà dépréciées.
+- La magie des abstractions peut vite devenir un piège si on ne comprend pas ce qui se passe en dessous. D'où l'intérêt de construire un agent from scratch avant d'utiliser LangGraph.
+
+**Ce que j'aurais aimé :** un chapitre sur les coûts. Quand un agent enchaîne 10 appels LLM avec du contexte qui grossit à chaque itération, la facture peut grimper vite. Ce n'est pas abordé, et c'est pourtant crucial pour prendre des décisions d'architecture.
+
+---
+
+## Pour aller plus loin
+
+- [LangChain docs](https://docs.langchain.com/)
+- [LangGraph docs](https://langchain-ai.github.io/langgraph/)
+- [LangSmith](https://smith.langchain.com/) — pour débugger et monitorer tes agents
+- [Prompt Hub](https://hub.langchain.com/) — inspiration pour tes prompts
+- Les deux cours sur DeepLearning.AI restent gratuits et accessibles à tout moment.

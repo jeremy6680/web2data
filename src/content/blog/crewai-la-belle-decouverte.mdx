@@ -1,0 +1,240 @@
+---
+title: "CrewAI : ce que j'ai appris en construisant mes premiers agents IA"
+summary: "Retour d'expérience sur deux cours CrewAI suivis sur DeepLearning.AI. Python débutant, systèmes multi-agents, outils, mémoire, pipelines — voici ce que ça m'a appris (et ce que ça m'a donné envie de construire)."
+postLayout: column
+date: "2025-04-01"
+lastmod: "2025-04-01"
+draft: false
+domaine: ia
+category: rex
+technos:
+  - python
+  - crewai
+---
+
+Il y a quelques semaines, ma femme et moi avons décidé de plonger dans les systèmes IA agentiques. On avait entendu parler de CrewAI, ça nous intriguait vraiment, et on voulait comprendre ce qu'il y avait derrière le buzzword "agent IA".
+
+On a commencé par suivre un cours sur les bases de Python — parce que oui, avant CrewAI, je ne connaissais pas Python. Du tout. Mon terrain de jeu habituel, c'était PHP, JavaScript, WordPress. Python, c'était une terra incognita.
+
+Une fois les bases Python en poche, on a enchaîné sur deux cours CrewAI proposés par DeepLearning.AI, enseignés par **João Moura**, le fondateur de CrewAI lui-même :
+
+1. [Multi AI Agent Systems with crewAI](https://learn.deeplearning.ai/courses/multi-ai-agent-systems-with-crewai) — complété le 18 mars 2025
+2. [Practical Multi AI Agents and Advanced Use Cases with crewAI](https://learn.deeplearning.ai/courses/practical-multi-ai-agents-and-advanced-use-cases-with-crewai) — complété le 23 mars 2025
+
+Voici ce que j'en retiens.
+
+---
+
+## C'est quoi un agent IA, concrètement ?
+
+Avant ces cours, j'avais une vague idée des agents : un LLM qui fait des trucs tout seul. Mais la réalité est plus précise que ça.
+
+Un agent IA, c'est un LLM auquel on donne :
+
+- un **rôle** (ex : "tu es un analyste financier senior")
+- un **objectif** (ex : "identifier les risques de ce portefeuille")
+- des **outils** (recherche web, lecture de fichiers, appels API, etc.)
+- de la **mémoire** (pour apprendre au fil des exécutions)
+
+Ce qui change tout par rapport à un simple appel LLM, c'est la capacité de **self-correction** : l'agent peut raisonner, décider, utiliser un outil, analyser le résultat, et recommencer jusqu'à atteindre son objectif — sans que tu aies à intervenir à chaque étape.
+
+---
+
+## CrewAI : l'idée centrale
+
+CrewAI pousse le concept plus loin en permettant de créer des **équipes d'agents** (des "crews") qui collaborent sur une tâche complexe.
+
+L'analogie avec le management est vraiment parlante : quand tu conçois un crew, tu penses comme un manager. Tu te demandes : _"Si j'embauchais des gens pour faire ce travail, qui est-ce que je recruterais ?"_
+
+Un exemple concret tiré du cours : pour rédiger un article de blog, tu crées trois agents avec des rôles distincts :
+
+```python
+planner = Agent(
+    role="Content Planner",
+    goal="Plan engaging and factually accurate content on {topic}",
+    backstory="You're working on planning a blog article..."
+)
+
+writer = Agent(
+    role="Content Writer",
+    goal="Write insightful and factually accurate opinion piece about {topic}",
+    backstory="You're working on writing a new opinion piece..."
+)
+
+editor = Agent(
+    role="Editor",
+    goal="Edit a given blog post to align with the writing style of the organization.",
+    backstory="You are an editor who reviews blog posts for clarity and style."
+)
+```
+
+Chaque agent a une tâche assignée, et le crew orchestre leur exécution.
+
+---
+
+## Les briques fondamentales
+
+### Les agents
+
+Un bon agent repose sur six éléments clés :
+
+- **Role-playing** : donner un rôle précis améliore drastiquement la qualité des outputs. "HR research specialist" vs "researcher" — la spécificité compte.
+- **Focus** : un agent limité dans ses outils et son périmètre fait moins d'erreurs.
+- **Outils** : ce qui connecte l'agent au monde réel (APIs, bases de données, web scraping...).
+- **Coopération** : les agents peuvent se déléguer des tâches et s'envoyer du feedback.
+- **Guardrails** : pour éviter les hallucinations et les boucles infinies.
+- **Mémoire** : courte (partagée pendant l'exécution), longue (persistante entre les runs), et "entity" (mémoriser des sujets spécifiques abordés).
+
+### Les tâches
+
+Chaque tâche doit avoir au minimum :
+
+- une **description claire** de ce qui est attendu
+- un **output attendu** précis
+
+Plus la tâche est petite et ciblée, meilleur est le résultat. C'est contre-intuitif quand on vient du dev web où on essaie d'optimiser le nombre de requêtes — là, la granularité est une feature.
+
+### Les outils
+
+Les outils sont la passerelle entre les agents et le reste du monde. CrewAI fournit des outils built-in (scraping, recherche web via Serper, lecture de fichiers, RAG...) et supporte aussi tous les outils LangChain.
+
+Un bon outil doit être :
+
+- **Versatile** : gérer différents types d'inputs
+- **Fault-tolerant** : échouer proprement sans bloquer l'agent
+- **Avec du cache** : éviter les appels API redondants
+
+On peut aussi créer des outils custom en héritant de `BaseTool` :
+
+```python
+from crewai.tools import BaseTool
+
+class SentimentAnalysisTool(BaseTool):
+    name: str = "Sentiment Analysis Tool"
+    description: str = "Analyzes the sentiment of a given text."
+
+    def _run(self, text: str) -> str:
+        # ta logique ici
+        return "positive"
+```
+
+---
+
+## Les modes d'orchestration
+
+C'est là que ça devient vraiment intéressant. CrewAI propose plusieurs façons d'organiser l'exécution des agents :
+
+- **Séquentiel** : les tâches se passent le résultat les unes aux autres
+- **Parallèle** : plusieurs tâches tournent en même temps (via `async_execution=True`)
+- **Hiérarchique** : un agent "manager" délègue aux autres et review leurs outputs
+
+Exemple d'un pipeline d'analyse financière avec quatre agents tournant en mode hiérarchique :
+
+```
+Data Analyst → Trading Strategy Agent → Execution Agent → Risk Management Agent
+                        ↑
+              [Manager Agent supervise l'ensemble]
+```
+
+Le manager regroupe les résultats, demande des ajustements si nécessaire, et produit le rapport final.
+
+---
+
+## Les Flows : connecter plusieurs crews
+
+Le cours avancé introduit la notion de **Flows** — un niveau au-dessus des crews, qui permet de chaîner plusieurs crews avec du code Python classique entre les étapes.
+
+Exemple concret : un pipeline de scoring de leads
+
+```python
+class SalesPipeline(Flow):
+    @start()
+    def fetch_leads(self):
+        # récupérer les leads depuis une source externe
+        return leads
+
+    @listen(fetch_leads)
+    def score_leads(self, leads):
+        # crew de scoring
+        return scored_leads
+
+    @listen(score_leads)
+    def filter_and_store(self, leads):
+        # ne garder que les leads avec un score > 70
+        return [l for l in leads if l["score"] > 70]
+
+    @listen(filter_and_store)
+    def write_emails(self, leads):
+        # crew de rédaction d'emails personnalisés
+        ...
+```
+
+Ce qui est puissant : les Flows permettent de mixer logique Python classique et exécution agentique. Tu gardes le contrôle sur ce qui doit être déterministe (filtres, routage) tout en laissant les agents gérer les parties "floues" (rédaction, analyse, recherche).
+
+---
+
+## Optimisation des performances
+
+Le deuxième cours aborde un aspect souvent ignoré dans les démos : **comment améliorer la qualité et la cohérence des outputs en production**.
+
+CrewAI propose deux mécanismes :
+
+- `crewai test` : évalue les outputs des agents par rapport à des résultats attendus et génère un score
+- `crewai train` : permet de donner du feedback tâche par tâche, qui est mémorisé pour les runs suivants
+
+C'est l'équivalent du fine-tuning, mais en mode "feedback humain interactif". En pratique : tu lances le crew, tu vois ce qui pèche (mauvaise structure, infos manquantes, ton inadapté), tu donnes ton feedback, et les exécutions suivantes intègrent ces corrections.
+
+---
+
+## Multi-modèles : chaque agent peut avoir son LLM
+
+Un détail qui m'a beaucoup plu : chaque agent peut utiliser un **modèle différent**. Tu peux assigner GPT-4o à ton agent le plus critique (celui qui synthétise le rapport final) et un modèle plus rapide et moins cher (Llama 3 via Groq, par exemple) aux agents de recherche.
+
+```python
+fast_agent = Agent(
+    role="Researcher",
+    llm="groq/llama-3.1-70b",
+    ...
+)
+
+quality_agent = Agent(
+    role="Chief Content Officer",
+    llm="gpt-4o",
+    ...
+)
+```
+
+En termes de coûts, c'est non négligeable. Le cours montre qu'un crew de planification de projet complet tourne à environ **0,001$ pour 7000 tokens** avec GPT-4o-mini. Pas de quoi s'inquiéter pour des usages personnels.
+
+---
+
+## Ce que j'ai vraiment retenu
+
+Après ces deux cours et quelques expérimentations perso, voici mes apprentissages les plus importants :
+
+**1. Penser "manager", pas "développeur"**  
+Quand tu conçois un crew, la vraie question c'est : _quel est le processus pour atteindre cet objectif, et qui fait quoi ?_ La structure des agents découle de la réponse.
+
+**2. La granularité est ta meilleure amie**  
+Des tâches petites et ciblées donnent de meilleurs résultats que des méga-tâches fourre-tout. C'est contre-intuitif mais ça marche.
+
+**3. Les outils font toute la différence**  
+Un agent sans outil, c'est un LLM avec un titre de poste. Les outils (recherche web, lecture de fichiers, RAG, appels API) sont ce qui rend un agent vraiment utile.
+
+**4. Python est finalement accessible**  
+En partant de zéro en Python, ces cours m'ont montré qu'on peut construire des systèmes complexes avec une syntaxe relativement lisible. La courbe d'apprentissage est réelle mais pas insurmontable.
+
+**5. CrewAI est prêt pour la prod**  
+Le passage en production (via `crewai deploy`) transforme ton crew en API REST callable depuis n'importe quelle app. PWC utilise CrewAI en production — c'est un signal fort sur la maturité du framework.
+
+---
+
+## La suite
+
+Ces cours m'ont donné envie de builder. Quelques idées que j'ai notées en cours de route :
+
+- Un crew de veille technologique qui monitore des sources RSS/Hacker News et génère un digest hebdo
+- Un agent d'analyse de logs WordPress qui détecte les anomalies et propose des corrections
+- Un pipeline de génération de contenu pour Web2Data (oui, un peu méta)
+
+Je vais documenter tout ça ici au fur et à mesure. Si tu as des questions sur CrewAI ou que tu veux partager ce que tu construis avec, n'hésite pas — les commentaires sont là pour ça.
