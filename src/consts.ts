@@ -102,6 +102,7 @@ export const NAVIGATION: NavItem[] = [
       { href: "/categories/outils", title: "nav.outils" },
       { href: "/categories/bonnes-pratiques", title: "nav.bonnes-pratiques" },
       { href: "/categories/open-source", title: "nav.open-source" },
+      { href: "/categories/lecture", title: "nav.lecture" },
       { href: "/categories/parcours", title: "nav.parcours" },
       { href: "/categories/lifestyle", title: "nav.lifestyle" },
     ],

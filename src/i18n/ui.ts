@@ -63,6 +63,7 @@ export const ui = {
     "nav.bonnes-pratiques": "Best Practices",
     "nav.outils": "Tools",
     "nav.organisation": "Organization",
+    "nav.lecture": "Reading",
     "nav.open-source": "Open Source",
 
     // Layouts
@@ -155,6 +156,7 @@ export const ui = {
     "nav.bonnes-pratiques": "Bonnes pratiques",
     "nav.outils": "Outils",
     "nav.organisation": "Organisation",
+    "nav.lecture": "Lecture",
     "nav.open-source": "Open Source",
 
     // Layouts
