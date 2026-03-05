@@ -1,0 +1,128 @@
+---
+title: "Airflow pour le GenAI : de la théorie à un pipeline RAG en production"
+summary: "Après avoir découvert les bases d'Airflow dans le cadre de ma formation DataBird, j'ai suivi le cours 'Orchestrating Workflows for GenAI Applications' sur DeepLearning.AI. Deux intervenantes complémentaires, un exemple RAG très concret — voici ce que j'en retiens."
+postLayout: column
+date: "2026-03-04"
+lastmod: "2026-03-04"
+draft: false
+related:
+  - airflow-et-les-dags-comprendre-l-orchestration-quand-on-vient-du-web
+domaine: data
+category: rex
+technos:
+  - airflow
+  - python
+---
+
+Il y a quelques semaines, je publiais [un article sur les DAGs Airflow](/blog/airflow-et-les-dags-comprendre-l-orchestration-quand-on-vient-du-web) pour démystifier l'outil depuis un point de vue développeur web. C'était ma première plongée dans l'écosystème, dans le cadre de ma formation Analytics Engineer chez DataBird.
+
+Depuis, j'ai suivi un autre cours sur le sujet : **"Orchestrating Workflows for GenAI Applications"**, disponible sur DeepLearning.AI. Et là, c'est passé à la vitesse supérieure.
+
+## Le cours en deux mots
+
+Le cours montre concrètement comment **transformer un prototype de pipeline RAG dans un Jupyter Notebook en un pipeline Airflow production-ready**. Le fil rouge est la construction d'un système de recommandation de livres : des descriptions sont ingérées, vectorisées, stockées dans une base vectorielle (Weaviate), puis interrogées par similarité sémantique.
+
+La progression est vraiment bien pensée : on part du notebook, on identifie ses limites (pas de scheduling, pas de retry, pas d'alertes), et on reconstruit le même pipeline sous forme de DAGs. C'est très pédagogique.
+
+Les deux intervenantes — Kenten Danas, Senior Manager en Developer Relations, et Tamara Fingerlin, Senior Developer Advocate, toutes deux chez Astronomer, l'une des principales entreprises contributrices d'Airflow —, sont complémentaires : l'une très orientée concepts et architecture, l'autre très à l'aise pour contextualiser dans des cas d'usage GenAI.
+
+**Stack utilisée dans le cours :** Apache Airflow 3 · FastEmbed (`bge-small-en-v1.5`) · Weaviate · Python
+
+## Ce que le cours apporte par rapport aux bases
+
+Dans mon article précédent, je couvrais les fondamentaux : DAGs, dépendances entre tasks, DAG Runs, trigger rules. Ce cours va plus loin sur plusieurs points.
+
+### Le Dynamic Task Mapping
+
+C'est clairement la notion la plus utile que j'ai découverte dans ce cours. Le problème : quand on traite une liste de fichiers dans une boucle `for` à l'intérieur d'une task, ce n'est **pas atomique**. Si un fichier échoue, toute la task échoue et tout doit être relancé.
+
+La solution ? Le **Dynamic Task Mapping** — créer une task instance distincte par élément, à l'exécution, selon les données retournées par une task amont.
+
+```python
+# Avant : boucle dans une task, pas atomique
+@task
+def transform(files: list):
+    for f in files:
+        ...
+
+# Après : une task instance par fichier
+@task
+def transform(book_description_file: str):
+    ...
+
+# Appel mappé via .expand()
+transform.expand(book_description_file=list_book_description_files())
+```
+
+Quelques comportements importants à retenir :
+
+- Si la liste est vide, les tasks aval sont automatiquement **skippées**
+- Si une instance échoue, seule **cette instance** est à relancer
+- Le nombre d'instances est limité à 1024 par défaut (modifiable via config)
+
+### Le Data-aware Scheduling avec les Assets
+
+Au-delà du scheduling temporel classique (cron), Airflow permet de déclencher un DAG **quand un autre DAG a produit de la donnée**. C'est le concept d'**Assets**.
+
+```python
+from airflow.sdk import Asset
+
+# Dans fetch_data : on déclare que cette task met à jour un asset
+@task(outlets=[Asset("my_book_vector_data")])
+def load_embeddings_to_vector_db(...):
+    ...
+
+# Dans query_data : ce DAG se déclenche quand l'asset est mis à jour
+@dag(schedule=[Asset("my_book_vector_data")])
+def query_data():
+    ...
+```
+
+C'est élégant et beaucoup plus explicite qu'une dépendance temporelle. Le DAG de requêtage ne tourne pas "toutes les heures" — il tourne "quand les données sont prêtes".
+
+### Les Hooks pour les connexions externes
+
+Pour se connecter à Weaviate (ou n'importe quel service externe), Airflow fournit des **Hooks** — des abstractions qui centralisent la gestion des connexions dans l'UI, plutôt que de hardcoder des credentials dans le code.
+
+```python
+from airflow.providers.weaviate.hooks.weaviate import WeaviateHook
+
+hook = WeaviateHook("my_weaviate_conn")  # ID défini dans l'UI Airflow
+client = hook.get_conn()
+```
+
+C'est le genre de pattern qui fait la différence entre un pipeline qui tourne sur son poste et un pipeline maintenable en équipe.
+
+## Le pipeline RAG complet
+
+Ce qui m'a vraiment convaincu dans ce cours, c'est de voir les deux DAGs résultants côte à côte.
+
+**DAG `fetch_data`** — ingère, vectorise et charge les livres dans Weaviate :
+
+```
+create_collection_if_not_exists
+        ↓
+list_book_description_files
+        ↓
+transform_book_description_files  (mappé dynamiquement)
+        ↓
+create_vector_embeddings           (mappé dynamiquement)
+        ↓
+load_embeddings_to_vector_db
+```
+
+**DAG `query_data`** — se déclenche automatiquement après `fetch_data` (via Asset) et répond à des requêtes utilisateur par similarité vectorielle.
+
+Voir un pipeline RAG complet — de l'ingestion des données brutes jusqu'à la requête sémantique — orchestré proprement dans Airflow, ça donne vraiment envie de monter ce genre de projet soi-même.
+
+## Ce que ça change dans ma façon de penser
+
+Ce cours m'a fait réaliser quelque chose : **n'importe quel notebook Python peut devenir un DAG Airflow**. C'est à la fois rassurant (on part de ce qu'on connaît) et motivant (tout prototype peut devenir production-ready).
+
+Il m'a aussi donné envie de me lancer sur un pipeline de données personnelles — idéalement autour de mes données Strava. L'idée serait d'ingérer les activités running, calculer des métriques d'entraînement, et les visualiser. Un bon prétexte pour mettre en pratique ce que j'ai appris dans un contexte concret.
+
+Et ça, c'est exactement ce que j'attends d'un bon cours : pas juste de la théorie à retenir, mais des idées de projets à concrétiser.
+
+---
+
+Si tu veux te former sur Airflow, je te recommande de commencer par les bases des DAGs (la documentation officielle est solide), puis d'enchaîner sur ce cours DeepLearning.AI — la progression est vraiment cohérente. Et si tu es aussi en reconversion depuis le web, n'hésite pas à me dire comment tu t'y prends de ton côté.

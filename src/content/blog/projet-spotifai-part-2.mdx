@@ -1,0 +1,170 @@
+---
+title: "SpotifAI — OAuth, LLM et les surprises de l'API Spotify"
+summary: "Comment j'ai construit le cœur de SpotifAI : le flow OAuth2, l'injection du profil musical comme contexte LLM, et les deux blocages API Spotify que je n'avais pas anticipés — avec les contournements que j'ai trouvés."
+postLayout: column
+date: "2026-03-06"
+lastmod: "2026-03-06"
+draft: false
+related:
+  - projet-spotifai-part-1
+domaine: data
+category: rex
+technos:
+  - python
+  - fastapi
+  - duckdb
+  - claude-code
+---
+
+Le cahier des charges est écrit, la stack est choisie. Il est temps de coder.
+
+Dans l'article précédent, j'ai expliqué pourquoi j'ai lancé SpotifAI et comment j'ai structuré le projet avec Claude Desktop avant d'écrire une seule ligne. Ici, je rentre dans la phase de construction : les 9 étapes du projet, les décisions techniques qui ont compté, et surtout les deux blocages que l'API Spotify m'a infligés en cours de route.
+
+## Comment j'ai travaillé avec Claude Code
+
+Avant de parler du code lui-même, un mot sur la méthode. J'ai travaillé avec deux instances de Claude en parallèle — et cette distinction est importante.
+
+**Claude Desktop** pour la réflexion et la planification. Architecture, documentation, relecture de fichiers `DECISIONS.md` et `NEXT_STEPS.md`, discussion des alternatives. C'est là que les décisions structurantes se prennent.
+
+**Claude Code dans VS Code** pour l'exécution. Boilerplate, refactoring, documentation inline, génération de fonctions à partir de spécifications. C'est là que le code prend forme.
+
+La règle que je me suis fixée : comprendre chaque bloc de code avant de l'accepter. Pas de vibe coding. Si Claude Code génère une fonction que je ne comprends pas, je demande une explication — et si l'explication ne me convainc pas, on recommence. Ça ralentit un peu, mais ça évite de se retrouver avec un projet qu'on ne maîtrise plus.
+
+Le résultat : un `CONTEXT.md` à la racine qui explique le "pourquoi" et le "pour qui", un `NEXT_STEPS.md` avec des cases à cocher, un `STRUCTURE.md` qui décrit chaque fichier, et un `DECISIONS.md` qui archive chaque choix architectural. Ces fichiers sont lus par Claude à chaque session — c'est la mémoire du projet.
+
+## Le flow OAuth — moins simple qu'il n'y paraît
+
+La première brique du projet, c'est l'authentification Spotify. Pas de génération de playlists possible sans token valide.
+
+Spotify utilise l'Authorization Code Flow : l'utilisateur est redirigé vers Spotify, il autorise l'app, Spotify renvoie un `code` sur notre callback, on échange ce code contre un `access_token` et un `refresh_token`. Spotipy gère ça nativement avec `SpotifyOAuth`.
+
+Deux détails qui m'ont pris du temps :
+
+**`localhost` vs `127.0.0.1`.** Spotify bloque `http://localhost:8000/callback` comme redirect URI dans le dashboard développeur (une restriction de sécurité non documentée clairement). La solution : utiliser `http://127.0.0.1:8000/callback`. Strictement équivalent en pratique, accepté par Spotify.
+
+**Le token refresh et la session.** Quand le token expire, Spotipy en génère un nouveau — mais si on ne persiste pas ce nouveau token dans la session, la requête suivante repart avec l'ancien token expiré. Ça donne des 403 intermittents, difficiles à reproduire et à diagnostiquer. La solution : toujours unpacker `sp, token_info = get_spotify_client(token_info)` et réécrire `token_info` dans la session immédiatement.
+
+```python
+# api/spotify.py
+def get_spotify_client(token_info: dict) -> tuple[spotipy.Spotify, dict]:
+    auth_manager = get_auth_manager()
+    if auth_manager.is_token_expired(token_info):
+        token_info = auth_manager.refresh_access_token(token_info["refresh_token"])
+    # Retourner les deux — le caller DOIT persister le token_info rafraîchi
+    return spotipy.Spotify(auth=token_info["access_token"]), token_info
+```
+
+Ce pattern — retourner le token avec le client — est la décision la plus importante de ce module. Sans ça, le refresh ne sert à rien.
+
+## Le profil musical comme contexte LLM
+
+Le cœur de la personnalisation, c'est l'injection du profil Spotify de l'utilisateur dans le système prompt de Claude.
+
+La logique est simple : avant de demander à Claude d'extraire des paramètres depuis le prompt utilisateur, je lui donne le contexte musical de la personne. Top artists, top tracks des 3 derniers mois, 6 derniers mois, et all-time. Tout ça est stocké dans DuckDB après un sync manuel déclenché par l'utilisateur.
+
+Le system prompt ressemble à ça (version simplifiée) :
+
+```
+Tu es un expert musical et curateur de playlists Spotify.
+
+## Profil musical de l'utilisateur
+
+Top artists (du plus écouté au moins) :
+Mogwai, Explosions in the Sky, Toe, Mono, This Will Destroy You...
+
+Top tracks (du plus écouté au moins) :
+Take Care, Take Care, Take Care — Explosions in the Sky
+2 Shy (Peel Session) — Toe
+...
+
+Utilise ce profil pour :
+- Inférer les genres et l'univers musical de l'utilisateur
+- Compléter les paramètres manquants quand la demande est vague
+- Calibrer energy/valence/tempo à ses habitudes d'écoute
+```
+
+C'est ce que j'appellerais du RAG sans RAG. Pas de base vectorielle, pas d'embeddings — juste de l'injection de contexte structuré dans le prompt. Pour ce cas d'usage, c'est suffisant et bien plus simple à maintenir.
+
+La réponse de Claude est un JSON structuré validé par Pydantic :
+
+```python
+class LLMCriteriaOutput(BaseModel):
+    seed_genres: list[str] = []
+    seed_artists: list[str] = []
+    year_min: Optional[int] = None
+    year_max: Optional[int] = None
+    target_energy: Optional[float] = Field(None, ge=0.0, le=1.0)
+    target_valence: Optional[float] = Field(None, ge=0.0, le=1.0)
+    target_tempo: Optional[float] = None
+    market: str = "FR"
+    limit: int = Field(30, ge=1, le=100)
+```
+
+Claude a parfois tendance à entourer son JSON de balises markdown (` ```json ` ) malgré les instructions contraires. J'ai donc un helper `_extract_json()` qui strip ces balises avant de parser, et une logique de retry automatique en cas de JSON invalide (max 2 tentatives, avec le message d'erreur renvoyé à Claude pour qu'il corrige).
+
+## Blocage n°1 : `/recommendations` n'est plus accessible
+
+C'est là que le projet a failli pivoter sérieusement.
+
+L'endpoint `/recommendations` de Spotify — celui qui prend des `seed_genres`, des `seed_artists` et des audio features comme paramètres pour générer des recommandations — est inaccessible en **Development Mode** depuis fin 2024. Il est réservé aux apps en Extended Quota Mode, soit des organisations avec 250 000 utilisateurs actifs minimum.
+
+Pour un projet perso, c'est tout simplement hors de portée.
+
+J'ai passé quelques heures à chercher un contournement. La solution : remplacer `/recommendations` par une stratégie basée sur `/search`. Au lieu de laisser Spotify faire ses recommandations algorithmiques, je demande à Claude de générer 4 à 6 requêtes de recherche ciblées à partir des critères extraits :
+
+```python
+# Exemples de requêtes générées par Claude
+[
+    "genre:post-rock year:2010-2024",
+    "genre:math-rock instrumental",
+    "artist:Toe genre:post-rock",
+    "genre:shoegaze ambient japan",
+]
+```
+
+Chaque requête donne jusqu'à 10 résultats. On déduplique par ID de track, on filtre par plage d'années si spécifiée, on trie par popularité décroissante, et on retourne les 30 meilleurs. Ce n'est pas aussi "magique" que `/recommendations` avec ses audio features, mais c'est pertinent — et c'est disponible en Development Mode.
+
+Ce changement est contenu dans `api/spotify.py`. La logique LLM en amont (`core/generator.py`, `core/prompts.py`) est identique. Si Spotify rouvre l'endpoint un jour, c'est une modification d'une fonction.
+
+## Blocage n°2 : impossible d'ajouter des tracks à une playlist
+
+Deuxième surprise, encore plus frustrante. `POST /playlists/{id}/tracks` — l'endpoint pour ajouter des tracks à une playlist — retourne systématiquement **403** pour les apps en Development Mode, même avec les scopes `playlist-modify-public` et `playlist-modify-private` correctement configurés, même avec un compte whitelisté.
+
+J'ai tout essayé. `sp.playlist_add_items()` — 403. `sp._post("playlists/{id}/tracks")` en bypassing la méthode Spotipy — 403. Un appel AJAX direct depuis le navigateur pour éliminer mon backend de l'équation — 403. C'est Spotify qui bloque, pas mon code.
+
+Extended Quota Mode pour lever la restriction ? Depuis mai 2025, Spotify ne l'accepte plus pour les individus. Organisations uniquement.
+
+La décision prise (ADR-009 dans mon `DECISIONS.md`) : Option A, dégradation gracieuse. SpotifAI crée une playlist vide dans le compte Spotify de l'utilisateur, et affiche la liste des tracks avec un lien "Ouvrir dans Spotify" pour chaque morceau. L'utilisateur ajoute manuellement les tracks qui l'intéressent.
+
+C'est une expérience dégradée, clairement. Mais c'est honnête — je l'explique dans le README et dans l'UI. Et si Spotify lève la restriction demain, il suffit de décommenter `add_tracks_to_playlist()` dans `core/generator.py`.
+
+Ce que ce blocage m'a appris : documenter les contraintes externes est aussi important que documenter les décisions techniques. Le `DECISIONS.md` contient maintenant une entrée par blocage, avec ce que j'ai testé, pourquoi ça ne fonctionne pas, et ce que j'ai fait à la place.
+
+## La génération de playlist, étape par étape
+
+Le pipeline complet dans `core/generator.py` :
+
+**1.** Chargement du profil utilisateur depuis DuckDB  
+**2.** Premier appel Claude : extraction des critères (genres, artistes, humeur, période) → JSON validé par Pydantic  
+**3.** Deuxième appel Claude : génération de 4-6 requêtes de recherche Spotify  
+**4.** Appels Spotify `/search` → déduplication → filtrage par année → tri par popularité  
+**5.** Troisième appel Claude : génération du titre et de la description de la playlist  
+**6.** Sauvegarde dans DuckDB (liste complète des tracks incluse, pour l'historique)  
+**7.** Création de la playlist vide dans Spotify  
+**8.** Retour du résultat au frontend
+
+Trois appels LLM par génération. Coût moyen : ~0,003 $ avec `claude-sonnet-4`. Négligeable pour un usage perso.
+
+## Ce que Claude Code a vraiment apporté
+
+Sur ce projet, Claude Code m'a fait gagner du temps principalement sur trois choses.
+
+Le **boilerplate fastidieux** : la structure initiale des fichiers, les `__init__.py`, les squelettes de fonctions avec leurs docstrings, la configuration Pydantic. Des tâches où je sais exactement quoi faire mais qui prennent du temps sans rien apporter intellectuellement.
+
+La **documentation inline** : les commentaires de code, les explications de pourquoi telle décision. Je lui donne la fonction, il génère la docstring complète. Je relis, je corrige si nécessaire.
+
+La **détection de bugs subtils** : le problème du token refresh non persisté, par exemple, a été identifié par Claude Code lors d'une revue de `api/routes.py`. Ce genre de bug est facile à rater à la lecture.
+
+Ce que Claude Code n'a pas fait : prendre les décisions d'architecture à ma place, choisir la stack, rédiger le CDC. Ça, c'est le travail de réflexion qui se fait avec Claude Desktop, en amont, et qui donne ensuite du contexte à Claude Code pour que ses suggestions soient pertinentes.
+
+Dans le dernier article de cette série, je parle du déploiement sur Coolify/Hetzner, des contraintes Spotify Development Mode en production, et du bilan global du projet.

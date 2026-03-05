@@ -1,0 +1,80 @@
+---
+title: "SpotifAI — Pourquoi j'ai construit un générateur de playlists IA"
+summary: "Retour d'expérience sur la genèse de SpotifAI : la bulle algorithmique de Spotify, l'idée du projet, les choix de stack et comment Claude Desktop m'a aidé à structurer tout ça avant d'écrire une seule ligne de code."
+postLayout: column
+date: "2026-03-05"
+lastmod: "2026-03-05"
+draft: false
+domaine: data
+category: rex
+technos:
+  - python
+  - fastapi
+  - duckdb
+---
+
+Depuis quelques mois, je commence à en avoir de plus en plus marre de Spotify.
+
+Pas de la plateforme en elle-même — le catalogue est immense, l'appli est bien foutue. Mais de l'algorithme. Plus précisément, de ce sentiment de tourner en rond. Tu écoutes beaucoup de post-rock pendant deux semaines, et soudain ta Discover Weekly ressemble à une version appauvrie de ce que tu écoutais déjà. Tu explores un artiste japonais que tu viens de découvrir, et la semaine d'après, il y en a trois autres du même genre dans tes recommandations. Rien de vraiment nouveau. Rien d'inattendu. Juste du connu, légèrement décalé.
+
+C'est ce qu'on appelle la bulle de filtrage. Et Spotify en est un bon exemple.
+
+Le problème de fond, c'est que les recommandations natives sont peu contrôlables. Tu ne peux pas dire à Spotify : "donne-moi du jazz fusion électronique, influence années 70, sorti entre 2015 et 2020, avec une énergie basse". Tu peux bidouiller les radios, créer des stations à partir d'un artiste — mais tu restes dépendant de ce que l'algo a décidé de te proposer ce jour-là.
+
+C'est là que l'idée de SpotifAI a germé.
+
+## Le projet, en une phrase
+
+SpotifAI, c'est un générateur de playlists en langage naturel. Tu décris ce que tu veux écouter, et le projet transforme ta description en une playlist Spotify sauvegardée dans ton compte — en s'appuyant sur ton vrai historique d'écoute comme contexte.
+
+En pratique, ça donne des prompts comme :
+
+- _"Post-rock instrumental, influence japonaise, depuis 2010"_
+- _"Jazz fusion électronique, ambiance late night, énergie basse"_
+- _"Hip-hop boom bap français, années 90, samples jazz"_
+
+L'idée que j'avais en tête (vous allez voir par la suite, ça ne s'est pas tout à fait passé comme ça) : le LLM interprète la demande, extrait des paramètres structurés, Spotify renvoie des tracks, et une playlist atterrit directement dans ton compte.
+
+## Pourquoi ce projet en particulier
+
+Je suis en reconversion vers la data et l'IA. Depuis un an, je lis, je suis des formations (DataBird, DeepLearning.AI), j'expérimente. Mais à un moment, les cours ne suffisent plus. Il faut un projet réel, avec de vraies contraintes, de vraies API, de vrais bugs.
+
+SpotifAI coche plusieurs cases en même temps. Il touche à l'orchestration LLM — comment passer d'un texte libre à une requête API structurée. Il implique de la persistance de données (DuckDB), de l'authentification OAuth2, du déploiement Docker. Et il est suffisamment concret pour être démontrable : tu te connectes, tu écris un prompt, tu obtiens une playlist.
+
+C'est aussi un projet que j'avais envie de faire pour moi. Pas un exercice scolaire. Pas un CRUD fictif. Un outil que j'utilise vraiment.
+
+## La phase de conception avec Claude Desktop
+
+Avant d'écrire la moindre ligne de code, j'ai passé plusieurs heures à réfléchir à l'architecture avec Claude Desktop.
+
+C'est une habitude que j'ai prise depuis quelques mois. Claude Desktop, avec l'accès au filesystem et au dépôt GitHub, sert de partenaire de réflexion en amont. Je lui soumets l'idée brute, on discute des choix techniques, on explore les alternatives. Le résultat de ces échanges, c'est un fichier `DECISIONS.md` qui documente chaque choix d'architecture sous forme d'ADR (Architecture Decision Records).
+
+Pour SpotifAI, ça a donné des décisions comme :
+
+**FastAPI plutôt que Flask.** Flask aurait été plus simple pour démarrer. Mais le projet était pensé pour évoluer — Phase 3 prévoit un frontend React qui consommerait la même API. FastAPI avec sa validation Pydantic intégrée et sa génération automatique de docs OpenAPI était clairement le bon choix dès le départ.
+
+**DuckDB pour la persistance.** Pas de PostgreSQL, pas de SQLite. DuckDB parce que c'est analytique par nature — les tables que je crée en Phase 2 deviendront la couche bronze d'un pipeline dbt en Phase 3. Zéro migration, zéro infrastructure supplémentaire. C'est un fichier local, c'est du SQL, et ça scale vers du vrai data engineering sans friction.
+
+**pydantic-settings pour la configuration.** Tous les modules importent un objet `settings` depuis `config.py`. Pas de `os.getenv()` éparpillés partout. Validation au démarrage, types corrects, fail fast si une variable manque. Simple à tenir dans le temps.
+
+Ce n'est pas Claude qui a pris ces décisions à ma place — c'est moi qui les ai prises, mieux informé, en ayant pu peser les alternatives rapidement. La différence entre un pair de revue et un assistant.
+
+## La structure du projet
+
+Le cahier des charges que j'ai écrit avec Claude Desktop (le fichier `SpotifAI_CDC_v2.md`) décrit une roadmap en trois phases :
+
+La **Phase 2** — celle que je viens de terminer — est un outil monoposte entièrement fonctionnel : OAuth Spotify, sync du profil musical, génération via LLM, sauvegarde dans le compte Spotify, historique dans DuckDB.
+
+La **Phase 3** est une évolution vers une architecture production-grade : pipeline dbt sur DuckDB, système multi-agents CrewAI, sync automatique via Airflow, et remplacement du frontend Jinja2 par React.
+
+Avoir cette roadmap en tête dès le départ a influencé chaque choix d'architecture de Phase 2. Les tables DuckDB sont pensées pour devenir des sources dbt. Les prompts LLM sont centralisés dans `core/prompts.py` parce qu'ils deviendront des instructions d'agents CrewAI. Les routes FastAPI n'ont pas de préfixe `/api` pour l'instant, mais un `prefix="/api"` dans `main.py` suffira quand React arrivera.
+
+C'est ça, la vraie valeur d'un cahier des charges réfléchi : pas un document bureaucratique, mais une boussole qui oriente les micro-décisions quotidiennes.
+
+## Ce que le projet n'est pas
+
+SpotifAI n'est pas un wrapper Spotify sophistiqué. C'est un projet d'apprentissage assumé, construit en parallèle de mes apprentissages sur le data engineering et l'IA. Le code est propre, documenté, testé à la main — mais il n'y a pas de suite de tests automatisés. Le frontend est du HTML/CSS/JS vanilla, sans framework. L'authentification est pensée pour un usage solo.
+
+Ces choix sont délibérés. Ajouter de la complexité technique là où elle n'est pas nécessaire pour l'objectif d'apprentissage aurait été contre-productif. La Phase 3 amènera la complexité au bon moment, pour les bonnes raisons.
+
+Dans l'article suivant, je rentre dans le vif du sujet technique : le flow OAuth, l'intégration Claude API, et surtout les deux gros blocages que j'ai rencontrés avec l'API Spotify — et comment je les ai contournés.

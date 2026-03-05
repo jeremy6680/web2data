@@ -1,0 +1,107 @@
+---
+title: "SpotifAI — Déploiement, bilan et ce qui vient ensuite"
+summary: "Le déploiement de SpotifAI sur Coolify + Hetzner, les contraintes Spotify en Development Mode, ce que le projet m'a appris sur le travail avec les LLMs — et la roadmap Phase 3."
+postLayout: column
+date: "2026-03-07"
+lastmod: "2026-03-07"
+draft: false
+related:
+  - projet-spotifai-part-1
+  - projet-spotifai-part-2
+domaine: data
+category: rex
+technos:
+  - python
+  - fastapi
+  - duckdb
+  - claude-code
+---
+
+Le code tourne en local. La playlist s'affiche. Les tracks sont bien là.
+
+Reste à mettre tout ça en ligne — pas pour les millions d'utilisateurs, mais pour avoir une URL à partager, un vrai déploiement, quelque chose qui ressemble à un projet abouti plutôt qu'à un script qui tourne sur mon Mac.
+
+## Docker, Coolify, Hetzner
+
+J'avais déjà l'infrastructure en place : deux serveurs Hetzner gérés via Coolify, avec Backblaze B2 pour les backups. C'est là que tournent mes autres apps auto-hébergées — ActualBudget, DocMost, Umami. Ajouter SpotifAI était donc naturel.
+
+Le `Dockerfile` est un multi-stage build classique :
+
+```dockerfile
+# Stage 1 : builder — installation des dépendances
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+
+# Stage 2 : runtime — image légère pour la prod
+FROM python:3.11-slim AS runtime
+WORKDIR /app
+COPY --from=builder /install /usr/local
+COPY . .
+RUN mkdir -p /app/data
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+```
+
+Le `--workers 1` est intentionnel : DuckDB en mode fichier ne supporte pas les écritures concurrentes. Un seul worker, un seul processus, pas de risque de corruption.
+
+Le fichier `.duckdb` est persisté dans un volume Coolify monté sur `/app/data`. Les credentials sont injectés via les variables d'environnement Coolify — jamais dans l'image.
+
+La seule configuration spécifique au déploiement : mettre à jour `SPOTIFY_REDIRECT_URI` dans les variables d'env Coolify **et** dans le dashboard Spotify Developer avec la vraie URL de prod (`https://spotifai.lumafinch.com/callback`). C'est le genre de détail qui fait échouer silencieusement si on l'oublie.
+
+## Les contraintes Spotify Development Mode en production
+
+Déployer en prod ne change rien aux restrictions de l'API Spotify. En Development Mode, l'app est limitée à **25 utilisateurs whitelistés**. Pas 25 simultanés — 25 en tout. Chaque personne qui veut tester SpotifAI doit m'envoyer son email Spotify pour que je l'ajoute manuellement dans le dashboard Spotify Developer.
+
+C'est une contrainte réelle pour une démo publique. Je l'explique clairement dans le README :
+
+> SpotifAI is currently in Spotify Development mode, which limits access to 25 whitelisted users. To try the demo, send your Spotify account email to hey@jeremymarchandeau.com and I'll add you.
+
+Ça ne me gêne pas pour l'objectif du projet — avoir un démo qui fonctionne, que je peux montrer à des recruteurs ou à des gens qui s'intéressent à la démarche. Mais c'est important de le signaler : ce n'est pas un produit ouvert au public.
+
+L'autre limitation héritée du Development Mode, c'est le blocage sur l'ajout de tracks aux playlists — j'en ai parlé dans l'article précédent. En prod, le comportement est identique : la playlist est créée vide dans le compte Spotify de l'utilisateur, les tracks sont affichées avec des liens individuels.
+
+## Ce que j'ai appris sur le travail avec les LLMs
+
+SpotifAI est peut-être le projet qui m'a le plus appris sur la façon de travailler avec Claude — pas juste comme outil de génération de code, mais comme partenaire de développement.
+
+**Les fichiers de contexte changent tout.** `CONTEXT.md`, `NEXT_STEPS.md`, `DECISIONS.md`, `STRUCTURE.md` — ces fichiers sont lus par Claude au début de chaque session. Ça évite de re-expliquer le projet à chaque fois, et ça donne à Claude le contexte nécessaire pour que ses suggestions soient cohérentes avec les décisions déjà prises. Un Claude sans contexte génère du code générique. Un Claude avec un bon `CONTEXT.md` génère du code qui s'intègre dans ton architecture.
+
+**Documenter les contraintes externes est aussi important que documenter le code.** Les blocages Spotify sur `/recommendations` et `POST /playlists/{id}/tracks` sont documentés dans `DECISIONS.md` avec ce que j'ai testé, pourquoi ça n'a pas marché, et la décision prise. Ça évite de se re-poser les mêmes questions dans trois mois — et ça évite à Claude de me reproposer une solution que j'ai déjà essayée et écartée.
+
+**L'IA ne remplace pas la réflexion d'architecture.** Le meilleur usage que j'ai fait de Claude sur ce projet, c'est la phase en amont : peser les alternatives, explorer les trade-offs, rédiger le CDC. Claude Desktop avec accès au filesystem est un partenaire de réflexion efficace. Claude Code dans VS Code est un outil d'exécution efficace. Les deux ont des rôles distincts — les confondre, c'est se priver du meilleur de chacun.
+
+**Garder la main sur le code.** J'ai refusé plusieurs suggestions de Claude Code que je ne comprenais pas entièrement. Pas par méfiance — par principe. Si je ne comprends pas pourquoi une fonction est écrite d'une certaine façon, je ne peux pas la débugger, je ne peux pas l'adapter, je ne peux pas l'expliquer. Ce projet m'appartient. Le code doit me correspondre.
+
+## Le bilan du projet à ce stade
+
+SpotifAI fait ce qu'il est censé faire. Tu te connectes, tu décris une playlist, tu obtiens des tracks pertinents et une playlist dans ton compte Spotify. La génération prend environ 15 secondes. Les résultats sont bons — pas parfaits, mais bons.
+
+Ce qui manque par rapport à la vision initiale : l'ajout automatique des tracks dans la playlist (bloqué par Spotify). C'est la limitation la plus visible, et c'est dommage parce que c'est le dernier kilomètre de l'expérience utilisateur.
+
+Ce qui a mieux marché que prévu : la personnalisation par injection de profil. Quand l'utilisateur a syncé son historique, les recommandations sont clairement orientées par ses goûts — Claude fait un bon travail d'inférence à partir des noms d'artistes. Et la génération de requêtes de recherche pour compenser l'absence de `/recommendations` s'est avérée plus robuste que je ne le pensais.
+
+Le coût total de l'API Anthropic sur les phases de développement et de tests : moins d'un euro. À ~0,003 $ par génération, c'est un outil utilisable au quotidien sans se soucier des coûts.
+
+## La Phase 3
+
+Le projet ne s'arrête pas là. La roadmap Phase 3 est déjà dans le `NEXT_STEPS.md` :
+
+**Pipeline dbt medallion sur DuckDB.** Les tables créées en Phase 2 deviennent des sources bronze. Des modèles silver nettoient et typent les données. Des modèles gold calculent des métriques analytiques : évolution des genres dans le temps, patterns d'humeur par heure ou par saison. C'est là que le data engineering entre vraiment en jeu.
+
+**Système multi-agents CrewAI.** Le pipeline `core/generator.py` devient trois agents spécialisés : un Music Profiler qui analyse le gold DuckDB, un Criteria Interpreter qui combine profil et demande utilisateur, un Playlist Curator qui interroge Spotify et sélectionne les tracks. Les prompts actuels dans `core/prompts.py` deviennent les instructions de ces agents.
+
+**Sync automatique via Airflow.** Le bouton "Sync mon profil" disparaît au profit d'un DAG Airflow qui poll l'API Spotify toutes les 15-30 minutes et déclenche un resync dès qu'il détecte un changement dans l'historique d'écoute.
+
+**Frontend React.** Les templates Jinja2 cèdent la place à une SPA React. Les routes FastAPI restent identiques — un `prefix="/api"` dans `main.py` suffit.
+
+Ce qui me plaît dans cette roadmap, c'est qu'elle suit la logique du projet depuis le début : chaque phase est fonctionnelle de façon autonome, et chaque décision de Phase 2 a été pensée pour faciliter la transition vers Phase 3. DuckDB comme bronze layer, les prompts centralisés, FastAPI sans préfixe — tout ça était déjà là pour les bonnes raisons.
+
+La Phase 3 n'est pas un refactoring du projet. C'est son évolution naturelle.
+
+---
+
+Le code source est sur [GitHub](https://github.com/jeremy6680/spotifai). La démo tourne sur [spotifai.lumafinch.com](https://spotifai.lumafinch.com) — envoie-moi ton email Spotify si tu veux tester.
+
+Des questions sur l'architecture, les choix techniques, ou les blocages Spotify ? Je suis curieux de savoir si d'autres ont rencontré les mêmes problèmes.
