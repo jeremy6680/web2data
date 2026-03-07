@@ -7,20 +7,27 @@ import RootLayout from "@/layouts/RootLayout.astro";
 // Import images from src/assets/ — Astro will optimize them at build time
 import project1Img from "@/assets/project-1.png";
 import project2Img from "@/assets/project-2.png";
+import project3Img from "@/assets/project-3.png";
 
 const t = useTranslations();
 
 const projectsData = [
   {
     title: "Running Performance Analyzer",
-    description: `Une plateforme d'analyse basée sur l'IA pour les coureurs...`,
+    description: `Une plateforme d'analyse basée sur l'IA pour les coureurs`,
     imgSrc: project1Img, // ImageMetadata object, not a string
     href: "https://github.com/jeremy6680/running-performance-analyzer",
   },
   {
-    title: "Sports Cards Inventory",
-    description: `Une application web basée sur Python...`,
+    title: "SpotifAI",
+    description: `Générateur de playlists Spotify personnalisées via LLM`,
     imgSrc: project2Img,
+    href: "https://github.com/jeremy6680/spotifai",
+  },
+  {
+    title: "Sports Cards Inventory",
+    description: `Une application web basée sur Python`,
+    imgSrc: project3Img,
     href: "https://github.com/jeremy6680/sports-cards-inventory",
   },
 ];
