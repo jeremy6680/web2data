@@ -1,0 +1,137 @@
+---
+title: "w2d-scaffold : un CLI pour démarrer ses projets LLM-ready en une commande"
+summary: "J'ai construit w2d-scaffold, un outil CLI open-source qui génère en une commande la structure complète d'un projet Python, data, RAG, WordPress ou Astro — avec les fichiers contextuels dont les LLMs ont besoin pour travailler efficacement."
+postLayout: column
+date: "2026-03-09"
+draft: false
+domaine: ia
+category: open-source
+technos:
+  - python
+related:
+  - mon-process-pour-coder-avec-les-llms
+---
+
+## Le problème que j'avais en tête
+
+Si tu as lu [mon article sur mon process pour coder avec les LLMs](/mon-process-pour-coder-avec-les-llms), tu sais déjà que je structure systématiquement mes projets autour de quatre fichiers contextuels : `CONTEXT.md`, `NEXT_STEPS.md`, `STRUCTURE.md` et `DECISIONS.md`. C'est ce qui permet à Claude Desktop de comprendre le projet sans que j'aie à tout réexpliquer à chaque session.
+
+Le problème, c'est que créer ces fichiers à la main à chaque nouveau projet, c'est pénible. Et les remplir avec le bon contenu par défaut selon le type de projet, encore plus. J'ai fini par me dire : autant automatiser ça.
+
+C'est de là qu'est né **w2d-scaffold**.
+
+---
+
+## C'est quoi exactement
+
+[w2d-scaffold](https://github.com/jeremy6680/w2d-scaffold) est un petit CLI open-source en Python qui génère la structure complète d'un nouveau projet en une seule commande. Il prend en charge six types de projets :
+
+- `data` — DuckDB, dbt, architecture medallion
+- `rag` — LlamaIndex, ChromaDB, FastAPI
+- `python` — projet Python typé avec hatchling
+- `wordpress-plugin` — PHP, structure includes/templates/assets
+- `wordpress-theme` — PHP, Timber, ACF, SCSS
+- `astro` — Astro v5, Tailwind v4, SolidJS
+
+Quel que soit le type choisi, chaque projet généré inclut le même socle commun :
+
+| Fichier         | Rôle                                     |
+| --------------- | ---------------------------------------- |
+| `CONTEXT.md`    | Présentation du projet, objectifs, stack |
+| `NEXT_STEPS.md` | Dashboard de tâches (fait / à faire)     |
+| `STRUCTURE.md`  | Arborescence annotée                     |
+| `DECISIONS.md`  | Journal de décisions architecturales     |
+| `.gitignore`    | Adapté au type de projet                 |
+| `.env.example`  | Variables d'environnement commentées     |
+| `README.md`     | Squelette à compléter                    |
+
+Ce n'est pas révolutionnaire sur le principe — des scaffolders CLI, il en existe des dizaines. Ce qui m'intéressait, c'était de concevoir quelque chose de **taillé pour un workflow LLM**, pas juste pour démarrer un projet vite fait.
+
+---
+
+## Comment ça marche
+
+Deux modes d'utilisation. L'assistant interactif :
+
+```bash
+make new
+```
+
+```
+> Project name? spotifai
+> Project type? [data/rag/python/wordpress-plugin/wordpress-theme/astro] rag
+> Short description? Natural language Spotify playlist generator
+> Author? Jeremy Marchandeau
+> Create ./spotifai/? [Y/n] Y
+
+✅ Project 'spotifai' created at ./spotifai/
+```
+
+Ou le mode direct, si tu préfères :
+
+```bash
+make new name=spotifai type=rag description="Natural language Spotify playlist generator" author="Jeremy Marchandeau"
+```
+
+En moins d'une seconde, tu as une arborescence complète, des fichiers contextuels pré-remplis, et un `.gitignore` adapté. Tu peux directement ouvrir Claude Desktop, pointer sur le `CONTEXT.md`, et commencer à bosser.
+
+---
+
+## Ce que j'ai appris en le construisant
+
+### Les templates Jinja2, c'est puissant (et lisible)
+
+L'outil utilise Jinja2 pour le templating. Chaque type de projet a son dossier dans `templates/`, avec des fichiers `.j2` qui reçoivent des variables à la génération : `{{ project_name }}`, `{{ author }}`, `{{ date }}`, etc.
+
+```
+templates/
+├── _common/         # Fichiers partagés tous types
+├── data/
+├── rag/
+├── python/
+├── wordpress-plugin/
+├── wordpress-theme/
+└── astro/
+```
+
+La convention `PROJECT_NAME` dans les noms de fichiers résout automatiquement vers le snake_case du projet. `PROJECT_NAME.php.j2` devient `my_plugin.php`. Simple, prévisible.
+
+### Click pour la CLI, c'est le bon choix
+
+Pour construire la CLI, j'ai utilisé [Click](https://click.palletsprojects.com/). C'est léger, bien documenté, et ça gère proprement les prompts interactifs, les options et la validation. Aucun regret là-dessus.
+
+### Le Makefile comme point d'entrée
+
+Plutôt que d'exposer directement `python scaffold.py`, j'ai ajouté un `Makefile` avec des targets claires : `make new`, `make test`, `make lint`. C'est plus ergonomique et ça évite de mémoriser des commandes à rallonge.
+
+### Les tests d'abord
+
+J'ai écrit une suite pytest qui couvre les six types de projets. Le CI tourne sur GitHub Actions à chaque push. Ça peut sembler over-engineered pour un outil perso, mais ça m'a évité plusieurs régressions pendant le développement — notamment quand j'ai refactorisé la logique de génération des noms de fichiers.
+
+---
+
+## Le lien avec mon workflow LLM
+
+Ce projet est directement lié à ce que je décris dans [mon article sur mon process pour coder avec les LLMs](/mon-process-pour-coder-avec-les-llms). Les quatre fichiers contextuels générés par w2d-scaffold sont exactement ceux que j'utilise pour "briefer" Claude Desktop en début de session.
+
+L'idée est simple : un LLM n'a pas de mémoire persistante entre les sessions. Si tu ne lui fournis pas un contexte clair et structuré à chaque fois, tu perds du temps à réexpliquer l'existant. Ces fichiers compensent cette limite. Et maintenant, ils sont générés automatiquement dès le premier `make new`.
+
+---
+
+## Ce qui manque encore
+
+Ce n'est pas un outil finalisé — c'est une v0.2. Il y a des choses que j'ai volontairement laissées de côté pour l'instant :
+
+- Pas d'installation via `pip install` (ça viendra peut-être)
+- Pas de template `fastapi` standalone (il est intégré dans `rag`, mais mériterait son propre type)
+- Les templates WordPress pourraient être plus riches — notamment pour les blocs Gutenberg avec Timber + ACF
+
+Si tu forkes le repo et que tu ajoutes un type ou améliores un template, une PR est la bienvenue.
+
+---
+
+## Pour conclure
+
+w2d-scaffold est un petit outil utilitaire que j'ai construit pour me faire gagner du temps sur mes propres projets. Il est open-source, MIT, et disponible sur GitHub : [jeremy6680/w2d-scaffold](https://github.com/jeremy6680/w2d-scaffold).
+
+Si tu as un workflow similaire avec les LLMs et que tu cherches à structurer tes projets de façon cohérente, il pourrait t'être utile. Et si l'approche "fichiers contextuels comme mémoire LLM" t'intéresse, je te renvoie vers [l'article dédié](/blog/mon-process-pour-coder-avec-les-llms) — c'est là que tout ça prend son sens.
