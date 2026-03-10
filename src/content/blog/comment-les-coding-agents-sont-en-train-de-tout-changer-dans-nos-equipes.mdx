@@ -1,0 +1,116 @@
+---
+title: "Comment les coding agents sont en train de tout changer dans nos équipes"
+summary: "Harrison Chase, le créateur de LangChain et LangGraph, a partagé sa vision de l'impact des coding agents sur les rôles produit, design et engineering. Un thread dense, provocateur et honnête. Résumé et réflexions."
+postLayout: column
+date: "2026-03-10"
+draft: false
+domaine: organisation
+category: rex
+---
+
+En scrollant sur Twitter (enfin, X) ce matin, je suis tombé sur un long thread d'Harrison Chase — le créateur de LangChain et LangGraph, et l'un des acteurs les plus influents de l'écosystème LLM (au passage, c'est lui-même qui enseigne [LangChain](https://learn.deeplearning.ai/courses/langchain/lesson/u9olq/introduction) et [LangGraph](https://learn.deeplearning.ai/courses/ai-agents-in-langgraph/lesson/qyrpc/introduction) sur DeepLearning.AI — [je recommande fortement ces deux cours-là](/blog/langchain-et-langgraph) !).
+
+Ce thread, c'est sa réflexion sur ce que les coding agents changent concrètement dans les équipes EPD — Engineering, Product, Design. Pas de la prospective floue. Des observations issues de ce qu'il voit dans les équipes qui utilisent ces outils en ce moment.
+
+Je trouve le texte suffisamment dense et intéressant pour mériter un résumé en français, avec mes propres réflexions au passage.
+
+---
+
+## Le point de départ : le code est devenu facile à écrire
+
+Harrison commence par une évidence qu'on a tendance à sous-estimer : **ce que fait une équipe EPD, c'est produire du code**. Des PRDs (Product Requirement Document ou document d'exigences produit), des maquettes, des specs — tout ça converge vers du code qui tourne en production.
+
+Et les coding agents ont rendu le code facile à écrire.
+
+La question qui suit est logique : qu'est-ce que ça change pour les gens qui passaient leur temps à _produire_ ce code ?
+
+---
+
+## Les PRDs sont morts. Vive les PRDs.
+
+La façon classique de construire un produit avant Claude, c'était à peu près ça :
+
+1. Quelqu'un (souvent Product) a une idée
+2. Product écrit un PRD
+3. Design crée une maquette à partir du PRD
+4. Engineering transforme la maquette en code
+
+Ce process existait parce que construire le logiciel prenait du temps et des compétences spécifiques. Donc on a créé des spécialités, et des documents pour faire communiquer ces spécialités entre elles.
+
+Avec les coding agents, n'importe qui peut partir d'une idée et arriver à un prototype fonctionnel. Le PRD comme point de départ obligatoire du processus — c'est mort.
+
+**Mais** — et c'est le point subtil qu'Harrison prend soin de développer — les documents qui décrivent des exigences produit restent essentiels. Quand un prototype arrive en review, les relecteurs ont besoin de comprendre l'intention derrière les choix. Pas de doc = pas de contexte = review impossible.
+
+Ce qui change, c'est l'ordre et la forme : on construit d'abord, on documente en parallèle. Et il pose une question intéressante : et si les PRDs du futur, c'était simplement les prompts structurés et versionnés utilisés pour construire la feature ?
+
+---
+
+## Le vrai goulot d'étranglement : la review
+
+C'est selon moi l'insight le plus important du thread.
+
+Avant, le goulot d'étranglement c'était l'implémentation. Écrire du bon code prenait du temps. Donc les projets avançaient à un rythme contrôlé, et la charge de review était gérable.
+
+Maintenant, n'importe qui peut générer du code. Le nombre de prototypes qui circulent explose. Et **la review devient le nouveau goulot d'étranglement** — dans les trois fonctions.
+
+Le problème : reviewer du code généré par un agent, c'est s'assurer que c'est bien architecturé, que ça résout le bon problème, que c'est utilisable. Ce n'est pas trivial. Et plus il y a de prototypes, plus ça demande du temps et de l'attention.
+
+---
+
+## Ce que ça change pour chaque rôle
+
+### Les généralistes ont plus de valeur que jamais
+
+Quelqu'un qui a une bonne compréhension des trois dimensions — produit, design, engineering — a toujours été précieux. Mais là, c'est un multiplicateur de force.
+
+La communication est le principal frein à la vitesse. Une seule personne capable de couvrir les trois axes peut avancer sans overhead de coordination. Et maintenant qu'elle peut déléguer l'implémentation aux agents, son impact potentiel est énorme.
+
+### Utiliser les coding agents n'est plus optionnel
+
+Harrison est direct là-dessus : si tu n'adoptes pas les coding agents, tu seras remplacé par quelqu'un qui les utilise. Ce n'est pas une prédiction catastrophiste — c'est une observation de ce qui se passe déjà.
+
+- Un PM qui utilise les coding agents peut valider une idée en construisant un prototype directement, sans attendre.
+- Un designer peut itérer en code, pas seulement dans Figma.
+- Un ingénieur peut déplacer son temps de l'implémentation vers la réflexion système.
+
+### Les bons PMs deviennent excellents, les mauvais deviennent catastrophiques
+
+C'est l'un des points les plus tranchants du thread. Un bon instinct produit, ça permet de construire des choses utiles rapidement. Un mauvais instinct produit, ça génère des prototypes de features inutiles — qui requièrent quand même du temps de review de la part de toute l'équipe, et qui créent de l'inertie ("c'est déjà codé, autant le merger").
+
+### La pensée systémique est la compétence à développer
+
+Quand l'exécution devient cheap, la différence se fait sur la capacité à penser les systèmes.
+
+- **Engineering** : avoir un modèle mental clair de comment architecturer des services, des APIs, des bases de données
+- **Product** : comprendre ce que les utilisateurs ont _vraiment_ besoin (pas ce qu'ils disent vouloir)
+- **Design** : savoir pourquoi quelque chose est agréable et intuitif à utiliser
+
+La barre pour la spécialisation monte. Être très bon dans son domaine ne suffit plus — il faut aussi être rapide en review et savoir communiquer.
+
+---
+
+## Builder ou reviewer : deux archétypes émergent
+
+Harrison observe deux profils qui se dessinent dans les équipes EPD.
+
+**Le builder** : bon instinct produit, capable d'utiliser les coding agents, sensibilité design de base. Avec les bons garde-fous (suite de tests, design system), il peut emmener de petites features de l'idée à la production tout seul.
+
+**Le reviewer** : penseur système de haut niveau, capable de reviewer rapidement des architectures complexes ou des parcours UX élaborés. La barre est haute, mais ces profils restent indispensables pour les features importantes.
+
+Si tu es ingénieur en ce moment, la question c'est : est-ce que tu vises à devenir un très bon reviewer d'architectures ? Ou est-ce que tu développes tes compétences produit et design pour devenir builder ?
+
+---
+
+## Ce que je retiens pour ma propre reconversion
+
+Je suis en pleine transition web → data/IA, et ce thread résonne pas mal avec ce que je vis.
+
+La frontière entre "celui qui code" et "celui qui définit ce qu'on code" est en train de sauter. Ce que Harrison décrit — des builders capables de couvrir produit, design et engineering avec l'aide des agents — c'est exactement ce que permet la combinaison de compétences que je suis en train de construire.
+
+Ce qui me frappe aussi, c'est l'importance croissante du **product sense**. Même pour un data engineer ou un AI engineer, savoir quoi construire — et pour qui — devient aussi important que savoir comment le construire. Voire plus.
+
+Et sa conclusion est plutôt rassurante : dans ce nouveau monde, les origines comptent moins. Ce profil de builder/penseur systémique peut venir de n'importe quelle discipline. Produit, design, engineering. Ou web, data, IA.
+
+---
+
+Le thread original d'Harrison Chase est [disponible sur X](https://x.com/hwchase17/status/2031051115169808685). C'est une lecture rapide et dense que je recommande si tu travailles dans la tech en ce moment.
