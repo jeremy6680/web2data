@@ -1,0 +1,133 @@
+---
+title: "Agent = Modèle + Harness : comprendre l'anatomie d'un agent IA"
+summary: "Un article de LangChain pose une définition claire et utile : un agent, c'est un modèle entouré d'un harness. Retour sur ce concept, ce qu'il recouvre concrètement, et pourquoi ça change la façon dont on conçoit des systèmes agentiques."
+postLayout: column
+date: "2026-03-11"
+lastmod: "2026-03-11"
+draft: false
+domaine: ia
+category: veille
+technos:
+  - langchain
+  - python
+  - llm
+---
+
+En faisant ma veille cette semaine, je suis tombé sur un article de Viv Trivedy, chez LangChain, qui s'intitule _"The Anatomy of an Agent Harness"_. Pas révolutionnaire dans le fond — la plupart des concepts évoqués sont déjà connus si tu travailles sur des systèmes agentiques. Mais la façon dont c'est formulé, structuré, et mis en perspective est vraiment propre. Ça mérite qu'on s'y arrête.
+
+L'idée centrale tient en une équation :
+
+> **Agent = Modèle + Harness**
+
+Si t'es pas le modèle, t'es le harness. Simple. Voyons ce que ça veut dire en pratique.
+
+---
+
+## C'est quoi un harness, exactement ?
+
+Le harness, c'est tout ce qui entoure le modèle sans en faire partie : le code, la configuration, la logique d'exécution. Un modèle brut n'est pas un agent. Il devient un agent quand un harness lui donne de l'état, des outils, des boucles de feedback, et des contraintes.
+
+Concrètement, un harness peut inclure :
+
+- Les **system prompts**
+- Les **outils** (tools, skills, MCPs et leurs descriptions)
+- L'**infrastructure** embarquée (filesystem, sandbox, navigateur)
+- La **logique d'orchestration** (spawn de sous-agents, handoffs, routage entre modèles)
+- Des **hooks et middlewares** pour l'exécution déterministe (compaction de contexte, lint checks, continuation)
+
+Ce que j'aime dans cette définition, c'est qu'elle force à penser en termes de conception système plutôt qu'en termes de prompts. Le modèle, c'est l'intelligence. Le harness, c'est ce qui rend cette intelligence utile.
+
+---
+
+## Pourquoi les harnesses existent : partir des limitations du modèle
+
+L'approche de l'article est pédagogique : plutôt que de lister des composants, l'auteur part de ce qu'un modèle ne sait _pas_ faire nativement.
+
+Un LLM, de base, prend du texte (ou des images, de l'audio) et génère du texte. C'est tout. Il ne peut pas :
+
+- Maintenir un état durable entre les interactions
+- Exécuter du code
+- Accéder à des connaissances en temps réel
+- Configurer un environnement ou installer des dépendances
+
+**Chacun de ces manques correspond à une feature côté harness.** C'est le fil conducteur de l'article, et c'est vraiment le bon angle pour comprendre pourquoi les harnesses ressemblent à ce qu'ils sont aujourd'hui.
+
+---
+
+## Les composants clés d'un harness
+
+### Le filesystem — la primitive fondamentale
+
+Le filesystem, c'est probablement la brique la plus sous-estimée d'un système agentique. L'article le qualifie de _"most foundational harness primitive"_, et je suis assez d'accord.
+
+Pourquoi ? Parce qu'il débloque plusieurs choses simultanément :
+
+- Un workspace pour lire du code, de la doc, des données
+- La possibilité de stocker des outputs intermédiaires (sans tout garder en contexte)
+- Un état qui persiste d'une session à l'autre
+- Une **surface de collaboration** entre plusieurs agents ou entre agents et humains
+
+Ajouter Git par-dessus, et les agents peuvent versionner leur travail, brancher des expérimentations, revenir en arrière sur des erreurs. Ça commence à ressembler à un vrai workflow de développement.
+
+### Bash + exécution de code — l'outil universel
+
+Le pattern dominant aujourd'hui dans les agents de code, c'est la **boucle ReAct** : le modèle raisonne, appelle un outil, observe le résultat, recommence. Mais si tu dois pré-configurer un outil pour chaque action possible, tu vas vite être limité.
+
+La solution : donner accès à bash. Le modèle peut alors écrire et exécuter du code pour résoudre des problèmes de façon autonome, sans être contraint à un ensemble fixe d'outils pré-configurés. C'est une approche généraliste qui a pris le dessus sur l'outillage trop spécifique.
+
+### Les sandboxes — sécurité et scalabilité
+
+Exécuter du code généré par un agent directement en local, c'est risqué. Les sandboxes règlent ce problème : environnements isolés, créés à la demande, détruits une fois le travail terminé. Ça ouvre aussi la voie à la parallélisation — tu peux spawner autant d'environnements que nécessaire.
+
+Un bon harness configure ces environnements avec les bons defaults : runtimes installés, CLIs disponibles, outils de vérification (tests, logs, screenshots). Ce sont des **décisions de design côté harness**, pas côté modèle.
+
+### La mémoire — apprendre entre les sessions
+
+Le modèle n'a pas de mémoire au-delà de son contexte. La solution actuelle passe par des fichiers standards (comme `AGENTS.md`) injectés dans le contexte au démarrage, et mis à jour par l'agent au fil des sessions. C'est une forme d'apprentissage continu low-tech, mais qui fonctionne.
+
+Pour les connaissances récentes (au-delà du knowledge cutoff), la web search et des outils MCP comme Context7 permettent d'injecter du contexte à jour. À intégrer directement dans le harness.
+
+### La gestion du contexte — éviter le "context rot"
+
+L'article introduit un terme que je trouve vraiment bien trouvé : **context rot**. C'est la dégradation progressive des performances du modèle à mesure que le contexte se remplit. Moins de place = moins bonne raison, moins de cohérence.
+
+Les stratégies pour y remédier :
+
+- **Compaction** : résumer intelligemment le contexte quand il approche de la limite, plutôt que de planter ou de tronquer naïvement
+- **Tool call offloading** : ne garder que le début et la fin des gros outputs d'outils, stocker le reste sur le filesystem
+- **Skills avec progressive disclosure** : ne charger que les outils pertinents pour la tâche en cours, pas tout d'un coup
+
+---
+
+## Long horizon : quand tout se combine
+
+La partie la plus intéressante de l'article concerne les agents qui doivent travailler sur des tâches longues et complexes, sur plusieurs sessions. C'est là que les composants précédents commencent à se combiner.
+
+Un pattern notable : le **Ralph Loop**. C'est une stratégie harness qui intercepte la tentative de sortie du modèle (quand il estime avoir terminé) et le force à continuer dans une fenêtre de contexte fraîche, en relisant l'état depuis le filesystem. L'agent ne lâche pas tant que l'objectif n'est pas atteint.
+
+La planification et l'auto-vérification s'intègrent là-dedans : le modèle décompose la tâche en étapes, s'évalue après chaque étape, utilise des tests pour vérifier la correction. Le harness orchestre tout ça via des hooks et des prompts bien construits.
+
+---
+
+## Ce que je retiens — et ce qui m'interroge
+
+La distinction modèle / harness est simple et actionnable. Elle aide à savoir où agir quand quelque chose ne marche pas : est-ce que le modèle comprend mal la tâche, ou est-ce que le harness lui donne de mauvaises conditions de travail ?
+
+Un point de l'article qui m'a particulièrement interpellé : le fait que les modèles sont aujourd'hui **post-entraînés avec le harness dans la boucle**. Ça crée un couplage fort — et un risque d'overfitting au harness de référence. L'exemple donné est parlant : changer la logique d'un outil comme `apply_patch` dégrade les performances d'un modèle pourtant capable de comprendre différentes méthodes de patch. Le modèle a été trop entraîné sur un harness spécifique.
+
+La conséquence pratique : le meilleur harness pour ta tâche n'est pas forcément celui avec lequel le modèle a été entraîné. Il y a de la marge d'optimisation, et c'est là que le harness engineering devient un vrai levier.
+
+---
+
+## En résumé
+
+| Composant               | Problème résolu                                  |
+| ----------------------- | ------------------------------------------------ |
+| Filesystem              | Stockage durable, collaboration, état persistant |
+| Bash / code exec        | Outil universel, autonomie de résolution         |
+| Sandbox                 | Sécurité, isolation, scalabilité                 |
+| Mémoire / search        | Knowledge cutoff, apprentissage entre sessions   |
+| Compaction / offloading | Context rot, dégradation sur tâches longues      |
+| Ralph Loop              | Persistance sur objectifs longs horizons         |
+
+Si tu construis des agents en ce moment — que ce soit avec CrewAI, LangGraph ou autre — cet article te donnera un vocabulaire utile pour structurer ta réflexion. Et peut-être quelques idées pour améliorer ce qui ne tourne pas rond dans ton harness.

@@ -100,6 +100,7 @@ export const NAVIGATION: NavItem[] = [
       { href: "/categories/rex", title: "nav.rex" },
       { href: "/categories/tuto", title: "nav.tuto" },
       { href: "/categories/outils", title: "nav.outils" },
+      { href: "/categories/veille", title: "nav.veille" },
       { href: "/categories/bonnes-pratiques", title: "nav.bonnes-pratiques" },
       { href: "/categories/open-source", title: "nav.open-source" },
       { href: "/categories/lecture", title: "nav.lecture" },

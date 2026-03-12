@@ -1,0 +1,212 @@
+---
+title: "Astro 6 est là — et c'est un gros morceau"
+summary: "Astro 6.0 est sorti le 10 mars 2026. Dev server refactorisé, Fonts API native, Live Content Collections, CSP intégré, compilateur Rust en expérimental... Tour d'horizon des nouveautés qui changent vraiment quelque chose."
+postLayout: column
+date: "2026-03-10"
+lastmod: "2026-03-10"
+draft: false
+domaine: web
+category: veille
+technos:
+  - astro
+  - vite
+---
+
+Astro 6.0 vient de sortir aujourd'hui, et le timing est parfait pour en parler puisque ce blog tourne justement sous Astro. Ce n'est pas une mise à jour cosmétique : il y a eu du travail en profondeur sur le dev server, des APIs qui passent stables, un compilateur Rust en expérimental, et même une Fonts API native. Voilà ce que ça donne concrètement.
+
+## Un dev server complètement refactorisé
+
+C'était le problème classique avec Astro : ton code tournait en développement sur Node.js, et en production sur Cloudflare Workers, Bun ou Deno. Résultat ? Des bugs qui n'apparaissaient qu'après le déploiement. Pas idéal.
+
+Astro 6 règle ça avec la [Vite Environment API](https://vite.dev/guide/api-environment). Le dev server et le pipeline de build partagent maintenant les mêmes chemins de code. Autrement dit : ce que tu vois en local, c'est ce qui tourne en prod.
+
+Pour les projets Cloudflare Workers, c'est un changement majeur. L'adaptateur `@astrojs/cloudflare` fait maintenant tourner `workerd` (le runtime open-source de Cloudflare) à toutes les étapes — développement, prerendering, production. Tu as accès à tes bindings Cloudflare (KV, D1, R2, Durable Objects) directement depuis le dev server, sans couche de simulation :
+
+```astro
+---
+import { env } from "cloudflare:workers";
+
+// Fonctionne en dev et en prod, sans différence
+const kv = env.MY_KV_NAMESPACE;
+await kv.put("visits", "1");
+const visits = await kv.get("visits");
+---
+
+<p>Visites : {visits}</p>
+```
+
+Fini le `Astro.locals.runtime` et les polyfills approximatifs. Même si tu n'es pas sur Cloudflare, tu bénéficies quand même de la stabilité apportée par cette unification.
+
+## Une Fonts API native
+
+Gérer les polices web, c'est un sujet qui paraît simple et qui se révèle vite chiant. Entre les performances, la vie privée (les Google Fonts qui chargent depuis les serveurs de Google...), les fallbacks, les preload links... il y a beaucoup de petites décisions à prendre.
+
+Astro 6 intègre une Fonts API qui s'occupe de tout ça pour toi. Tu configures tes polices dans `astro.config.mjs`, et Astro les télécharge, les met en cache pour le self-hosting, génère des fallbacks optimisés et ajoute les bons preload hints :
+
+```js
+// astro.config.mjs
+import { defineConfig, fontProviders } from "astro/config";
+
+export default defineConfig({
+  fonts: [
+    {
+      name: "Roboto",
+      cssVariable: "--font-roboto",
+      provider: fontProviders.fontsource(),
+    },
+  ],
+});
+```
+
+Ensuite, dans ton layout :
+
+```astro
+---
+import { Font } from 'astro:assets';
+---
+
+<Font cssVariable="--font-roboto" preload />
+
+<style is:global>
+  body {
+    font-family: var(--font-roboto);
+  }
+</style>
+```
+
+Google Fonts et Fontsource sont supportés out of the box. Pour un blog ou un site de contenu, c'est franchement pratique — la police est auto-hébergée, les performances sont optimisées, et la vie privée des visiteurs est respectée. Trois cases cochées d'un coup.
+
+## Les Live Content Collections passent stables
+
+Introduites en expérimental dans Astro 5.10, les Live Content Collections sont maintenant stables en v6.
+
+Le principe : les Content Collections classiques fetched le contenu au moment du build. Si ton CMS est mis à jour, il faut rebuilder pour que le changement soit visible. Les Live Collections, elles, fetchent le contenu à chaque requête — donc le contenu est toujours à jour, sans rebuild.
+
+```ts
+// src/live.config.ts
+import { defineLiveCollection } from "astro:content";
+import { z } from "astro/zod";
+import { cmsLoader } from "./loaders/my-cms";
+
+const updates = defineLiveCollection({
+  loader: cmsLoader({ apiKey: process.env.MY_API_KEY }),
+  schema: z.object({
+    slug: z.string(),
+    title: z.string(),
+    excerpt: z.string(),
+    publishedAt: z.coerce.date(),
+  }),
+});
+
+export const collections = { updates };
+```
+
+Et dans la page, avec gestion d'erreur intégrée :
+
+```astro
+---
+import { getLiveEntry } from 'astro:content';
+
+const { entry: update, error } = await getLiveEntry(
+  'updates',
+  Astro.params.slug,
+);
+
+if (error || !update) {
+  return Astro.redirect('/404');
+}
+---
+
+<h1>{update.data.title}</h1>
+<p>{update.data.excerpt}</p>
+```
+
+L'API est volontairement similaire aux collections statiques (`getCollection()`, `getEntry()`, schemas, loaders). Les deux modes coexistent dans le même projet — tu choisis selon les besoins de chaque source de contenu.
+
+## Content Security Policy (CSP) stable
+
+Le CSP (Content Security Policy) était la fonctionnalité la plus demandée de l'histoire du projet. Elle était en expérimental depuis Astro 5.9, elle passe stable en v6.
+
+Pour commencer, un flag suffit :
+
+```js
+// astro.config.mjs
+import { defineConfig } from "astro/config";
+
+export default defineConfig({
+  security: { csp: true },
+});
+```
+
+Astro génère automatiquement les headers CSP appropriés, avec le hash de tous les scripts et styles de chaque page — même ceux chargés dynamiquement. Pour les pages statiques, ça se calcule au build. Pour les pages dynamiques, ça se fait à la requête. C'est la raison pour laquelle aucun autre meta-framework n'avait encore fait ça : c'est techniquement compliqué à faire bien dans les deux cas.
+
+Si tu as besoin de plus de contrôle :
+
+```js
+export default defineConfig({
+  security: {
+    csp: {
+      algorithm: "SHA-512",
+      directives: [
+        "default-src 'self'",
+        "img-src 'self' https://images.cdn.example.com",
+      ],
+    },
+  },
+});
+```
+
+## Les mises à jour de dépendances
+
+Astro 6 embarque des upgrades majeurs :
+
+- **Vite 7** remplace Vite 6
+- **Shiki 4** pour la coloration syntaxique dans le composant `<Code />` et les blocs Markdown/MDX
+- **Zod 4** pour la validation des schemas de content collections (import depuis `astro/zod` et non plus `astro:content`)
+- **Node 22 minimum** — les versions 18 et 20 ne sont plus supportées
+
+Ce dernier point est à vérifier avant de migrer si ton environnement tourne encore sur Node 18 ou 20.
+
+## En expérimental : le compilateur Rust
+
+Astro remplace progressivement son compilateur Go par un compilateur Rust. Il est disponible dès maintenant en opt-in :
+
+```bash
+npm install @astrojs/compiler-rs
+```
+
+```js
+// astro.config.mjs
+export default defineConfig({
+  experimental: {
+    rustCompiler: true,
+  },
+});
+```
+
+C'est encore expérimental, mais l'équipe décrit les premiers résultats comme "impressionnants", avec dans certains cas une fiabilité supérieure au compilateur Go. L'objectif est d'en faire le défaut dans une future version majeure.
+
+## En expérimental : Queued Rendering
+
+Astro 6 introduit aussi une nouvelle stratégie de rendu en expérimental qui promet jusqu'à 2x plus de rapidité. Aujourd'hui, Astro rend les composants de façon récursive (les fonctions s'appellent elles-mêmes en parcourant l'arbre). Le Queued Rendering remplace ça par une approche en deux passes : d'abord une traversée de l'arbre qui émet une file ordonnée, puis le rendu de cette file. Les premiers benchmarks sont encourageants.
+
+## Est-ce que ça vaut le coup de migrer maintenant ?
+
+Si tu as un projet Astro en production, la réponse dépend de quelques points :
+
+- **Tu déploies sur Cloudflare Workers ?** → La migration v6 est clairement intéressante pour toi, le gain est concret.
+- **Tu as des fonts Google Fonts configurées manuellement ?** → La Fonts API peut simplifier ça.
+- **Tu utilises encore `Astro.glob()` ?** → À noter, cette API est supprimée en v6. La migration passe par `import.meta.glob()` ou `getCollection()`.
+- **Tu utilises `<ViewTransitions />`** → Renommé en `<ClientRouter />`, avec des changements de timing (voir [l'issue GitHub #15191](https://github.com/withastro/astro/issues/15191)).
+
+Pour migrer un projet existant :
+
+```bash
+npx @astrojs/upgrade
+```
+
+Le guide de migration officiel est disponible sur [v6.docs.astro.build](https://v6.docs.astro.build/en/guides/upgrade-to/v6/).
+
+---
+
+Ce blog tourne sous Astro depuis le début, et cette v6 donne envie de tester la Fonts API et le compilateur Rust en priorité. La migration, je la ferai sur un environnement de test d'abord — pas de précipitation. Mais c'est une belle version, et ça confirme que le framework est en bonne santé, surtout avec le soutien de Cloudflare dans le dos.
