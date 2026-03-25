@@ -1,0 +1,141 @@
+---
+title: "Comment je suis devenu fan de Supabase (en construisant un jeu fantasy rugby)"
+summary: "Je lance RugbyDraft, un jeu de fantasy rugby, et j'ai choisi Supabase comme backend. Retour d'expérience sur la prise en main, ce qui m'a convaincu — et ce qui m'a un peu surpris."
+postLayout: column
+date: "2026-03-19"
+lastmod: "2026-03-19"
+draft: false
+related: []
+domaine: web
+category: rex
+technos:
+  - supabase
+  - postgresql
+---
+
+Je ne cherchais pas Supabase. Supabase m'a trouvé.
+
+Ça sonne un peu dramatique pour un outil de base de données, j'en conviens. Mais c'est à peu près ce qui s'est passé. J'étais en train de réfléchir à la stack pour un nouveau projet — un jeu de fantasy rugby que j'appelle **RugbyDraft** — et je cherchais une solution backend qui ne me transforme pas en ops ingénieur le temps d'un side project. Supabase est remonté dans quasiment toutes les discussions que je lisais. Alors j'ai essayé. Et maintenant je comprends le hype.
+
+## RugbyDraft, c'est quoi exactement ?
+
+C'est un jeu de fantasy rugby. Le principe : tu constitues une équipe de joueurs réels, et tu marques des points en fonction de leurs performances sur le terrain lors des vrais matchs. Classique dans le monde du foot ou du basket, beaucoup moins développé côté rugby — surtout en français.
+
+Le projet est encore au stade de l'installation et du setup, mais les grandes lignes sont posées : gestion des équipes, des joueurs, des scores, des ligues entre amis. Pas de monétisation prévue au lancement, c'est un projet passion. Mais je veux quand même le faire proprement.
+
+Pour le backend, j'avais besoin de :
+
+- une base de données relationnelle (beaucoup de jointures en vue)
+- de l'authentification sans me battre avec JWT à la main
+- une API que je n'aie pas à écrire entièrement moi-même
+- quelque chose que je puisse héberger facilement, de préférence dans un plan gratuit pour commencer
+
+Supabase cochait toutes ces cases. Sur le papier. Voyons ce que ça donne en pratique.
+
+## L'installation en version Cloud
+
+J'ai opté pour **Supabase Cloud** plutôt que la version self-hosted. Pas parce que je n'aime pas me compliquer la vie (ceux qui me connaissent savent que j'ai déjà un Hetzner avec Coolify qui tourne), mais parce que pour un projet de ce type, je voulais aller vite sur le setup et me concentrer sur la logique métier.
+
+L'onboarding est franchement agréable. On crée un compte, on crée un projet (= une instance Postgres), et en deux minutes on a accès à :
+
+- un **éditeur SQL** dans le navigateur
+- un **Table Editor** façon spreadsheet pour ceux qui préfèrent
+- la gestion de l'**auth** (email, magic link, OAuth)
+- le **Storage** pour les fichiers
+- les **Edge Functions** (Deno) si besoin
+- et bien sûr, l'**API REST auto-générée** à partir du schéma
+
+Ce dernier point mérite qu'on s'y attarde.
+
+## PostgREST : l'API qui se génère toute seule
+
+Supabase utilise [PostgREST](https://postgrest.org/) sous le capot. Concrètement, ça veut dire que dès que tu crées une table dans ta base Postgres, tu as automatiquement des endpoints REST disponibles pour lire, créer, modifier, supprimer des données. Sans écrire une seule ligne de code serveur.
+
+Par exemple, si je crée une table `players` :
+
+```sql
+create table players (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  team text,
+  position text,
+  created_at timestamptz default now()
+);
+```
+
+J'ai immédiatement accès à :
+
+```
+GET  /rest/v1/players
+POST /rest/v1/players
+PATCH /rest/v1/players?id=eq.<uuid>
+DELETE /rest/v1/players?id=eq.<uuid>
+```
+
+Et avec le client JavaScript officiel, c'est encore plus simple :
+
+```js
+import { createClient } from "@supabase/supabase-js";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Récupérer tous les joueurs d'une équipe
+const { data, error } = await supabase
+  .from("players")
+  .select("*")
+  .eq("team", "Toulouse");
+```
+
+Ça, c'est agréable. Très agréable, même. En venant du monde WordPress où la moindre interaction avec la base passe par des `$wpdb->get_results()` ou des WP_Query un peu lourds, il y a un sentiment de légèreté assez plaisant.
+
+## Row Level Security : puissant, mais à apprivoiser
+
+Ce qui distingue Supabase d'un simple wrapper autour de Postgres, c'est la gestion des permissions via le **Row Level Security** (RLS). En clair : tu peux définir, directement au niveau de la base, qui a le droit de lire ou modifier quelles lignes.
+
+Par exemple, pour que chaque utilisateur ne voie que sa propre équipe fantasy :
+
+```sql
+-- Activer le RLS sur la table
+alter table fantasy_teams enable row level security;
+
+-- Politique : un utilisateur ne peut voir que ses propres équipes
+create policy "Users can view their own teams"
+  on fantasy_teams for select
+  using (auth.uid() = user_id);
+```
+
+C'est élégant. Et ça évite de gérer les permissions côté applicatif, ce qui est souvent une source de bugs et de failles. Mais il faut bien comprendre le mécanisme — j'ai passé un moment à débugger des requêtes qui retournaient des tableaux vides avant de réaliser que j'avais oublié d'activer le RLS ou d'associer la bonne policy. Les messages d'erreur ne sont pas toujours très explicites sur ce point.
+
+## Ce qui m'a vraiment convaincu
+
+Quelques choses concrètes qui font la différence :
+
+**L'éditeur SQL dans le browser.** Je pensais que ça serait gadget. En fait, c'est très bien fichu. Autocomplétion, historique des requêtes, affichage des résultats. Pour explorer son schéma ou tester des requêtes complexes pendant le dev, c'est parfait.
+
+**Les migrations.** Supabase propose un système de migrations via sa CLI. On génère des fichiers SQL versionés, on les pousse sur le projet cloud. C'est simple, prévisible, et ça s'intègre bien dans un workflow Git.
+
+```bash
+supabase migration new add_players_table
+# génère un fichier dans supabase/migrations/
+supabase db push
+```
+
+**L'authentification prête à l'emploi.** Pour RugbyDraft, je voulais une auth email + possibilité d'ajouter Google ou GitHub plus tard. Tout est là, configuré en quelques clics. Le JWT est géré automatiquement, et côté client, `supabase.auth.signInWithPassword()` ou `supabase.auth.signUp()` font le boulot sans cérémonie.
+
+## Ce qu'il faut quand même savoir
+
+Ce serait mentir que de dire que c'est parfait. Quelques points à avoir en tête :
+
+Le **plan gratuit** est généreux (500 Mo de base, 50 000 utilisateurs auth, 5 Go de storage) mais les projets inactifs sont mis en pause après 7 jours. Ça convient bien pour le dev, moins pour une prod en dormance. Il faudra passer sur un plan payant dès que le projet devient sérieux.
+
+La **courbe d'apprentissage du RLS** est réelle. Si tu n'as jamais touché à PostgreSQL ou aux politiques de sécurité au niveau base, ça demande un peu de temps. Rien d'insurmontable, mais ce n'est pas quelque chose qu'on configure à l'instinct.
+
+Et même si l'API auto-générée est très pratique, pour des **requêtes complexes** (agrégations, jointures multiples), tu finiras par écrire du SQL ou passer par des fonctions Postgres. Ce n'est pas un défaut — c'est même une bonne chose, parce que ça te ramène à la base — mais il faut en être conscient dès le départ.
+
+## Là où j'en suis
+
+Pour l'instant, j'ai posé le schéma de base : les tables `players`, `teams`, `fantasy_teams`, `fantasy_picks`, et les premières policies RLS. L'auth fonctionne. L'API répond. La prochaine étape, c'est de brancher tout ça à un frontend — probablement Astro avec des îles React pour les parties interactives.
+
+Est-ce que Supabase va rester dans la stack à long terme ? Je ne sais pas encore. Mais pour l'instant, il fait exactement ce que j'attends de lui : me laisser me concentrer sur la logique de l'application plutôt que sur la plomberie. C'est déjà beaucoup.
+
+Et puis — avouons-le — il y a quelque chose de satisfaisant à voir une table Postgres se transformer en API REST en trente secondes. Après douze ans à bricoler des bases WordPress, ce n'est pas rien.
