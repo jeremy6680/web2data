@@ -1,0 +1,146 @@
+---
+title: "Projects, Cowork, Code dans Claude Desktop, Claude Code dans VS Code : comment choisir ?"
+summary: "Anthropic multiplie les interfaces et les modes d'utilisation de Claude. Projects, Cowork, onglet Code dans Claude Desktop, Claude Code en terminal ou dans VS Code — tour d'horizon pour savoir quoi utiliser selon ta situation."
+postLayout: column
+date: "2026-03-18"
+lastmod: "2026-03-18"
+draft: false
+domaine: ia
+category: veille
+technos:
+  - claude-code
+  - llm
+---
+
+On a tous ce moment où on ouvre Claude Desktop et on se demande : je clique sur quoi, déjà ? Chat, Cowork, Code… sans compter les Projects, et Claude Code dans VS Code. C'est le même Claude sous le capot, mais ce n'est pas du tout le même outil.
+
+Voilà mon tour d'horizon après avoir testé tout ça — et quelques semaines après avoir basculé une partie de mon workflow dessus.
+
+---
+
+## Le contexte : pourquoi autant d'interfaces ?
+
+Anthropic a démarré avec un produit simple : une interface de chat. Puis Claude Code est arrivé pour les développeurs. Puis Cowork pour les non-développeurs. Puis des onglets dans Claude Desktop pour tout regrouper.
+
+Résultat : cinq façons d'utiliser Claude au quotidien, qui ne sont pas interchangeables. Chacune répond à un cas d'usage différent.
+
+Voici les cinq que je vais couvrir :
+
+- **Projects** (dans claude.ai ou Claude Desktop)
+- **Cowork** (dans Claude Desktop)
+- **L'onglet Code** (dans Claude Desktop)
+- **Claude Code dans le terminal**
+- **Claude Code dans VS Code**
+
+---
+
+## 1. Projects — Le contexte persistant pour vos conversations
+
+Les Projects, c'est le mode le plus proche du chat classique. Tu crées un projet, tu y attaches des fichiers de contexte, des instructions système, et toutes tes conversations dans ce projet partagent cette mémoire.
+
+**Ce que ça fait concrètement :** tu ajoutes ton `CONTEXT.md`, ton `CONVENTIONS.md`, peut-être quelques fichiers de référence, et Claude s'en souvient à chaque échange. Pas besoin de ré-expliquer ton stack ou tes règles de nommage à chaque nouvelle conversation.
+
+**C'est fait pour :** les échanges de réflexion, les allers-retours, la rédaction, l'architecture, le brainstorming. Tout ce qui reste dans la fenêtre de chat et ne nécessite pas d'exécuter quoi que ce soit sur ta machine.
+
+**Limites :** Claude voit uniquement ce que tu lui donnes explicitement. Il ne lit pas tes fichiers locaux en direct, n'exécute rien, n'accède pas à ton système.
+
+**Mon usage :** c'est là que je fais tout mon travail de planification. Architecture d'un projet, rédaction d'articles, analyse de choix techniques. Claude Desktop avec le MCP filesystem, c'est ma configuration principale pour ce genre de travail.
+
+---
+
+## 2. Cowork — L'agent desktop pour les tâches "knowledge worker"
+
+Cowork, c'est un agent. Tu lui donnes accès à des dossiers locaux, tu lui décris une tâche, et il la réalise de façon autonome — sans que tu aies à superviser chaque étape.
+
+**Ce que ça fait concrètement :** tu pointes Cowork sur un dossier, tu lui dis "synthétise tous ces PDF en un rapport structuré", tu vas boire un café, tu reviens avec un `.docx` généré. Il peut aussi accéder au web, créer des spreadsheets, envoyer des emails via des connecteurs.
+
+**C'est fait pour :** les tâches multi-étapes qui n'impliquent pas d'écrire du code. Organiser des fichiers, synthétiser de la recherche, produire des livrables documentaires. Les profils analytiques, marketing, ops.
+
+**Limites notables :** Cowork tourne localement — l'app Desktop doit rester ouverte pendant la tâche. Il consomme plus de tokens que le chat classique (screenshots, traitement d'images en arrière-plan). Et en l'état fin mars 2026, c'est encore une "feature preview" : tout n'est pas encore stable.
+
+**Mon usage honnête :** je le teste mais je l'utilise peu. Pour les tâches documentaires que je lui confierais, j'ai souvent déjà un workflow avec MCP et Projects qui fait le job. Cowork m'intéresse surtout pour automatiser des tâches récurrentes avec la fonction de planification (`/schedule`).
+
+---
+
+## 3. L'onglet Code dans Claude Desktop — Claude Code avec une interface visuelle
+
+Moins connu que les autres, cet onglet est en réalité Claude Code, mais avec une interface graphique. Tu sélectionnes un dossier de projet, et Claude peut lire et modifier ton code directement — avec un affichage visuel des diffs, un historique de conversation propre, et sans avoir à ouvrir un terminal.
+
+**Ce que ça fait concrètement :** tu pointes sur ton repo, tu décris ce que tu veux, Claude lit l'ensemble de la codebase et génère des modifications fichier par fichier. Tu vois chaque changement avant de l'accepter.
+
+**C'est fait pour :** les développeurs qui veulent la puissance de Claude Code sans passer par le terminal. C'est une bonne porte d'entrée avant de basculer sur le mode CLI pur.
+
+**Par rapport au terminal :** l'interface graphique est plus confortable pour inspecter les changements. En revanche, tu perds un peu en flexibilité — certaines commandes avancées, les hooks, les intégrations CI/CD, tout ça reste du domaine du terminal.
+
+**Mon usage :** je l'ai utilisé pour quelques refactorisations ponctuelles. Pour du travail sérieux sur une codebase, je reviens vite au terminal ou à VS Code.
+
+---
+
+## 4. Claude Code dans le terminal — La version "power user"
+
+Claude Code en mode CLI, c'est l'outil originel pour les développeurs. Tu l'installes via npm, tu le lances depuis ton terminal, et Claude a accès à l'intégralité de ton environnement de développement : fichiers, commandes shell, Git, tests, déploiement.
+
+```bash
+npm install -g @anthropic-ai/claude-code
+cd mon-projet
+claude
+```
+
+**Ce que ça fait concrètement :** Claude lit ton repo, exécute des commandes, écrit du code, fait tourner les tests, gère des opérations Git. Le tout en boucle, de façon autonome, jusqu'à ce que la tâche soit accomplie — ou qu'il te demande une validation.
+
+**C'est fait pour :** les développeurs à l'aise avec le terminal qui veulent déléguer des tâches de développement conséquentes. Refactoring, ajout de features, correction de bugs sur une large base de code.
+
+**Points de vigilance :** Claude Code est stateless côté provider — ferme le terminal, la session s'arrête. Il a aussi un accès large à ton environnement. Un bon workflow Git (branches, review des diffs avant commit) n'est pas optionnel, c'est indispensable.
+
+**Mon usage :** c'est ma configuration pour les tâches de développement autonomes — générer du boilerplate, refactoriser, documenter. Mais je ne lui fais jamais aveuglément confiance : je relis chaque bloc de code avant d'accepter.
+
+---
+
+## 5. Claude Code dans VS Code — L'intégration IDE
+
+C'est Claude Code, mais intégré directement dans VS Code via l'extension officielle. Tu n'as pas besoin d'ouvrir un terminal séparé — Claude Code tourne dans un panneau latéral, avec accès à ton workspace ouvert.
+
+**Ce que ça fait concrètement :** même puissance que le mode terminal, mais sans quitter ton IDE. Le contexte de ton workspace est directement accessible. Tu peux demander une modification sur un fichier ouvert, Claude l'implémente, tu vois le diff directement dans VS Code.
+
+**C'est fait pour :** les développeurs dont VS Code est l'IDE principal et qui veulent une intégration fluide sans jongler entre plusieurs fenêtres.
+
+**Par rapport au terminal pur :** l'intégration IDE est plus pratique pour le travail au quotidien, mais le terminal reste plus flexible pour les automations avancées et les scripts.
+
+**Mon usage :** c'est mon mode par défaut pour le développement. J'ai Claude Code dans VS Code pour l'exécution (boilerplate, refactoring, doc), et Claude Desktop avec Projects pour la réflexion et la planification. Les deux se complètent bien.
+
+---
+
+## Tableau récapitulatif
+
+|                           | **Projects**         | **Cowork**             | **Code (Desktop)**   | **Code (Terminal)** | **Code (VS Code)** |
+| ------------------------- | -------------------- | ---------------------- | -------------------- | ------------------- | ------------------ |
+| **Profil**                | Tout le monde        | Non-dev                | Dev (débutant)       | Dev confirmé        | Dev confirmé       |
+| **Accès fichiers locaux** | Non (upload manuel)  | Oui (dossiers choisis) | Oui (dossier projet) | Oui (tout l'env)    | Oui (workspace)    |
+| **Exécution de code**     | Non                  | Non                    | Oui                  | Oui                 | Oui                |
+| **Interface**             | Chat                 | Visuelle               | Visuelle + diffs     | Terminal            | IDE intégré        |
+| **Autonomie agent**       | Faible               | Haute                  | Haute                | Haute               | Haute              |
+| **Cas d'usage principal** | Réflexion, rédaction | Tâches documentaires   | Dev sans terminal    | Dev avancé          | Dev au quotidien   |
+
+---
+
+## Comment je choisis, concrètement
+
+Pour être direct : j'utilise principalement deux modes.
+
+**Claude Desktop + Projects + MCP filesystem** pour tout ce qui est réflexion, planification, rédaction. C'est là que je construis l'architecture d'un projet, que j'écris des articles, que j'analyse des choix techniques. Le contexte persistent des Projects combiné à l'accès aux fichiers locaux via MCP couvre 80% de mes besoins.
+
+**Claude Code dans VS Code** pour l'exécution. Boilerplate, refactoring, documentation de code, génération de tests. Je ne l'utilise jamais en mode "yolo" — chaque modification passe par ma relecture avant d'être acceptée.
+
+Cowork et l'onglet Code de Claude Desktop, je les teste. Cowork m'intéresse pour automatiser des tâches récurrentes, mais il est encore en beta et ça se sent. L'onglet Code Desktop est une bonne porte d'entrée pour quelqu'un qui découvre Claude Code sans vouloir passer par le terminal.
+
+---
+
+## Une remarque sur l'évolution rapide de tout ça
+
+L'espace évolue vite. Cowork a été construit en une dizaine de jours par quatre ingénieurs chez Anthropic. Les Projects dans Cowork viennent d'être annoncés. L'onglet Code Desktop était à peine évoqué il y a trois mois.
+
+Ce que je décris ici reflète l'état de mars 2026. Dans six mois, certaines distinctions que je fais aujourd'hui auront peut-être disparu — ou de nouveaux modes auront émergé. L'important, c'est de comprendre la logique derrière chaque outil, pas de mémoriser un tableau par cœur.
+
+La question à se poser : **est-ce que Claude doit réfléchir avec moi, ou agir à ma place ?** Si c'est réfléchir — Projects. Si c'est agir sur des fichiers non-code — Cowork. Si c'est agir sur du code — Claude Code (terminal ou VS Code selon ton confort).
+
+Le reste, c'est du fine-tuning.

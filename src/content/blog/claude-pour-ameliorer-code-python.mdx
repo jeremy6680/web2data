@@ -1,0 +1,175 @@
+---
+title: "Comment Claude m'a aidé à écrire du Python qui tient la route"
+summary: "Tests unitaires, Ruff, typage, pre-commit hooks — retour d'expérience sur ma collaboration avec Claude pour écrire du code Python plus robuste, moins buggé, et plus facile à maintenir."
+postLayout: column
+date: "2026-03-10"
+lastmod: "2026-03-10"
+draft: false
+related:
+  - projet-spotifai-part-1
+domaine: data
+category: rex
+technos:
+  - python
+---
+
+Pendant des années, j'ai écrit du PHP. Du WordPress, du Timber, des plugins maison. Et dans cet écosystème, j'avais mes repères : des outils, des conventions, des réflexes qualité. PHP_CodeSniffer, WordPress Coding Standards, Git hooks... Bref, j'avais mes habitudes.
+
+Quand j'ai commencé à écrire sérieusement du Python — d'abord sur SpotifAI, puis sur w2d-scaffold — j'ai eu l'impression de repartir de zéro. Non pas sur la logique, mais sur tout l'outillage autour. Comment on lint en Python ? Comment on écrit des tests ? Comment on s'assure que le code qu'on pousse n'est pas une bombe à retardement ?
+
+C'est là que Claude est entré dans la boucle. Non seulement pour m'aider à produire du code, mais aussi pour m'aider à construire une chaîne qualité solide, et comprendre pourquoi chaque outil fait ce qu'il fait.
+
+## Le point de départ : du code qui marchait, mais fragile
+
+SpotifAI, c'est mon projet principal en ce moment. Une API Python/FastAPI qui génère des playlists Spotify à partir d'une description en langage naturel. Le code fonctionnait. Les endpoints répondaient. Mais je n'avais aucun filet de sécurité.
+
+Pas de tests. Pas de linter configuré. Des types hints manquants à moitié. Bref, le genre de codebase où tu as peur de refactorer quoi que ce soit parce que tu ne sais pas ce que ça va casser.
+
+J'ai demandé à Claude : _"Comment est-ce que je peux rendre ce projet plus robuste ?"_ La réponse n'était pas une liste de 47 outils. C'était une conversation.
+
+## Ruff : le linter qui remplace tout le reste
+
+Premier chantier : le linting. Claude m'a orienté vers [Ruff](https://docs.astral.sh/ruff/), un linter et formateur Python écrit en Rust, ultra-rapide, qui remplace à lui seul Flake8, isort, pyupgrade, et une bonne partie de ce que faisait Black.
+
+La config de base dans `pyproject.toml` ressemble à ça :
+
+```toml
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+```
+
+Ce qui m'a aidé, c'est que Claude ne s'est pas contenté de me donner la config. Il m'a expliqué ce que signifiait chaque règle — les `E` et `F` ce sont les règles Flake8, `I` c'est isort pour les imports, `UP` c'est pyupgrade pour les syntaxes modernes, `B` c'est flake8-bugbear pour les patterns à risque. J'ai compris ce que j'activais, pas juste copié-collé aveuglément.
+
+Résultat après le premier passage de `ruff check . --fix` sur SpotifAI : 34 corrections automatiques. Des imports mal ordonnés, des f-strings inutilement complexes, des comparaisons avec `True` au lieu de `is True`. Rien de catastrophique, mais ça aurait fini par s'accumuler.
+
+## Mypy et les types : apprendre à penser différemment
+
+J'avais mis des type hints un peu partout, mais de façon incohérente. Claude m'a aidé à configurer mypy et, surtout, à comprendre pourquoi le typage statique vaut vraiment le coup en Python.
+
+```toml
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+disallow_untyped_defs = true
+```
+
+Le mode `strict` à `false` au départ, c'est un conseil de Claude : ne pas se décourager en partant sur un projet existant avec 200 erreurs dès le premier run. On commence par `disallow_untyped_defs = true` — toutes les fonctions doivent avoir des types — et on progresse.
+
+Ce que j'ai appris concrètement : la différence entre `Optional[str]` et `str | None` (mypy accepte les deux, mais le second est plus Pythonique depuis 3.10), comment typer correctement les retours de FastAPI, et pourquoi ignorer les types dans un projet FastAPI+Pydantic c'est se tirer une balle dans le pied — Pydantic repose entièrement sur le typage.
+
+## pytest : écrire des tests sans que ce soit une corvée
+
+Le sujet que je redoutais le plus. Les tests, j'en écrivais en PHP, mais en Python ça m'intimidait. Claude m'a montré comment structurer ça simplement.
+
+Structure de base que j'ai adoptée sur SpotifAI :
+
+```
+spotifai/
+├── app/
+│   ├── services/
+│   │   └── playlist_generator.py
+│   └── routes/
+│       └── playlists.py
+└── tests/
+    ├── conftest.py
+    ├── test_playlist_generator.py
+    └── test_routes.py
+```
+
+Un exemple de test pour le service qui génère les playlists, simplifié :
+
+```python
+# tests/test_playlist_generator.py
+import pytest
+from unittest.mock import AsyncMock, patch
+from app.services.playlist_generator import generate_playlist
+
+
+@pytest.mark.asyncio
+async def test_generate_playlist_returns_tracks():
+    """Vérifie que le générateur retourne une liste de tracks non vide."""
+    mock_response = ["Track A - Artist 1", "Track B - Artist 2"]
+
+    with patch("app.services.playlist_generator.call_claude", new_callable=AsyncMock) as mock_claude:
+        mock_claude.return_value = mock_response
+        result = await generate_playlist("musique pour coder à 2h du mat")
+
+    assert isinstance(result, list)
+    assert len(result) > 0
+```
+
+Ce que Claude m'a appris ici, c'est l'usage de `unittest.mock` pour éviter d'appeler l'API Anthropic à chaque run de tests. Évident a posteriori, mais quand on débute, on ne sait pas forcément qu'on peut — et qu'on doit — mocker les dépendances externes.
+
+Il m'a aussi expliqué la différence entre tests unitaires et tests d'intégration, et pourquoi commencer par les premiers sur la logique métier avant de s'attaquer aux routes FastAPI.
+
+## pre-commit : le filet de sécurité avant le push
+
+Dernière pièce du puzzle : automatiser tout ça pour ne pas avoir à y penser. Claude m'a aidé à configurer pre-commit, un outil qui exécute des hooks avant chaque `git commit`.
+
+```yaml
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [pydantic, fastapi]
+```
+
+Installation :
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Désormais, si j'essaie de committer du code avec des imports mal ordonnés ou une fonction sans types, le hook bloque et corrige automatiquement. Je ne peux plus pusher de code mal formaté par étourderie.
+
+## Ce que j'ai vraiment appris
+
+La partie technique, c'est la moins intéressante en réalité. Ce que cette collaboration m'a apporté, c'est une façon différente d'aborder la qualité.
+
+En PHP/WordPress, j'avais ces réflexes parce que je les avais acquis progressivement, sur des années, en travaillant avec des équipes qui les avaient déjà. En Python, j'arrive sans ce bagage. Claude m'a permis de ne pas repartir de zéro, de comprendre le _pourquoi_ derrière chaque outil, et de construire des habitudes dès le début du projet plutôt que de rembourser la dette technique plus tard.
+
+Est-ce que j'aurais pu trouver tout ça tout seul ? Oui, probablement. La doc de Ruff est excellente, les tutoriels pytest ne manquent pas. Mais j'aurais mis beaucoup plus de temps, et surtout j'aurais avancé sans comprendre pourquoi je faisais ce que je faisais — ce qui est la pire façon d'apprendre.
+
+Ce qui ne change pas, c'est mon principe de base : je ne merge aucun bloc de code que je ne comprends pas. Claude suggère, j'analyse, j'accepte ou je questionne. C'est ça, un bon collaborateur — humain ou LLM.
+
+## Le setup complet en résumé
+
+Pour un nouveau projet Python, voici le setup que j'utilise maintenant systématiquement :
+
+```bash
+# Installation des outils
+pip install ruff mypy pytest pytest-asyncio pre-commit
+
+# Initialisation pre-commit
+pre-commit install
+
+# Lancer les checks manuellement
+ruff check . --fix
+ruff format .
+mypy .
+pytest tests/ -v
+```
+
+Et dans `pyproject.toml`, les sections `[tool.ruff]`, `[tool.mypy]`, et `[tool.pytest.ini_options]` rassemblées au même endroit — pas de fichiers de config éparpillés partout.
+
+C'est pas révolutionnaire. Mais c'est le genre de fondation qu'on est content d'avoir posée quand le projet grossit.
