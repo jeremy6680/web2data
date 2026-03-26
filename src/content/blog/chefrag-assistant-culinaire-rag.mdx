@@ -1,0 +1,76 @@
+---
+title: "ChefRAG : j'ai branché un LLM sur ma collection de recettes"
+summary: "J'adore cuisiner, j'adore Umami, et j'avais envie de mettre les mains dans le RAG. Résultat : ChefRAG, un assistant culinaire qui répond à 'j'ai des œufs et du fromage, qu'est-ce que je fais ?' en cherchant dans mes propres recettes."
+postLayout: column
+date: "2026-03-14"
+lastmod: "2026-03-14"
+draft: false
+related:
+  - chefrag-architecture-rag
+domaine: ia
+category: rex
+technos:
+  - python
+  - llamaindex
+  - chromadb
+  - duckdb
+  - streamlit
+---
+
+Il y a des projets qui naissent d'un vrai besoin, et d'autres qui naissent d'une envie d'apprendre avec un prétexte. ChefRAG, c'est les deux.
+
+Le besoin : j'utilise [Umami](https://umami.recipes) depuis des années. C'est une app iPhone pour gérer ses recettes — import depuis n'importe quelle URL, planification des repas, liste de courses. J'y ai accumulé des dizaines de recettes. Le problème, c'est que quand j'ouvre le frigo le soir et que je vois "œufs, fromage, un fond de jambon", je ne pense pas à aller chercher dans Umami. Je fais le tour des recettes que je connais par cœur et je prépare toujours la même chose.
+
+L'envie : je voulais construire quelque chose avec du RAG. Pas un tutoriel, pas un notebook Jupyter qui tourne en local et finit dans les oubliettes — un vrai projet, déployé, utilisable au quotidien.
+
+ChefRAG est né de la combinaison des deux.
+
+## Le principe en une phrase
+
+Tu décris ce que tu as dans le frigo. ChefRAG cherche dans ta collection personnelle de recettes (pas sur internet, pas dans une base générique) et te propose des recettes qui correspondent, en t'expliquant pourquoi elles matchent.
+
+C'est aussi bête que ça. Et c'est exactement ce dont j'avais besoin.
+
+## Umami, un mot d'explication
+
+Pour ceux qui ne connaissent pas : Umami est une app de gestion de recettes vraiment bien foutue. L'import depuis une URL est quasi-instantané et fonctionne avec la plupart des sites de cuisine. On peut organiser ses recettes en catégories, planifier les repas de la semaine, générer une liste de courses. Bref, c'est l'outil que j'utilise depuis suffisamment longtemps pour y avoir constitué une vraie base de recettes personnelles.
+
+Ce qui m'a rendu la tâche facile côté développement : Umami exporte les recettes au format JSON Schema.org. C'est un format structuré, documenté, qui contient les ingrédients, les instructions, les temps de préparation, les tags. Exactement ce qu'il faut pour alimenter un système RAG.
+
+## Ce que j'ai construit
+
+L'interface est en Streamlit — simple, rapide à déployer, pas de JavaScript à écrire. L'agent pose quelques questions de clarification (niveau d'épice, temps disponible, type de cuisine) avant de suggérer des recettes. Pour chaque suggestion, il explique pourquoi elle correspond à ce que tu as décrit.
+
+Sous le capot, il y a deux outils qui travaillent en parallèle :
+
+**La recherche sémantique** : les recettes sont indexées dans ChromaDB avec des embeddings générés par un modèle HuggingFace en local (`BAAI/bge-small-en-v1.5`). Quand tu décris tes ingrédients, le système cherche les recettes sémantiquement proches — pas juste par mots-clés, mais par sens. "Des pâtes avec quelque chose de crémeux" peut remonter une carbonara même si tu n'as pas dit "carbonara".
+
+**Le filtrage par métadonnées** : les temps de cuisson, les tags de cuisine, les catégories sont stockés dans DuckDB. Ça permet d'appliquer des contraintes dures — "moins de 30 minutes", "cuisine asiatique" — sans passer par le moteur sémantique.
+
+L'intersection des deux résultats donne les recettes candidates. Claude (via l'API Anthropic) génère la réponse finale.
+
+## Les décisions qui m'ont pris le plus de temps
+
+Pas les décisions techniques fondamentales — l'architecture s'est dessinée assez vite. Ce qui a pris du temps, c'est les petits détails qui font que ça marche ou pas.
+
+**Les embeddings en local.** J'aurais pu utiliser l'API OpenAI pour générer les embeddings. Plus simple à brancher. Mais ça voulait dire payer à chaque ré-indexation — et sur un projet perso déployé sur un VPS Hetzner, j'avais envie de maîtriser les coûts. Le modèle HuggingFace tourne dans le container, les embeddings sont générés en local. Zéro coût d'indexation.
+
+**Airflow, puis pas Airflow.** Au départ, j'avais prévu un DAG Airflow pour détecter automatiquement les nouveaux exports Umami et re-indexer. Sauf qu'Airflow consomme 1,5 à 2 Go de RAM, et mon VPS a 4 Go au total. J'ai finalement remplacé ça par un onglet "Admin" dans l'interface Streamlit : upload du JSON, bouton "lancer l'indexation", retour visuel en temps réel. C'est moins sexy, c'est beaucoup plus simple, et c'est amplement suffisant pour un usage solo.
+
+**La guerre des dépendances Python.** Le passage le plus douloureux du projet. `llama-index-llms-anthropic` force l'installation des extras AWS Bedrock et Google Vertex AI d'Anthropic — des extras qui créent des conflits de dépendances impossibles à résoudre avec pip. La solution : ne pas installer ce package du tout et appeler l'API Anthropic directement. LlamaIndex s'occupe uniquement de la partie RAG (ChromaDB, embeddings), Claude reçoit le contexte et génère la réponse. Un peu plus de code, mais un contrôle total sur le prompt et zéro conflit.
+
+## Ce que j'ai appris
+
+Le RAG, en vrai, c'est moins impressionnant que dans les démos et plus utile qu'on ne le pense. Le "magic trick" de faire de la recherche sémantique sur ses propres données, ça marche vraiment bien. Chercher "quelque chose avec des nouilles et une sauce un peu fermentée" et voir remonter le Zha Jiang Mian — une recette du nord est de la Chine avec de la pâte de haricots noirs fermentée que j'aurais eu du mal à retrouver autrement — c'est satisfaisant.
+
+Ce qui est moins impressionnant : parser des données réelles, c'est du travail. Les exports Umami mélangent des vraies lignes d'ingrédients avec des titres de section, des notes narratives, du texte libre. Il a fallu écrire un filtre pour distinguer les ingrédients réels (préfixés par `•` dans ce format) du bruit. Rien d'insurmontable, mais c'est le genre de chose qu'on oublie d'anticiper quand on pense "RAG" depuis un tutoriel propre.
+
+J'ai aussi appliqué ma règle habituelle : **pas de vibe coding**. Chaque bloc de code, je comprends ce qu'il fait avant de l'accepter. Sur un projet où j'apprends en même temps que je construis, c'est d'autant plus important — sinon on se retrouve avec un projet qui tourne sans qu'on sache pourquoi, et qui casse sans qu'on sache comment le réparer.
+
+## Le résultat
+
+ChefRAG est déployé sur [chefrag.lumafinch.com](https://chefrag.lumafinch.com). Il tourne sur un VPS Hetzner CX21, géré avec Coolify, HTTPS automatique via Let's Encrypt. Le code est open-source sur GitHub — [lien à compléter].
+
+Est-ce que je l'utilise vraiment au quotidien ? Oui. Moins que prévu, honnêtement — l'habitude de ne pas penser à chercher dans mes recettes persiste. Mais quand je l'utilise, ça me suggère systématiquement des trucs que j'aurais oubliés. C'est exactement l'usage que j'avais en tête.
+
+Dans le prochain article, je détaille l'architecture technique : comment le RAG est structuré, pourquoi j'ai choisi ChromaDB + DuckDB en parallèle plutôt qu'un seul outil, et comment les ADRs m'ont évité de regretter des choix plus tard.

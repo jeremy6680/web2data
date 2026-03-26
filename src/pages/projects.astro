@@ -8,15 +8,16 @@ import RootLayout from "@/layouts/RootLayout.astro";
 import project1Img from "@/assets/project-1.png";
 import project2Img from "@/assets/project-2.png";
 import project3Img from "@/assets/project-3.png";
+import project4Img from "@/assets/project-4.png";
 
 const t = useTranslations();
 
 const projectsData = [
   {
-    title: "Running Performance Analyzer",
-    description: `Une plateforme d'analyse basée sur l'IA pour les coureurs`,
-    imgSrc: project1Img, // ImageMetadata object, not a string
-    href: "https://github.com/jeremy6680/running-performance-analyzer",
+    title: "SQL Online IDE",
+    description: `Un IDE SQL pour écrire, exécuter et tester des requêtes directement dans le navigateur`,
+    imgSrc: project4Img,
+    href: "https://github.com/jeremy6680/sql-online-ide",
   },
   {
     title: "SpotifAI",
@@ -25,11 +26,18 @@ const projectsData = [
     href: "https://github.com/jeremy6680/spotifai",
   },
   {
+    title: "Running Performance Analyzer",
+    description: `Une plateforme d'analyse basée sur l'IA pour les coureurs`,
+    imgSrc: project1Img, // ImageMetadata object, not a string
+    href: "https://github.com/jeremy6680/running-performance-analyzer",
+  },
+  {
     title: "Sports Cards Inventory",
     description: `Une application web basée sur Python`,
     imgSrc: project3Img,
     href: "https://github.com/jeremy6680/sports-cards-inventory",
   },
+  
 ];
 ---
 

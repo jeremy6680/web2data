@@ -1,0 +1,155 @@
+---
+title: "ChefRAG : l'architecture RAG derrière l'assistant culinaire"
+summary: "ChromaDB pour la recherche sémantique, DuckDB pour les filtres structurés, LlamaIndex pour coller tout ça ensemble, Claude pour générer les réponses — et quelques ADRs pour ne pas regretter mes choix. Détail de l'architecture de ChefRAG."
+postLayout: column
+date: "2026-03-15"
+lastmod: "2026-03-15"
+draft: false
+related:
+  - chefrag-assistant-culinaire-rag
+domaine: ia
+category: rex
+technos:
+  - python
+  - chromadb
+  - duckdb
+  - llamaindex
+  - docker
+  - streamlit
+---
+
+Dans [l'article précédent](/blog/chefrag-assistant-culinaire-rag), j'ai présenté ChefRAG — un assistant culinaire qui fait de la recherche sémantique sur ma collection de recettes Umami. Ici, je rentre dans le détail technique : comment le RAG est structuré, pourquoi j'ai choisi deux bases de données au lieu d'une, et quelques décisions d'architecture que j'aurais regrettées si je ne les avais pas documentées.
+
+## La stack en un coup d'œil
+
+| Couche               | Techno                     | Rôle                                         |
+| -------------------- | -------------------------- | -------------------------------------------- |
+| UI                   | Streamlit                  | Interface de chat                            |
+| LLM                  | Anthropic Claude API       | Génération des réponses                      |
+| RAG                  | LlamaIndex                 | Orchestration embeddings + retrieval         |
+| Recherche sémantique | ChromaDB                   | Stockage et recherche des vecteurs           |
+| Filtrage structuré   | DuckDB                     | Filtres sur les métadonnées (temps, cuisine) |
+| Infra                | Docker + Hetzner + Coolify | Déploiement, SSL, auto-deploy                |
+
+Deux points qui méritent d'être notés d'emblée : Claude n'est pas branché via LlamaIndex (j'y reviens), et Airflow a été remplacé par un onglet admin Streamlit.
+
+## Le pipeline de données : de l'export JSON à l'index
+
+Tout commence par un export JSON depuis Umami. Le format est Schema.org — standardisé, structuré, facile à parser.
+
+Le `indexer.py` fait trois choses :
+
+**1. Parser et valider** avec un modèle Pydantic. Chaque recette devient un objet `Recipe` avec des types stricts. Ça force à gérer les cas limites dès l'indexation plutôt que de découvrir les surprises au moment de la recherche.
+
+**2. Nettoyer les données.** C'est là où les exports réels réservent des surprises. Les ingrédients Umami mélangent de vraies lignes d'ingrédients avec des titres de section et du texte narratif, le tout dans le même tableau. La solution : les vraies lignes d'ingrédients sont préfixées par `•`. Un filtre simple, mais il fallait le trouver en regardant les données réelles.
+
+```python
+# Extrait de indexer.py
+def extract_clean_ingredients(raw_ingredients: list[str]) -> list[str]:
+    has_bullets = any(line.startswith("•") for line in raw_ingredients)
+    if has_bullets:
+        return [line.lstrip("•").strip() for line in raw_ingredients
+                if line.strip().startswith("•")]
+    # Fallback pour les exports sans bullet
+    return [line.strip() for line in raw_ingredients
+            if len(line.strip()) >= 3]
+```
+
+Même chose pour les tags de cuisine : dans les exports Umami, le champ `recipeCuisine` est peu fiable (une recette mexicaine peut avoir `recipeCuisine: "Vegetarian"`). Les vrais tags sont dans le champ `description`, en chaîne CSV. Un `split(",")` et c'est réglé.
+
+**3. Indexer en parallèle** dans ChromaDB (vecteurs) et DuckDB (métadonnées). La même recette finit dans les deux stores, avec des rôles différents.
+
+## Deux bases de données, pourquoi ?
+
+C'est la question qu'on se pose naturellement. Un seul ChromaDB ne suffirait pas ?
+
+Le problème avec un store vectoriel pur : il est très bon pour retrouver des recettes _thématiquement proches_ de ta requête, mais gérer des contraintes dures est laborieux. Filtrer "seulement les recettes de moins de 30 minutes" dans ChromaDB, c'est possible, mais c'est du filtrage sur les métadonnées stockées à côté des vecteurs — pas des plus robustes ni des plus rapides.
+
+DuckDB règle ça proprement. C'est une base analytique in-process (pas de serveur, juste un fichier `.duckdb`) qui fait du SQL très efficacement. Pour une requête comme "recettes asiatiques de moins de 30 minutes en catégorie Favoris", c'est trivial.
+
+L'architecture finale : les deux outils tournent en parallèle, et leurs résultats sont intersectés.
+
+```
+Requête utilisateur
+     ↓
+RecipeSearchTool (ChromaDB)    MetadataFilterTool (DuckDB)
+     ↓                              ↓
+[r1, r2, r3, r4]            [r2, r3, r5]
+          ↓
+     Intersection
+          ↓
+       [r2, r3]   →   Claude   →   Réponse
+```
+
+Si l'intersection est vide (les filtres sont trop stricts), le système bascule automatiquement sur les résultats sémantiques seuls et l'explique à l'utilisateur dans la réponse.
+
+## L'agent : stateless par design
+
+L'agent `ChefRagAgent` est intentionnellement sans état. Il reçoit l'historique complet de la conversation à chaque appel et retourne une réponse. C'est Streamlit (via `st.session_state`) qui gère la mémoire de la conversation.
+
+Ça peut paraître contre-intuitif — un agent conversationnel sans état interne — mais c'est beaucoup plus simple à tester, à déboguer et à faire évoluer. Les tests unitaires consistent simplement à passer un historique en entrée et vérifier la sortie. Pas de mocking complexe de state machines.
+
+L'agent distingue deux types de réponses via un tag XML maison :
+
+```python
+# Si Claude veut poser une question de clarification
+<chefrag_question>
+{"type": "question", "key": "cook_time", "text": "Temps de cuisson ?",
+ "options": ["< 15 min", "30 min", "1 heure", "Peu importe"]}
+</chefrag_question>
+
+# Sinon : texte libre avec les suggestions de recettes
+```
+
+Streamlit parse ce tag et rend les options comme des boutons cliquables. Quand l'utilisateur clique, la réponse est injectée dans l'historique comme un message user normal, et le cycle recommence.
+
+## Le cas llama-index-llms-anthropic
+
+C'est l'ADR le plus intéressant du projet, et probablement celui qui fera perdre du temps à d'autres.
+
+`llama-index-llms-anthropic` est le package "officiel" pour brancher Claude dans LlamaIndex. En théorie, c'est ce qu'on devrait utiliser. En pratique, il déclare `anthropic[bedrock,vertex]>=0.75.0` comme dépendance — ce qui force l'installation des extras AWS Bedrock et Google Vertex AI. Ces extras introduisent des conflits transitifs que pip ne parvient pas à résoudre, peu importe la version.
+
+La solution : ne pas installer ce package du tout. LlamaIndex gère uniquement la partie RAG — ChromaDB, embeddings HuggingFace, construction du contexte. Pour la génération de réponse, l'API Anthropic est appelée directement :
+
+```python
+# Dans agent.py — appel direct sans passer par LlamaIndex
+response = self.anthropic_client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=1024,
+    system=system_prompt,
+    messages=augmented_messages,  # historique + contexte RAG injecté
+)
+```
+
+C'est un peu plus de code qu'un wrapper LlamaIndex, mais c'est du code qu'on comprend et qu'on contrôle entièrement. Le contexte RAG est simplement injecté à la fin du dernier message utilisateur avant l'envoi à l'API.
+
+## Les embeddings en local
+
+Pour générer les vecteurs, j'utilise `BAAI/bge-small-en-v1.5` via `llama-index-embeddings-huggingface`. Le modèle (~130 Mo) est téléchargé au premier démarrage du container et tourne ensuite en CPU.
+
+L'alternative évidente était l'API OpenAI. Plus simple à brancher, performances comparables sur ce use case. Mais ça implique un coût à chaque ré-indexation. Sur une collection personnelle de recettes qui ne change pas très souvent, ce n'est pas catastrophique — mais j'avais envie de garder le coût de l'indexation à zéro. La recherche sémantique locale fonctionne très bien.
+
+## Le déploiement : Coolify sur Hetzner
+
+Le projet tourne sur un VPS Hetzner CX21 (4 Go RAM), géré par Coolify. Deux containers Docker :
+
+- `chefrag-ui` : l'app Streamlit
+- `chefrag-chroma` : le serveur ChromaDB
+
+DuckDB tourne dans `chefrag-ui` via un volume monté — pas de container dédié nécessaire, c'est une base in-process.
+
+Un point important sur la RAM : c'est la raison pour laquelle Airflow a été éjecté du projet. Le webserver + scheduler Airflow consomme à lui seul 1,5 à 2 Go. Sur un serveur à 4 Go avec ChromaDB, le modèle HuggingFace et Streamlit qui tournent déjà, c'était trop juste. Remplacer Airflow par un simple onglet admin dans l'UI a résolu le problème sans sacrifier quoi que ce soit en termes de fonctionnalité — pour un usage solo, déclencher l'indexation manuellement via un bouton est largement suffisant.
+
+## Ce que je ferrais différemment
+
+**Les tests d'intégration.** Les tests unitaires couvrent bien le parsing, l'auth et les outils de recherche en isolation. Mais je n'ai pas de tests qui valident le comportement de bout en bout — requête utilisateur → suggestions de recettes → qualité de la réponse. C'est du territoire difficile à couvrir automatiquement avec un LLM en bout de chaîne, mais c'est clairement un manque.
+
+**Un meilleur modèle d'embedding.** `bge-small-en-v1.5` est un modèle anglais. Mes recettes sont en anglais, donc ça passe. Mais si je voulais étendre à des recettes en français, il faudrait passer sur un modèle multilingue. À garder en tête pour une v2.
+
+**La gestion des catégories Umami.** Actuellement, le système supporte deux catégories : "Favorites" et "New". C'est ce que j'exporte moi-même. Mais Umami supporte des catégories personnalisées. Rendre ça configurable serait utile si le projet devait s'ouvrir à d'autres utilisateurs.
+
+## En résumé
+
+ChefRAG n'est pas un projet compliqué. L'architecture tient en un schéma : recherche sémantique + filtrage structuré, intersection des résultats, génération via Claude. Ce qui prend du temps en vrai, c'est la qualité des données (parser proprement les exports Umami), les conflits de dépendances Python, et les contraintes d'infrastructure (4 Go de RAM, c'est peu quand on empile des services).
+
+Le code est [open-source sur GitHub](https://github.com/jeremy6680/chefrag). Les ADRs sont dans `DECISIONS.md` si vous voulez le détail de chaque choix d'architecture et pourquoi.

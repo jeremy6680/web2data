@@ -1,0 +1,86 @@
+---
+title: "J'ai vibe codé un SQL Online IDE — et je l'assume"
+summary: "J'avais dit que je ne vibe codais pas. C'est toujours vrai pour les projets sérieux. Mais quand SQLiteOnline m'a bloqué en pleine mise à niveau SQL, j'ai pris une décision pragmatique : laisser l'IA faire le gros du travail. Voici ce que ça donne."
+postLayout: column
+date: "2026-03-26"
+lastmod: "2026-03-26"
+draft: false
+domaine: data
+category: rex
+technos:
+  - react
+  - typescript
+  - duckdb
+  - sql
+---
+
+Il y a quelques semaines, j'ai écrit [que je ne vibe codais pas](/blog/mon-process-pour-coder-avec-les-llms). Que j'avais besoin de comprendre chaque ligne avant de l'accepter. Que les LLMs étaient des collaborateurs, pas des pilotes automatiques.
+
+Je maintiens tout ça.
+
+Mais j'ai quand même vibe codé un SQL Online IDE. Et je l'assume complètement.
+
+## Le contexte : coincé sur SQLiteOnline
+
+Dans le cadre de ma mise à niveau avant d'attaquer la formation DataBird, je dois revoir et pratiquer beaucoup de SQL. Les vidéos de préparation recommandent [SQLiteOnline](https://sqliteonline.com/). C'est un bon outil... sauf que, depuis les vidéos, la version gratuite est devenue vraiment restrictive : 10 requêtes maximum, base supprimée après 3 heures, réponse limitée à 1 Mo... Tu essaies de t'entraîner sérieusement, tu te retrouves bloqué au bout de vingt minutes.
+
+J'ai cherché des alternatives. Rien qui me convainque vraiment. Et je n'avais pas envie de passer deux heures à comparer des outils alors que j'aurais dû passer ces deux heures à faire du SQL.
+
+C'est là que j'ai décidé de vibe coder.
+
+## Pourquoi c'est différent d'un "vrai" projet
+
+Quand je construis [SpotifAI](https://github.com/jeremy6680/spotifai) ou [RugbyDraft](https://github.com/jeremy6680/rugbydraft), je veux maîtriser l'architecture, les décisions techniques, chaque choix qui aura des conséquences à long terme. Je lis le code. Je le comprends. Je le modifie. C'est ma façon de travailler, et je ne vais pas en déroger.
+
+Là, c'était différent. L'objectif n'était pas de construire un outil de production parfait. C'était de me donner un bac à sable SQL fonctionnel, rapidement, pour pouvoir me concentrer sur ce qui comptait vraiment : pratiquer SQL avant DataBird. L'outil était un moyen, pas une fin.
+
+Dans ce contexte précis, laisser l'IA écrire l'essentiel du code était une décision pragmatique et rationnelle. Pas une abdication.
+
+## Replit d'abord
+
+J'ai commencé par Replit. Le prompt que j'ai donné était assez détaillé : un éditeur SQL avec coloration syntaxique, support de SQLite / MySQL / PostgreSQL / DuckDB, historique des requêtes, import/export, visualisation de données en charts. Le genre de spec qu'on écrirait pour un développeur junior.
+
+En une seule tentative, le résultat était bluffant. Un vrai IDE fonctionnel, avec un design propre. J'ai ajouté une deuxième demande — mode clair, explorateur de tables sans commande SQL, suppression de tables depuis l'interface — et l'outil tenait très bien la route.
+
+Le résultat est visible ici : [sql-online-ide--jerem9911.replit.app](https://sql-online-ide--jerem9911.replit.app/)
+
+Honnêtement, pour un compte gratuit, c'est impressionnant.
+
+Sauf que Replit me contraignait. L'hébergement est géré par eux, je dépends de leur infrastructure, et avec un compte gratuit je ne peux pas vraiment faire évoluer le projet librement. Ça me dérange. J'aime garder le contrôle sur ce que je déploie.
+
+## Claude Code ensuite
+
+J'ai donc recommencé l'exercice avec Claude Code dans VS Code. Même prompt de départ. Résultat très similaire en one shot — un IDE React + TypeScript + Vite, avec CodeMirror 6 pour l'éditeur, sql.js et duckdb-wasm pour les engines in-browser, un proxy Express pour MySQL/MariaDB/PostgreSQL, Zustand pour le state, Chart.js pour les visuels.
+
+La différence avec Replit, c'est la proximité avec le code. Dans VS Code, je peux voir ce qui se passe, modifier ce que je veux, faire tourner le projet en local. J'ai pu échanger avec Claude pour ajouter les fonctionnalités qui me manquaient vraiment, notamment un onglet Schema — un diagramme ERD en SVG pur qui affiche les tables, les colonnes et les relations entre elles. Pas de librairie externe, juste du calcul de positions et des bezier curves. C'est ce genre de truc que j'aurais mis des heures à écrire seul et qui est apparu en quelques minutes.
+
+Le projet est open-source : [github.com/jeremy6680/sql-online-ide](https://github.com/jeremy6680/sql-online-ide)
+
+Je viens également de le déployer sur mon VPS Hetzner, via Coolify comme d'habitude : https://sql.jeremymarchandeau.com
+
+## Ce que ça donne concrètement
+
+L'IDE supporte cinq engines : SQLite et DuckDB tournent entièrement dans le navigateur via WebAssembly — aucune donnée ne sort du browser, zéro latence réseau. MySQL, MariaDB et PostgreSQL passent par un proxy Express. Un conteneur Docker, un port 3001, et ça tourne.
+
+Les fonctionnalités qui me servent vraiment dans ma pratique SQL quotidienne :
+
+- l'éditeur avec autocomplétion et `Ctrl+Enter` pour lancer
+- l'explorateur de tables dans la sidebar, avec drill-down sur les colonnes
+- l'historique des 100 dernières requêtes
+- les requêtes favorites nommées
+- l'onglet Schema pour visualiser les relations FK
+- l'export XLSX des résultats
+
+Ce que je n'ai pas fait, délibérément : je n'ai pas cherché à tout comprendre ligne par ligne. Le store Zustand, les wrappers DuckDB WASM, la logique de proxy Express — je sais vaguement ce que ça fait, je comprends plus ou moins comment ça s'articule, mais je n'ai pas audité chaque détail. Ce n'était pas l'objectif.
+
+## La nuance que je voulais poser
+
+Vibe coder ce projet n'invalide pas ma position de fond. Pour SpotifAI, pour RugbyDraft, pour les projets qui ont de vraies conséquences — clients, données, production — je maintiens que comprendre ce qu'on déploie est non négociable.
+
+Mais il y a une zone grise que j'avais peut-être sous-estimée : les outils personnels à durée de vie limitée, les prototypes jetables, les bacs à sable. Dans ces cas-là, le rapport temps investi / valeur obtenue change complètement la donne. Passer deux heures à vibe coder un outil qui va me faire gagner du temps pendant des semaines, c'est un trade-off que je peux assumer.
+
+Ce que j'en retiens surtout, c'est que les LLMs sont devenus franchement bons pour bootstrapper des projets React/TypeScript/Vite avec un stack connu. Un prompt détaillé, un contexte clair, et tu as quelque chose de fonctionnel en une seule tentative. La partie difficile — les décisions d'architecture, les arbitrages techniques qui tiennent dans le temps — reste entièrement à toi.
+
+Pour l'instant, cet IDE me permet de pratiquer SQL librement, sans compteur de requêtes, sans données dans le cloud, sans abonnement. C'est exactement ce dont j'avais besoin avant DataBird.
+
+Le reste, on verra.
