@@ -48,7 +48,7 @@ Le `--workers 1` est intentionnel : DuckDB en mode fichier ne supporte pas les �
 
 Le fichier `.duckdb` est persisté dans un volume Coolify monté sur `/app/data`. Les credentials sont injectés via les variables d'environnement Coolify — jamais dans l'image.
 
-La seule configuration spécifique au déploiement : mettre à jour `SPOTIFY_REDIRECT_URI` dans les variables d'env Coolify **et** dans le dashboard Spotify Developer avec la vraie URL de prod (`https://spotifai.lumafinch.com/callback`). C'est le genre de détail qui fait échouer silencieusement si on l'oublie.
+La seule configuration spécifique au déploiement : mettre à jour `SPOTIFY_REDIRECT_URI` dans les variables d'env Coolify **et** dans le dashboard Spotify Developer avec la vraie URL de prod (`https://spotifai.web2data.org/callback`). C'est le genre de détail qui fait échouer silencieusement si on l'oublie.
 
 ## Les contraintes Spotify Development Mode en production
 
@@ -102,6 +102,6 @@ La Phase 3 n'est pas un refactoring du projet. C'est son évolution naturelle.
 
 ---
 
-Le code source est sur [GitHub](https://github.com/jeremy6680/spotifai). La démo tourne sur [spotifai.lumafinch.com](https://spotifai.lumafinch.com) — envoie-moi ton email Spotify si tu veux tester.
+Le code source est sur [GitHub](https://github.com/jeremy6680/spotifai). La démo tourne sur [spotifai.web2data.org](https://spotifai.web2data.org) — envoie-moi ton email Spotify si tu veux tester.
 
 Des questions sur l'architecture, les choix techniques, ou les blocages Spotify ? Je suis curieux de savoir si d'autres ont rencontré les mêmes problèmes.
