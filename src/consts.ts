@@ -83,34 +83,10 @@ export type NavItem = NavLink | NavDropdown;
 
 export const NAVIGATION: NavItem[] = [
   { href: "/", title: "nav.home" },
-  {
-    title: "nav.domaines",
-    children: [
-      { href: "/domaines/web", title: "nav.web" },
-      { href: "/domaines/data", title: "nav.data" },
-      { href: "/domaines/ia", title: "nav.ia" },
-      { href: "/domaines/infra", title: "nav.infra" },
-      { href: "/domaines/organisation", title: "nav.organisation" },
-      { href: "/domaines/perso", title: "nav.perso" },
-    ],
-  },
-  {
-    title: "nav.categories",
-    children: [
-      { href: "/categories/rex", title: "nav.rex" },
-      { href: "/categories/tuto", title: "nav.tuto" },
-      { href: "/categories/outils", title: "nav.outils" },
-      { href: "/categories/veille", title: "nav.veille" },
-      { href: "/categories/bonnes-pratiques", title: "nav.bonnes-pratiques" },
-      { href: "/categories/open-source", title: "nav.open-source" },
-      { href: "/categories/lecture", title: "nav.lecture" },
-      { href: "/categories/parcours", title: "nav.parcours" },
-      { href: "/categories/lifestyle", title: "nav.lifestyle" },
-    ],
-  },
-  { href: "/technos", title: "nav.technos" },
+  { href: "/journal", title: "nav.journal" },
   { href: "/projects", title: "nav.projects" },
   { href: "/about", title: "nav.about" },
+  { href: "/contact", title: "nav.contact" },
 ];
 
 export const POST_METADATA = {
