@@ -1,0 +1,44 @@
+---
+/**
+ * AboutTeaser.astro
+ * Short "who I am" section with an inclusive, open-source tone.
+ * Links to the full /about page.
+ */
+---
+
+<section class="border-t border-gray-100 py-16 sm:py-24 dark:border-gray-800">
+  <div class="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+
+    <!-- Icon / avatar placeholder -->
+    <div class="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-primary-50 dark:bg-primary-950/50">
+      <span class="text-2xl" aria-hidden="true">👋</span>
+    </div>
+
+    <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+      Salut, je suis Jérémy
+    </h2>
+
+    <p class="mt-4 text-base leading-7 text-gray-600 dark:text-gray-400">
+      Développeur web avec 13 ans d'expérience, en transition vers la data et l'IA.
+      Je partage ici ce que j'apprends — sans filtre, sans jargon inutile, pour tout le monde.
+      Que tu débutes ou que tu sois expert·e, tu es à ta place ici.
+    </p>
+
+    <!-- Values chips -->
+    <div class="mt-6 flex flex-wrap justify-center gap-2">
+      {["Open source", "Accessible", "Inclusif", "Bienveillant"].map((value) => (
+        <span class="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+          {value}
+        </span>
+      ))}
+    </div>
+
+    <a
+      href="/about"
+      class="mt-8 inline-flex items-center gap-2 text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 dark:hover:text-primary-400"
+    >
+      En savoir plus →
+    </a>
+
+  </div>
+</section>

@@ -1,0 +1,48 @@
+---
+/**
+ * blog/index.astro
+ * First page of the blog post list — rendered at /blog.
+ * Pages 2+ are handled by blog/page/[...page].astro.
+ */
+import { getCollection } from "astro:content";
+import { ITEMS_PER_PAGE } from "@/consts";
+import { sortBlogPosts, excludeDrafts } from "@/functions";
+import ListWithTagsLayout from "@/layouts/ListWithTagsLayout.astro";
+import type { Page } from "astro";
+import type { CollectionEntry } from "astro:content";
+import { useTranslations } from "@/i18n";
+
+const t = useTranslations();
+
+// Fetch and sort all published posts
+const allPosts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
+
+// Build a Page object manually for page 1
+const pageSize = ITEMS_PER_PAGE;
+const data = allPosts.slice(0, pageSize);
+const total = allPosts.length;
+const lastPage = Math.ceil(total / pageSize);
+
+const page: Page<CollectionEntry<"blog">> = {
+  data,
+  start: 0,
+  end: data.length - 1,
+  total,
+  currentPage: 1,
+  size: pageSize,
+  lastPage,
+  url: {
+    current: "/blog",
+    next: lastPage > 1 ? "/blog/page/2" : undefined,
+    prev: undefined,
+    first: "/blog",
+    last: lastPage > 1 ? `/blog/page/${lastPage}` : "/blog",
+  },
+};
+---
+
+<ListWithTagsLayout
+  title={t("pages.blog.title")}
+  description={t("pages.blog.description")}
+  page={page}
+/>

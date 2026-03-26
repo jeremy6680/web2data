@@ -1,0 +1,82 @@
+---
+/**
+ * LatestPostsSection.astro
+ * Displays the 3 most recent published blog posts.
+ */
+import { getCollection } from "astro:content";
+import { sortBlogPosts } from "@/functions"; // ← nom corrigé
+import FormattedDate from "@/components/FormattedDate.astro";
+
+// Fetch last 3 published posts
+const allPosts = await getCollection("blog", ({ data }) => !data.draft);
+const posts = sortBlogPosts(allPosts).slice(0, 3); // ← nom corrigé
+---
+
+{posts.length > 0 && (
+  <section class="border-t border-gray-100 py-16 sm:py-24 dark:border-gray-800">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+
+      <!-- Section header -->
+      <div class="flex items-end justify-between">
+        <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+          Derniers articles
+        </h2>
+        <a
+          href="/blog"
+          class="hidden text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 sm:block dark:hover:text-primary-400"
+        >
+          Tous les articles →
+        </a>
+      </div>
+
+      <!-- Posts list -->
+      <ul class="mt-10 divide-y divide-gray-100 dark:divide-gray-800" role="list">
+        {posts.map((post) => {
+          const { title, summary, date } = post.data;
+          return (
+            <li class="group py-6">
+              <article class="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
+
+                <!-- Date -->
+                <time
+                  datetime={date.toISOString()}
+                  class="shrink-0 text-sm text-gray-400 dark:text-gray-600 sm:w-32"
+                >
+                  <FormattedDate date={date} />
+                </time>
+
+                <!-- Content -->
+                <div class="flex-1">
+                  <a
+                    href={`/blog/${post.id}`}
+                    class="block transition-colors"
+                    aria-label={`Lire l'article : ${title}`}
+                  >
+                    <h3 class="font-semibold text-gray-900 transition-colors group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
+                      {title}
+                    </h3>
+                    <p class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+                      {summary}
+                    </p>
+                  </a>
+                </div>
+
+              </article>
+            </li>
+          );
+        })}
+      </ul>
+
+      <!-- Mobile link to blog -->
+      <div class="mt-8 sm:hidden">
+        
+          href="/blog"
+          class="text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 dark:hover:text-primary-400"
+        >
+          Tous les articles →
+        </a>
+      </div>
+
+    </div>
+  </section>
+)}
