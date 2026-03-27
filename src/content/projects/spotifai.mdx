@@ -1,9 +1,19 @@
 ---
 title: "SpotifAI"
-description: "Générateur de playlists Spotify personnalisées pilotées par un LLM — tu décris l'ambiance, l'IA compose la playlist."
+description: "Générateur de playlists Spotify en langage naturel — tu décris l'ambiance, le LLM compose la playlist à partir de ton historique d'écoute."
 github: "jeremy6680/spotifai"
-tags: ["Python", "LLM", "Spotify API", "FastAPI"]
-stack: ["Python", "FastAPI", "spotipy", "API Anthropic / OpenAI", "OAuth 2.0"]
+tags: ["Python", "LLM", "Spotify API", "FastAPI", "DuckDB", "Docker"]
+stack:
+  [
+    "Python",
+    "FastAPI",
+    "Anthropic Claude API",
+    "DuckDB",
+    "spotipy",
+    "OAuth 2.0",
+    "Docker",
+    "Hetzner / Coolify",
+  ]
 status: "actif"
 cover: "../../assets/project-2.png"
 year: 2024
@@ -12,28 +22,57 @@ order: 2
 
 ## Contexte
 
-J'utilise Spotify au quotidien, et j'ai toujours trouvé les playlists algorithmiques un peu froides. L'idée : et si on pouvait simplement *décrire* une ambiance en langage naturel et laisser un LLM construire la playlist parfaite ? Ce projet est né de l'envie de combiner l'API Spotify avec les capacités de compréhension contextuelle des LLMs.
+J'utilise Spotify au quotidien, et j'ai toujours trouvé les playlists algorithmiques un peu froides. Les radios te proposent des tracks en fonction de ce que tu écoutes déjà — mais elles ne savent pas ce que tu veux écouter _maintenant_, dans ce contexte précis, avec cette énergie particulière.
 
-C'est aussi un projet d'apprentissage — ma première exploration sérieuse de l'orchestration entre une API tierce et un modèle de langage.
+L'idée : décrire une ambiance en langage naturel et laisser un LLM construire la playlist qui correspond. Des prompts comme _"post-rock instrumental, influence japonaise, depuis 2010"_ ou _"jazz fusion électronique, late night, énergie basse"_ — et une playlist atterrit directement dans ton compte Spotify.
+
+C'est aussi un projet d'apprentissage : ma première exploration sérieuse de l'orchestration entre une API tierce, un modèle de langage, et de la persistance de données analytiques.
 
 ## Fonctionnalités principales
 
-- Description en langage naturel de l'ambiance souhaitée ("musique pour coder à 2h du matin", "road trip dans le désert")
-- Génération d'une liste de titres cohérents via LLM
-- Création automatique de la playlist dans ton compte Spotify
-- Authentification OAuth avec l'API Spotify
-- Interface légère en ligne de commande ou via API REST
+- Description en langage naturel de l'ambiance souhaitée
+- Injection du profil musical (historique d'écoute Spotify) comme contexte LLM
+- Génération d'une liste de titres cohérents via l'API Anthropic
+- Validation de chaque suggestion via la recherche Spotify avant création
+- Création automatique de la playlist dans le compte Spotify de l'utilisateur
+- Authentification OAuth 2.0 avec gestion du refresh token (persisté dans DuckDB)
+- Historique des playlists générées en base locale DuckDB
+- Interface web minimaliste (HTML/CSS/JS + Jinja2)
+- Déployé sur Hetzner via Coolify, conteneurisé avec Docker
+
+## Architecture
+
+Le projet suit une architecture en trois couches :
+
+- **FastAPI** pour l'API REST et le routing — choisi dès le départ pour sa validation Pydantic et sa génération OpenAPI automatique, en prévision d'un frontend React en Phase 3
+- **DuckDB** pour la persistance — les tables (tokens OAuth, historique playlists, profil musical) sont pensées comme couche bronze d'un futur pipeline dbt
+- **Anthropic Claude API** pour la génération — appelée directement (sans wrapper), avec des prompts centralisés dans `core/prompts.py`
+
+La configuration passe par `pydantic-settings` : un objet `settings` importé par tous les modules, validation au démarrage, fail fast si une variable manque.
 
 ## Ce que j'ai appris
 
-- Intégration d'une API OAuth tierce (flux d'autorisation, gestion des tokens)
-- Prompt engineering pour obtenir des listes structurées et exploitables
-- Parsing et validation de la sortie LLM avant injection dans l'API Spotify
-- Gestion des cas d'erreur : titre introuvable, quota API dépassé, token expiré
+- Intégration OAuth 2.0 avec ses pièges concrets (différence `localhost` vs `127.0.0.1`, persistance du refresh token)
+- Prompt engineering pour extraire des paramètres structurés depuis une description libre
+- Validation de la sortie LLM avant injection API : le modèle peut halluciner des titres inexistants, chaque suggestion est vérifiée via la recherche Spotify
+- Choix d'architecture orientés roadmap : chaque décision de Phase 2 anticipe la Phase 3
 
-## Difficultés techniques
+## Contraintes techniques rencontrées
 
-La principale difficulté était la fiabilité de la sortie LLM : un modèle peut halluciner des titres ou artistes inexistants. J'ai dû implémenter une étape de validation qui vérifie chaque suggestion via la recherche Spotify avant de créer la playlist, et relance le LLM si trop de titres sont invalides.
+**L'endpoint `/recommendations` est inaccessible en Development Mode.** L'API Spotify bloque cet endpoint pour les apps non validées. Contournement : génération entièrement via LLM + recherche Spotify track par track.
+
+**`POST /playlists/{id}/tracks` renvoie 403.** Scope manquant (`playlist-modify-public`). Corrigé en ajustant le flux OAuth, mais ça m'a pris du temps à diagnostiquer — la doc Spotify est perfectible sur ce point.
+
+Ces deux blocages sont documentés dans `DECISIONS.md` sous forme d'ADR.
+
+## Roadmap (Phase 3)
+
+La Phase 2 est un outil monoposte fonctionnel. La Phase 3 est une évolution vers une architecture production-grade :
+
+- **Pipeline dbt medallion sur DuckDB** — les tables bronze deviennent des modèles silver/gold avec des métriques analytiques (évolution des genres, patterns d'humeur)
+- **Système multi-agents CrewAI** — Music Profiler, Criteria Interpreter, Playlist Curator
+- **Sync automatique via Airflow** — DAG qui poll l'API Spotify et déclenche un resync à chaque changement d'historique
+- **Frontend React** — remplacement des templates Jinja2, les routes FastAPI restent identiques
 
 ## Installation
 
@@ -45,10 +84,3 @@ cp .env.example .env
 # Renseigne tes clés API Spotify et Anthropic dans .env
 python main.py
 ```
-
-## Roadmap
-
-- [ ] Interface web (Streamlit ou React)
-- [ ] Support multi-LLM (Gemini, Mistral)
-- [ ] Historique des playlists générées
-- [ ] Mode "similaire à" — générer une playlist à partir d'un titre existant
