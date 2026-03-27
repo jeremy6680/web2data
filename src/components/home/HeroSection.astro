@@ -1,0 +1,59 @@
+---
+/**
+ * HeroSection.astro
+ * Main hero for the web2data.org hub homepage.
+ * Immersive, minimal, open-source focused.
+ */
+---
+
+<section class="relative overflow-hidden py-20 sm:py-32">
+
+  <!-- Decorative background gradient blob (no image, pure CSS) -->
+  <div
+    aria-hidden="true"
+    class="pointer-events-none absolute -top-40 left-1/2 -z-10 -translate-x-1/2 blur-3xl"
+  >
+    <div
+      class="aspect-[1155/678] w-[72rem] bg-gradient-to-tr from-primary-200 to-primary-50 opacity-30 dark:opacity-10"
+      style="clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)"
+    ></div>
+  </div>
+
+  <div class="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
+
+    <!-- Badge -->
+    <div class="mb-8 flex justify-center">
+      <span class="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-primary-50 px-4 py-1.5 text-sm font-medium text-primary-700 dark:border-primary-800 dark:bg-primary-950/50 dark:text-primary-300">
+        web → data → IA — en open source
+      </span>
+    </div>
+
+    <!-- Main heading -->
+    <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl dark:text-gray-100">
+      Je construis, j'apprends,<br />
+      <span class="text-primary-500">je partage.</span>
+    </h1>
+
+    <!-- Subheading -->
+    <p class="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400">
+      Développeur web en transition data/IA.<br class="hidden sm:block" />
+      Tout ce que je découvre finit ici, en public.
+    </p>
+
+    <!-- CTAs -->
+    <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+      <a
+        href="/projects"
+        class="rounded-lg bg-primary-500 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
+      >
+        Voir les projets
+      </a>
+      <a
+        href="/journal"
+        class="rounded-lg border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 transition-colors hover:border-primary-400 hover:text-primary-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500 dark:border-gray-700 dark:text-gray-300 dark:hover:border-primary-500 dark:hover:text-primary-400"
+      >
+        Lire le journal
+      </a>
+    </div>
+  </div>
+</section>

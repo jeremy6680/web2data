@@ -46,9 +46,11 @@ export const ui = {
     // Navigation
     "nav.home": "Home",
     "nav.blog": "Blog",
+    "nav.journal": "Journal",
     "nav.projects": "Projects",
     "nav.technos": "Technos",
     "nav.about": "About",
+    "nav.contact": "Contact",
     "nav.domaines": "Domains",
     "nav.categories": "Categories",
     "nav.web": "Web",
@@ -140,9 +142,11 @@ export const ui = {
     // Navigation
     "nav.home": "Accueil",
     "nav.blog": "Blog",
+    "nav.journal": "Journal",
     "nav.projects": "Projets",
     "nav.technos": "Technos",
     "nav.about": "À propos",
+    "nav.contact": "Contact",
     "nav.domaines": "Domaines",
     "nav.categories": "Catégories",
     "nav.web": "Web",

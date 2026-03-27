@@ -35,7 +35,11 @@ Construit avec Astro v5 + Tailwind CSS v4, basé sur [tailwind-astro-starting-bl
 │   │   ├── authors/
 │   │   │   └── default.mdx        # Profil auteur (Jeremy Marchandeau)
 │   │   ├── blog/                  # Articles (fichiers .mdx)
-│   │   └── tags/                  # Tags avec descriptions personnalisées (.mdx)
+│   │   ├── categories/            # Catégories d'articles (.mdx)
+│   │   ├── domaines/              # Domaines thématiques (.mdx)
+│   │   ├── projects/              # Fiches projet (.mdx) — une par projet
+│   │   ├── tags/                  # Tags avec descriptions personnalisées (.mdx)
+│   │   └── technos/               # Technologies référencées (.mdx)
 │   ├── i18n/
 │   │   ├── index.ts
 │   │   ├── ui.ts                  # Traductions (fr par défaut)
@@ -51,19 +55,23 @@ Construit avec Astro v5 + Tailwind CSS v4, basé sur [tailwind-astro-starting-bl
 │   │   ├── blog/
 │   │   │   ├── [...page].astro    # Liste paginée des articles
 │   │   │   └── [...slug].astro    # Page d'un article
+│   │   ├── projects/
+│   │   │   ├── index.astro        # Liste de tous les projets
+│   │   │   └── [slug].astro       # Fiche projet individuelle (sidebar + MDX)
 │   │   ├── tags/
 │   │   │   ├── index.astro        # Liste de tous les tags
 │   │   │   └── [slug]/[...page].astro  # Articles par tag
 │   │   ├── 404.astro
 │   │   ├── about.astro
+│   │   ├── contact.astro          # Page de contact
 │   │   ├── index.astro            # Page d'accueil
-│   │   ├── projects.astro
+│   │   ├── journal.astro          # Hub journal — filtrable par domaine, catégorie, techno, année
 │   │   ├── rss.xml.js             # Flux RSS
 │   │   └── search.json.ts         # Données pour la recherche
 │   ├── styles/
 │   │   └── global.css
 │   ├── consts.ts                  # Config centrale : métadonnées du site, navigation, Giscus, analytics
-│   ├── content.config.ts          # Schémas de contenu Astro (blog, authors, tags)
+│   ├── content.config.ts          # Schémas de contenu Astro (blog, authors, projects, technos, categories, domaines)
 │   ├── env.d.ts
 │   ├── functions.ts               # Fonctions utilitaires (tri des posts, filtrage drafts…)
 │   └── utils.ts
@@ -88,12 +96,15 @@ Construit avec Astro v5 + Tailwind CSS v4, basé sur [tailwind-astro-starting-bl
 | Fichier | Rôle |
 | :--- | :--- |
 | `src/consts.ts` | Config centrale : titre, URL, Giscus, analytics, navigation, paramètres des posts |
-| `src/content.config.ts` | Schémas de contenu (champs requis/optionnels pour blog, authors, tags) |
+| `src/content.config.ts` | Schémas de contenu (blog, authors, projects, technos, categories, domaines) |
 | `src/functions.ts` | Tri et filtrage des articles |
 | `src/i18n/ui.ts` | Traductions de l'interface (langue par défaut : français) |
 | `src/content/authors/default.mdx` | Profil de l'auteur |
 | `src/content/blog/*.mdx` | Articles du blog |
+| `src/content/projects/*.mdx` | Fiches projet (frontmatter + corps MDX) |
 | `src/content/tags/*.mdx` | Définitions des tags avec descriptions |
+| `src/pages/journal.astro` | Hub journal avec filtrage client-side |
+| `src/pages/projects/[slug].astro` | Fiche projet — layout sidebar + contenu |
 
 ---
 

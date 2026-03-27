@@ -76,6 +76,30 @@ Journal des choix structurants du projet, avec leur justification.
 
 ---
 
+## Projects as a Content Collection
+
+**Decision:** manage projects as an Astro Content Collection (`src/content/projects/`) rather than hardcoded data in a component or a JS array in `consts.ts`.
+
+**Reason:** allows typed frontmatter validation (Zod schema), image optimization via `image()`, MDX body for rich project detail pages, and `reference()` linking from blog posts. Each project file is self-contained and editable like a blog post.
+
+---
+
+## Journal hub with client-side filtering (vanilla JS + data-* attributes)
+
+**Decision:** implement filtering on `/journal` using `data-*` attributes on DOM elements and vanilla JS — no Solid.js or other framework.
+
+**Reason:** the filter state is simple (one active value per group). Solid.js would add unnecessary weight for what amounts to a few `dataset` reads and `element.hidden` toggles. The `data-active` attribute pattern (styled via `global.css`) avoids Tailwind v4 dynamic class generation issues in scoped `<style>` blocks.
+
+---
+
+## Blog post → project linking via `project` reference field
+
+**Decision:** add an optional `project: reference("projects")` field to the blog schema so articles can be associated with a project.
+
+**Reason:** enables automatic display of related articles on project detail pages without any manual list to maintain. Adding `project: <slug>` to a post's frontmatter is the only required action — the project page queries and renders the list at build time.
+
+---
+
 ## i18n : fr comme langue par défaut, en maintenu
 
 **Décision** : configurer `fr` comme langue par défaut dans `src/i18n/ui.ts` tout en conservant les clés `en` dans le fichier.

@@ -1,40 +1,24 @@
 ---
-import { getCollection } from "astro:content";
-import { ITEMS_PER_PAGE } from "@/consts";
-import { sortBlogPosts, excludeDrafts } from "@/functions";
-import ListWithTagsLayout from "@/layouts/ListWithTagsLayout.astro";
-import { useTranslations } from "@/i18n";
-
-const t = useTranslations();
-
-const allPosts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
-const totalPages = Math.ceil(allPosts.length / ITEMS_PER_PAGE);
-
-const pageData = allPosts.slice(0, ITEMS_PER_PAGE);
-const page = {
-  data: pageData,
-  start: 0,
-  end: pageData.length - 1,
-  total: allPosts.length,
-  size: ITEMS_PER_PAGE,
-  currentPage: 1,
-  lastPage: totalPages,
-  url: {
-    current: "/",
-    prev: undefined,
-    next: allPosts.length > ITEMS_PER_PAGE ? "/blog/2" : undefined,
-    first: "/",
-    last: totalPages > 1 ? `/blog/${totalPages}` : "/",
-  },
-};
+/**
+ * index.astro — Hub homepage for web2data.org
+ *
+ * Replaces the old blog post list with an immersive open-source hub.
+ * Blog posts remain accessible at /blog.
+ */
+import RootLayout from "@/layouts/RootLayout.astro";
+import HeroSection from "@/components/home/HeroSection.astro";
+import AboutTeaser from "@/components/home/AboutTeaser.astro";
+import ProjectsSection from "@/components/home/ProjectsSection.astro";
+import LatestPostsSection from "@/components/home/LatestPostsSection.astro";
+import { SITE_METADATA } from "@/consts";
 ---
 
-<ListWithTagsLayout
-  title={t("pages.blog.title")}
-  description={t("pages.blog.description")}
-  page={page}
+<RootLayout
+  title={SITE_METADATA.title}
+  description={SITE_METADATA.description}
 >
-  <p class="text-lg leading-7 text-gray-500 dark:text-gray-400">
-    {t("siteMetadata.description")}
-  </p>
-</ListWithTagsLayout>
+  <HeroSection />
+  <ProjectsSection />
+  <LatestPostsSection />
+  <AboutTeaser />
+</RootLayout>

@@ -1,0 +1,89 @@
+---
+title: "w2d-scaffold"
+description: "Un CLI Python open-source qui génère en une commande la structure complète d'un projet — avec les fichiers contextuels dont les LLMs ont besoin pour travailler efficacement dès la première session."
+github: "jeremy6680/w2d-scaffold"
+tags: ["Python", "CLI", "Jinja2", "Click", "Open Source"]
+stack: ["Python", "Click", "Jinja2", "Makefile", "pytest", "GitHub Actions"]
+status: "actif"
+year: 2026
+order: 7
+---
+
+## Contexte
+
+Chaque nouveau projet commence par la même corvée : créer `CONTEXT.md`, `NEXT_STEPS.md`, `STRUCTURE.md`, `DECISIONS.md`, un `.gitignore` adapté, un `.env.example`… Et les remplir avec le bon contenu par défaut selon le type de projet (data, RAG, WordPress, Astro), c'est encore plus fastidieux.
+
+Ces fichiers sont pourtant essentiels à mon workflow : ils servent de mémoire structurée pour Claude Desktop, qui n'a pas de persistance entre les sessions. Sans eux, chaque session LLM commence par réexpliquer l'existant.
+
+w2d-scaffold automatise cette mise en place. Une commande, une structure cohérente, prête à travailler.
+
+## Fonctionnalités principales
+
+- Génération complète d'un projet en mode interactif (`make new`) ou direct (`make new name=... type=...`)
+- Support de 6 types de projets : `data`, `rag`, `python`, `wordpress-plugin`, `wordpress-theme`, `astro`
+- Socle commun généré quel que soit le type : `CONTEXT.md`, `NEXT_STEPS.md`, `STRUCTURE.md`, `DECISIONS.md`, `.gitignore`, `.env.example`, `README.md`
+- Templates Jinja2 par type de projet, avec variables injectées à la génération (`project_name`, `author`, `date`, `description`)
+- Convention `PROJECT_NAME` dans les noms de fichiers — résolution automatique en snake_case
+- Suite pytest couvrant les 6 types de projets
+- CI sur GitHub Actions à chaque push
+
+## Exemple d'utilisation
+
+```bash
+make new
+```
+
+```
+> Project name? chefrag
+> Project type? [data/rag/python/wordpress-plugin/wordpress-theme/astro] rag
+> Short description? RAG-based culinary assistant over personal recipe collection
+> Author? Jeremy Marchandeau
+> Create ./chefrag/? [Y/n] Y
+
+✅ Project 'chefrag' created at ./chefrag/
+```
+
+Ou en mode direct :
+
+```bash
+make new name=chefrag type=rag description="RAG-based culinary assistant" author="Jeremy Marchandeau"
+```
+
+## Structure des templates
+
+```
+templates/
+├── _common/          # Fichiers partagés tous types
+├── data/             # DuckDB, dbt, architecture medallion
+├── rag/              # LlamaIndex, ChromaDB, FastAPI
+├── python/           # Projet Python typé avec hatchling
+├── wordpress-plugin/ # PHP, structure includes/templates/assets
+├── wordpress-theme/  # PHP, Timber, ACF, SCSS
+└── astro/            # Astro v5, Tailwind v4, SolidJS
+```
+
+## Pourquoi ce projet existe
+
+Ce n'est pas un scaffolder générique de plus — il y en a des dizaines. La spécificité de w2d-scaffold est d'être **conçu pour un workflow LLM** : les fichiers contextuels générés correspondent exactement à ce que Claude Desktop attend pour prendre en charge un projet sans briefing manuel à chaque session.
+
+C'est la formalisation d'une pratique : documenter les décisions (`DECISIONS.md`), maintenir un état des tâches (`NEXT_STEPS.md`), et décrire l'architecture (`STRUCTURE.md`) n'est pas optionnel quand on travaille avec des LLMs au quotidien — autant que ce soit automatique.
+
+## Ce que j'ai appris
+
+- Templating Jinja2 pour la génération de fichiers : lisible, maintenable, facilement extensible
+- Click pour la CLI : propre, bien documenté, gère les prompts interactifs et la validation sans friction
+- Makefile comme point d'entrée unique (`make new`, `make test`, `make lint`) — plus ergonomique qu'exposer directement le script Python
+- Valeur des tests sur un outil de génération : plusieurs régressions évitées lors du refactoring de la logique de nommage des fichiers
+
+## Limites connues
+
+Pas d'installation via `pip install` pour l'instant — l'outil se clone et s'utilise localement. Pas de template `fastapi` standalone (il est intégré dans `rag`). Les templates WordPress sont fonctionnels mais pourraient être enrichis, notamment pour les blocs Gutenberg avec Timber + ACF.
+
+## Installation
+
+```bash
+git clone https://github.com/jeremy6680/w2d-scaffold
+cd w2d-scaffold
+pip install -r requirements.txt
+make new
+```

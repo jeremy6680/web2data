@@ -79,6 +79,31 @@
   }
 }
 
+/* Filter chips — active state on the journal page */
+.filter-chip[data-active="true"] {
+  border-color: var(--color-primary-400);
+  background-color: var(--color-primary-50);
+  color: var(--color-primary-600);
+}
+:where(.dark, .dark *) .filter-chip[data-active="true"] {
+  border-color: var(--color-primary-600);
+  background-color: color-mix(in srgb, var(--color-primary-950) 50%, transparent);
+  color: var(--color-primary-400);
+}
+
+/* Prose code blocks — fix background on pre > code */
+.prose pre {
+  background-color: #1e2433;
+}
+:where(.dark, .dark *) .prose pre {
+  background-color: #0f1117;
+}
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
 .task-list-item::before {
   @apply hidden;
 }

@@ -54,6 +54,9 @@ Développeurs avec une base web solide (WordPress, React, etc.) qui s'interrogen
 - Les composants interactifs utilisent **Solid.js** (pas React), sauf si c'est explicitement modifié.
 - Le contenu est **validé par schéma TypeScript** via `src/content.config.ts` — tout nouveau champ dans le frontmatter doit être déclaré là.
 - Les tags sont des fichiers `.mdx` dans `src/content/tags/` — chaque nouveau tag doit avoir son fichier.
+- Les **projets** sont une Content Collection (`src/content/projects/`) — frontmatter typé (`title`, `description`, `github`, `demo`, `tags`, `stack`, `status`, `cover`, `year`, `order`).
+- Pour lier un article à un projet, ajouter `project: <slug-projet>` dans le frontmatter de l'article.
+- Le **hub journal** (`/journal`) filtre les articles côté client via des attributs `data-*` — pas de JavaScript framework.
 
 ---
 

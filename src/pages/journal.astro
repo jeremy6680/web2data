@@ -1,0 +1,235 @@
+---
+/**
+ * blog/index.astro — Journal hub
+ * Lists all published posts with client-side filtering by domain, category, techno, and year.
+ */
+import { getCollection } from "astro:content";
+import { sortBlogPosts, excludeDrafts } from "@/functions";
+import RootLayout from "@/layouts/RootLayout.astro";
+import FormattedDate from "@/components/FormattedDate.astro";
+import Breadcrumbs from "@/components/Breadcrumbs.astro";
+import { useTranslations } from "@/i18n";
+
+const t = useTranslations();
+
+const allPosts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
+
+// Collections for filter labels
+const allDomaines = await getCollection("domaines");
+const allCategories = await getCollection("categories");
+const allTechnos = await getCollection("technos");
+
+// Only expose filters that actually appear in published posts
+const usedDomaineIds = new Set(allPosts.map((p) => p.data.domaine?.id).filter(Boolean));
+const usedCategoryIds = new Set(allPosts.map((p) => p.data.category?.id).filter(Boolean));
+const usedTechnoIds = new Set(allPosts.flatMap((p) => p.data.technos.map((t) => t.id)));
+const usedYears = [...new Set(allPosts.map((p) => p.data.date.getFullYear()))].sort((a, b) => b - a);
+
+const domaines = allDomaines.filter((d) => usedDomaineIds.has(d.id));
+const categories = allCategories.filter((c) => usedCategoryIds.has(c.id));
+const technos = allTechnos.filter((t) => usedTechnoIds.has(t.id));
+---
+
+<RootLayout title={t("pages.blog.title")} description={t("pages.blog.description")}>
+  <div class="space-y-2 pb-6 pt-6">
+    <Breadcrumbs items={[{ label: t("nav.home"), href: "/" }, { label: t("nav.journal") }]} />
+    <h1 class="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">
+      Journal
+    </h1>
+    <p class="text-base text-gray-500 dark:text-gray-400">
+      <span id="post-count">{allPosts.length} articles</span> — filtrés en temps réel
+    </p>
+  </div>
+
+  <!-- Filters -->
+  <div class="border-t border-gray-100 py-6 dark:border-gray-800">
+    <div class="space-y-4">
+
+      <!-- Domaines -->
+      {domaines.length > 0 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">Domaine</span>
+          <button data-filter-group="domain" data-filter-value="" data-active="true"
+            class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            Tout
+          </button>
+          {domaines.map((d) => (
+            <button data-filter-group="domain" data-filter-value={d.id} data-active="false"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+              {d.data.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <!-- Catégories -->
+      {categories.length > 0 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">Catégorie</span>
+          <button data-filter-group="category" data-filter-value="" data-active="true"
+            class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            Tout
+          </button>
+          {categories.map((c) => (
+            <button data-filter-group="category" data-filter-value={c.id} data-active="false"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+              {c.data.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <!-- Technos -->
+      {technos.length > 0 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">Techno</span>
+          <button data-filter-group="techno" data-filter-value="" data-active="true"
+            class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            Tout
+          </button>
+          {technos.map((tech) => (
+            <button data-filter-group="techno" data-filter-value={tech.id} data-active="false"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+              {tech.data.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <!-- Années -->
+      {usedYears.length > 1 && (
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">Année</span>
+          <button data-filter-group="year" data-filter-value="" data-active="true"
+            class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+            Tout
+          </button>
+          {usedYears.map((year) => (
+            <button data-filter-group="year" data-filter-value={String(year)} data-active="false"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+              {year}
+            </button>
+          ))}
+        </div>
+      )}
+
+    </div>
+  </div>
+
+  <!-- Post list -->
+  <div id="post-list" class="border-t border-gray-100 dark:border-gray-800">
+    {allPosts.map((post) => {
+      const { title, summary, date, domaine, category, technos: postTechnos } = post.data;
+      const technoIds = postTechnos.map((t) => t.id).join(" ");
+      return (
+        <article
+          data-post
+          data-domain={domaine?.id ?? ""}
+          data-category={category?.id ?? ""}
+          data-technos={technoIds}
+          data-year={String(date.getFullYear())}
+          class="group border-b border-gray-100 py-7 dark:border-gray-800"
+        >
+          <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-6">
+
+            <!-- Date -->
+            <time
+              datetime={date.toISOString()}
+              class="shrink-0 text-sm tabular-nums text-gray-400 dark:text-gray-600 sm:w-28"
+            >
+              <FormattedDate date={date} />
+            </time>
+
+            <!-- Content -->
+            <div class="flex-1">
+              <!-- Filters chips on the post -->
+              <div class="mb-1.5 flex flex-wrap gap-1.5">
+                {domaine && (
+                  <span class="rounded bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-600 dark:bg-primary-950/40 dark:text-primary-400">
+                    {domaines.find((d) => d.id === domaine.id)?.data.name ?? domaine.id}
+                  </span>
+                )}
+                {category && (
+                  <span class="rounded bg-gray-100 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                    {categories.find((c) => c.id === category.id)?.data.name ?? category.id}
+                  </span>
+                )}
+              </div>
+
+              <a
+                href={`/blog/${post.id}`}
+                class="block"
+                aria-label={`Lire l'article : ${title}`}
+              >
+                <h2 class="text-lg font-semibold text-gray-900 transition-colors group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
+                  {title}
+                </h2>
+                <p class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+                  {summary}
+                </p>
+              </a>
+
+              <!-- Techno tags -->
+              {postTechnos.length > 0 && (
+                <div class="mt-2.5 flex flex-wrap gap-1.5">
+                  {postTechnos.map((tech) => (
+                    <span class="rounded bg-gray-50 px-1.5 py-0.5 text-xs text-gray-400 dark:bg-gray-800/60 dark:text-gray-500">
+                      {technos.find((t) => t.id === tech.id)?.data.name ?? tech.id}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        </article>
+      );
+    })}
+  </div>
+
+  <!-- Empty state -->
+  <p id="empty-state" hidden class="py-12 text-center text-sm text-gray-400 dark:text-gray-600">
+    Aucun article ne correspond à ces filtres.
+  </p>
+
+</RootLayout>
+
+<script>
+  type FilterGroup = "domain" | "category" | "techno" | "year";
+
+  const state: Record<FilterGroup, string> = { domain: "", category: "", techno: "", year: "" };
+
+  function applyFilters() {
+    let visible = 0;
+    document.querySelectorAll<HTMLElement>("[data-post]").forEach((post) => {
+      const technoStr = post.dataset.technos ?? "";
+      const technos = technoStr ? technoStr.split(" ") : [];
+      const match =
+        (!state.domain   || post.dataset.domain   === state.domain) &&
+        (!state.category || post.dataset.category === state.category) &&
+        (!state.techno   || technos.includes(state.techno)) &&
+        (!state.year     || post.dataset.year     === state.year);
+      post.hidden = !match;
+      if (match) visible++;
+    });
+    const counter = document.getElementById("post-count");
+    if (counter) counter.textContent = `${visible} article${visible !== 1 ? "s" : ""}`;
+    const emptyState = document.getElementById("empty-state");
+    if (emptyState) emptyState.hidden = visible > 0;
+  }
+
+  function setFilter(group: FilterGroup, value: string) {
+    // clicking the active value resets to "all"
+    state[group] = state[group] === value && value !== "" ? "" : value;
+    document.querySelectorAll<HTMLElement>(`[data-filter-group="${group}"]`).forEach((chip) => {
+      chip.dataset.active = String((chip.dataset.filterValue ?? "") === state[group]);
+    });
+    applyFilters();
+  }
+
+  document.querySelectorAll<HTMLElement>("[data-filter-group]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      setFilter(chip.dataset.filterGroup as FilterGroup, chip.dataset.filterValue ?? "");
+    });
+  });
+</script>

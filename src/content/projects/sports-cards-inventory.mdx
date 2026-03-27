@@ -1,0 +1,55 @@
+---
+title: "Sports Cards Inventory"
+description: "Application web Python pour gérer et valoriser sa collection de cartes sportives — avec suivi de cotes et export."
+github: "jeremy6680/sports-cards-inventory"
+tags: ["Python", "Flask", "SQLite", "Bootstrap"]
+stack: ["Python 3", "Flask", "SQLite", "SQLAlchemy", "Bootstrap 5", "Jinja2"]
+status: "actif"
+cover: "../../assets/project-3.png"
+year: 2026
+order: 5
+---
+
+## Contexte
+
+Je collectionne des cartes sportives depuis quelques années. Entre les achats, les ventes, les échanges et les cotes qui fluctuent, il devenait difficile de savoir exactement ce que je possède et ce que ma collection vaut. Les outils existants sont soit payants, soit trop complexes. J'ai construit cet outil pour moi-même d'abord, puis je l'ai rendu open source.
+
+C'est aussi mon premier projet web Python backend sérieux — un bon exercice pour apprendre Flask, SQLite et la gestion d'une base de données relationnelle simple.
+
+## Fonctionnalités principales
+
+- Catalogue de la collection avec photos, année, équipe, joueur
+- Valorisation manuelle ou semi-automatique des cartes
+- Suivi de l'évolution de la valeur de la collection dans le temps
+- Filtres par sport, équipe, année, état de la carte
+- Import/export CSV pour sauvegarder ou migrer les données
+- Interface responsive pour consultation sur mobile
+
+## Ce que j'ai appris
+
+- Conception d'un schéma de base de données relationnel simple mais évolutif
+- Patterns CRUD avec Flask et SQLAlchemy
+- Gestion des fichiers uploadés (photos des cartes)
+- Pagination et filtres côté serveur
+- Architecture d'une application Flask (blueprints, modèles, vues)
+
+## Difficultés techniques
+
+La gestion des photos a été plus complexe que prévu : redimensionnement, stockage, et affichage optimisé sur mobile. J'ai fini par utiliser Pillow pour normaliser les images à l'upload et les stocker dans un dossier `/static/uploads` avec un nom unique, ce qui évite les collisions et simplifie les sauvegardes.
+
+## Installation
+
+```bash
+git clone https://github.com/jeremy6680/sports-cards-inventory
+cd sports-cards-inventory
+pip install -r requirements.txt
+flask db init && flask db migrate && flask db upgrade
+flask run
+```
+
+## Roadmap
+
+- [ ] Intégration de cotes en temps réel (eBay API ou scraping)
+- [ ] Gestion des transactions (achats / ventes avec historique)
+- [ ] Export PDF de l'inventaire
+- [ ] Version Docker pour déploiement simplifié

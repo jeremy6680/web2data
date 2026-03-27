@@ -114,7 +114,11 @@ pnpm astro add <pkg>   # Add an Astro integration
 │   │   ├── authors/
 │   │   │   └── default.mdx        # Author profile (Jeremy Marchandeau)
 │   │   ├── blog/                  # Blog posts (.mdx files)
-│   │   └── tags/                  # Tag definitions with descriptions (.mdx files)
+│   │   ├── categories/            # Article categories (.mdx)
+│   │   ├── domaines/              # Thematic domains (.mdx)
+│   │   ├── projects/              # Project files (.mdx) — one per project
+│   │   ├── tags/                  # Tag definitions with descriptions (.mdx files)
+│   │   └── technos/               # Referenced technologies (.mdx)
 │   ├── i18n/
 │   │   ├── index.ts
 │   │   ├── ui.ts                  # UI translations (default lang: French)
@@ -130,13 +134,17 @@ pnpm astro add <pkg>   # Add an Astro integration
 │   │   ├── blog/
 │   │   │   ├── [...page].astro    # Paginated post list
 │   │   │   └── [...slug].astro    # Single post page
+│   │   ├── projects/
+│   │   │   ├── index.astro        # Projects list
+│   │   │   └── [slug].astro       # Project detail page (sidebar + MDX)
 │   │   ├── tags/
 │   │   │   ├── index.astro        # All tags list
 │   │   │   └── [slug]/[...page].astro  # Posts by tag
 │   │   ├── 404.astro
 │   │   ├── about.astro
+│   │   ├── contact.astro          # Contact page
 │   │   ├── index.astro            # Homepage
-│   │   ├── projects.astro
+│   │   ├── journal.astro          # Journal hub — filterable by domain, category, techno, year
 │   │   ├── rss.xml.js             # RSS feed
 │   │   └── search.json.ts         # Search index data
 │   ├── styles/
@@ -166,7 +174,7 @@ pnpm astro add <pkg>   # Add an Astro integration
 | File                              | Role                                                                           |
 | :-------------------------------- | :----------------------------------------------------------------------------- |
 | `src/consts.ts`                   | Central config: title, site URL, Giscus settings, analytics, navigation        |
-| `src/content.config.ts`           | Content schemas (required/optional frontmatter fields for blog, authors, tags) |
+| `src/content.config.ts`           | Content schemas (blog, authors, projects, technos, categories, domaines)       |
 | `src/functions.ts`                | Post sorting and draft filtering utilities                                     |
 | `src/i18n/ui.ts`                  | UI string translations (default language: French)                              |
 | `src/content/authors/default.mdx` | Author profile                                                                 |
@@ -194,6 +202,37 @@ draft: false
 
 Contenu de l'article en MDX...
 ```
+
+### Creating a Project
+
+Create a new `.mdx` file in `src/content/projects/`. The slug (filename without `.mdx`) is used as the URL path `/projects/<slug>`.
+
+```mdx
+---
+title: "My Project"
+description: "Short description shown on cards and detail pages."
+github: "username/repo"            # GitHub repo path (no https://)
+demo: "https://demo.example.com"   # Optional
+tags: ["Python", "FastAPI"]        # Shown as badges
+stack: ["Python", "FastAPI", "PostgreSQL"]  # Shown in sidebar box
+status: "actif"                    # actif | wip | archive
+cover: "../../assets/my-cover.png" # Optional — processed by Astro Image
+year: 2025
+order: 1                           # Sort order on the projects list (lower = first)
+---
+
+## Contexte
+
+...
+
+## Fonctionnalités principales
+
+...
+```
+
+To link a blog post to this project, add `project: my-project` to the post's frontmatter. It will appear automatically in the "Articles liés" sidebar of the project page.
+
+---
 
 ### Creating a Tag
 

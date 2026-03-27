@@ -39,6 +39,7 @@ const blog = defineCollection({
         .default(POST_METADATA.defaultLayout as "simple" | "column"),
       canonicalUrl: z.string().optional(),
       related: z.array(reference("blog")).default([]),
+      project: reference("projects").optional(),
     }),
 });
 
@@ -66,4 +67,21 @@ const domaines = defineCollection({
   }),
 });
 
-export const collections = { blog, authors, technos, categories, domaines };
+const projects = defineCollection({
+  loader: glob({ pattern: "**/*.{md,mdx}", base: "./src/content/projects" }),
+  schema: ({ image }) =>
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      github: z.string(),
+      demo: z.string().url().optional(),
+      tags: z.array(z.string()).default([]),
+      stack: z.array(z.string()).default([]),
+      status: z.enum(["actif", "wip", "archive"]).default("actif"),
+      cover: image().optional(),
+      year: z.number().optional(),
+      order: z.number().default(99),
+    }),
+});
+
+export const collections = { blog, authors, technos, categories, domaines, projects };

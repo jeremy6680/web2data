@@ -1,0 +1,63 @@
+---
+title: "Running Performance Analyzer"
+description: "Plateforme d'analyse de performances pour coureurs — upload tes données Strava, l'IA identifie tes axes de progression."
+github: "jeremy6680/running-performance-analyzer"
+tags: ["Python", "IA", "FastAPI", "Pandas"]
+stack:
+  [
+    "Python",
+    "Pandas / NumPy",
+    "FastAPI",
+    "Matplotlib / Plotly",
+    "Anthropic Claude",
+    "Pydantic",
+  ]
+status: "actif"
+cover: "../../assets/project-1.png"
+year: 2026
+order: 4
+---
+
+## Contexte
+
+Je cours depuis plusieurs années et j'ai participé à plusieurs marathons. J'accumulais des données dans Strava sans vraiment savoir quoi en faire au-delà des stats basiques. J'ai voulu construire un outil qui analyserait mes données d'entraînement et me dirait concrètement : qu'est-ce qui fonctionne, qu'est-ce qui ne fonctionne pas, et comment m'améliorer.
+
+C'est aussi un projet de reconversion — une façon concrète d'appliquer l'analyse de données et les LLMs à un domaine que je connais bien.
+
+## Fonctionnalités principales
+
+- Import des données d'entraînement (CSV export Strava ou GPX)
+- Analyse statistique des performances (allure, fréquence cardiaque, dénivelé)
+- Détection de tendances sur plusieurs semaines/mois
+- Génération d'un rapport personnalisé via LLM
+- Visualisations des progressions
+- Suggestions d'entraînement basées sur les patterns détectés
+
+## Ce que j'ai appris
+
+- Pipeline de traitement de données structurées (ETL simplifié)
+- Détection de patterns temporels dans des séries de données sportives
+- Prompt engineering pour des rapports narratifs cohérents et personnalisés
+- Conception d'une API REST avec FastAPI et gestion des fichiers uploadés
+
+## Difficultés techniques
+
+Les données Strava exportées varient selon la version et le type d'activité — certains champs sont absents selon l'appareil (GPS, montre, téléphone). J'ai dû construire un pipeline de normalisation robuste qui détecte les champs disponibles et adapte l'analyse en conséquence, plutôt que de supposer que toutes les données sont toujours présentes.
+
+## Installation
+
+```bash
+git clone https://github.com/jeremy6680/running-performance-analyzer
+cd running-performance-analyzer
+pip install -r requirements.txt
+cp .env.example .env
+# Renseigne ta clé API Anthropic dans .env
+uvicorn main:app --reload
+```
+
+## Roadmap
+
+- [ ] Connexion directe à l'API Strava (OAuth)
+- [ ] Prédiction de temps sur marathon basée sur les entraînements
+- [ ] Comparaison avec des plans d'entraînement standards
+- [ ] Interface web pour visualiser les analyses
