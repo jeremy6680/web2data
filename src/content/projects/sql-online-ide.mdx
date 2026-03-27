@@ -1,53 +1,72 @@
 ---
 title: "SQL Online IDE"
-description: "Un IDE SQL pour écrire, exécuter et tester des requêtes directement dans le navigateur — sans installation."
+description: "Un environnement d'entraînement SQL dans le navigateur, construit pour pratiquer en dehors des cours — sans serveur, sans installation, avec support multi-moteurs et visualisation des résultats."
 github: "jeremy6680/sql-online-ide"
-tags: ["SQL", "JavaScript", "DuckDB", "WASM"]
-stack: ["DuckDB WASM", "JavaScript", "CodeMirror", "HTML/CSS"]
+tags: ["React", "TypeScript", "SQL", "DuckDB", "CodeMirror"]
+stack:
+  [
+    "React",
+    "TypeScript",
+    "Vite",
+    "Zustand",
+    "CodeMirror 6",
+    "sql.js",
+    "duckdb-wasm",
+    "Chart.js",
+  ]
 status: "actif"
-cover: "../../assets/project-4.png"
-year: 2024
-order: 3
+cover: "../../assets/project-sql-ide.png"
+year: 2026
+order: 4
 ---
 
 ## Contexte
 
-Quand j'apprends SQL ou que j'expérimente une requête, je veux pouvoir le faire rapidement, sans configurer une base de données locale. Les outils existants sont soit trop lourds, soit nécessitent un compte. J'ai donc construit un IDE SQL minimal qui tourne entièrement dans le navigateur grâce à DuckDB WebAssembly.
+Pendant la période de prep work avant la formation DataBird Analytics Engineer, j'avais besoin d'un endroit pour pratiquer SQL librement — en dehors des exercices guidés de la plateforme. Les outils en ligne que j'ai testés étaient soit trop simples, soit encombrés de publicités ou de friction à l'inscription.
 
-C'est aussi un terrain d'expérimentation pour DuckDB WASM, une technologie que je trouvais fascinante — faire tourner un moteur SQL analytique sérieux dans un onglet de navigateur.
+L'idée : me construire mon propre environnement. Léger, sans compte, qui tourne entièrement dans le navigateur.
+
+C'est aussi le projet où j'ai fait une exception documentée à ma règle de ne pas faire de vibe coding. L'IDE est un outil personnel, pas un projet destiné à des utilisateurs ou à un client — la priorité était de l'avoir fonctionnel rapidement pour pouvoir m'en servir. J'ai donc laissé Claude Code générer des portions de code sans les analyser ligne par ligne, en vérifiant surtout le comportement global. Cette exception est consignée dans `DECISIONS.md`.
 
 ## Fonctionnalités principales
 
-- Éditeur SQL avec coloration syntaxique
-- Exécution de requêtes en local (DuckDB WASM — aucun serveur)
-- Affichage des résultats en tableau
-- Import de fichiers CSV/JSON directement dans le navigateur
-- Historique des requêtes
-- Zéro installation, zéro compte
+- Éditeur SQL avec coloration syntaxique, autocomplétion et indentation automatique (CodeMirror 6)
+- Exécution SQL dans le navigateur — zéro serveur, zéro backend
+- Support multi-moteurs : SQLite via `sql.js` et DuckDB via `duckdb-wasm`
+- Visualisation des résultats sous forme de tableau ou de graphique (Chart.js)
+- Gestion d'état centralisée via Zustand
+- Déployé sur Replit (prototype) ; self-hosting sur Hetzner via Coolify prévu
+
+## Stack et choix techniques
+
+**React + TypeScript + Vite** — pas de framework sur-dimensionné pour un outil de cette taille, mais TypeScript dès le départ pour garder le code maintenable.
+
+**CodeMirror 6** — la bibliothèque de référence pour les éditeurs de code dans le navigateur. API modulaire, extensible, bien documentée.
+
+**sql.js + duckdb-wasm** — deux moteurs SQL compilés en WebAssembly qui tournent entièrement côté client. Pas de requête réseau, pas de backend à maintenir. `duckdb-wasm` est particulièrement pertinent dans un contexte analytics engineering — c'est le même moteur que celui utilisé en local dans les projets data.
+
+**Zustand** — gestion d'état légère, sans la verbosité de Redux. Parfait pour un outil de cette échelle.
+
+**Chart.js** — visualisation des résultats de requête. Suffisant pour ce besoin, sans la complexité de D3.
 
 ## Ce que j'ai appris
 
-- Fonctionnement de WebAssembly et ses contraintes (mémoire, async, workers)
-- API DuckDB WASM — initialisation, exécution de requêtes, gestion des résultats
-- Parsing de fichiers CSV/JSON côté navigateur via FileReader
-- Les limites du stockage en mémoire dans un contexte navigateur
+- Intégration de WebAssembly dans une app React (sql.js et duckdb-wasm ont des modes d'initialisation asynchrones différents — ça demande un peu de soin)
+- Mise en place de CodeMirror 6 avec ses extensions (autocomplétion SQL, thème, keymap)
+- Utilisation de Zustand pour coordonner l'état entre l'éditeur, le moteur SQL et la vue résultats
+- Réflexion sur les compromis d'une exception "vibe coding" assumée : gain de temps réel à court terme, dette de compréhension à surveiller à long terme
 
-## Difficultés techniques
+## Limites connues
 
-L'initialisation de DuckDB WASM est asynchrone et peut être lente sur des connexions faibles (le bundle WASM fait plusieurs Mo). J'ai dû implémenter un état de chargement explicite et gérer les erreurs d'initialisation proprement. La gestion des types de données SQL → JavaScript a aussi demandé du travail, notamment pour les dates et les valeurs nulles.
+L'outil est pensé pour un usage solo en local / formation. Il n'y a pas de gestion de sessions, pas d'authentification, pas de sauvegarde des requêtes entre sessions. Ce n'est pas un objectif — c'est un outil d'entraînement, pas un produit.
+
+Le self-hosting sur Hetzner/Coolify est prévu pour remplacer le déploiement Replit, mais n'est pas encore finalisé.
 
 ## Installation
 
 ```bash
 git clone https://github.com/jeremy6680/sql-online-ide
 cd sql-online-ide
-# Ouvrir index.html dans un navigateur (serveur local recommandé pour WASM)
-npx serve .
+npm install
+npm run dev
 ```
-
-## Roadmap
-
-- [ ] Sauvegarde des requêtes (localStorage)
-- [ ] Export des résultats en CSV
-- [ ] Support des schémas multiples
-- [ ] Autocomplétion des noms de tables et colonnes

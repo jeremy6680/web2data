@@ -7,7 +7,14 @@
       "Bash(grep -l \"outils\\\\|open-source\" /Users/jeremymarchandeau/Code/personal/projects/web2data/src/content/blog/*.mdx)",
       "Bash(grep -l \"  - outils\\\\|  - open-source\" /Users/jeremymarchandeau/Code/personal/projects/web2data/src/content/blog/*.mdx)",
       "Read(//Users/jeremymarchandeau/Code/personal/projects/web2data/src/content/blog/**)",
-      "Bash(ls /Users/jeremymarchandeau/Code/personal/projects/web2data/src/pages/categories/[slug]/)"
+      "Bash(ls /Users/jeremymarchandeau/Code/personal/projects/web2data/src/pages/categories/[slug]/)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)",
+      "Bash(git push:*)",
+      "Bash(mkdir -p /Users/jeremymarchandeau/Code/personal/projects/web2data/src/pages/projects)",
+      "Bash(mv /Users/jeremymarchandeau/Code/personal/projects/web2data/src/pages/projects.astro /Users/jeremymarchandeau/Code/personal/projects/web2data/src/pages/projects/index.astro)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
