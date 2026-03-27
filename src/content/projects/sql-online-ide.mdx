@@ -2,8 +2,52 @@
 title: "SQL Online IDE"
 description: "Un IDE SQL pour écrire, exécuter et tester des requêtes directement dans le navigateur — sans installation."
 github: "jeremy6680/sql-online-ide"
-tags: ["SQL", "JavaScript", "DuckDB"]
+tags: ["SQL", "JavaScript", "DuckDB", "WASM"]
+stack: ["DuckDB WASM", "JavaScript", "CodeMirror", "HTML/CSS"]
 status: "actif"
 cover: "../../assets/project-4.png"
+year: 2024
 order: 3
 ---
+
+## Contexte
+
+Quand j'apprends SQL ou que j'expérimente une requête, je veux pouvoir le faire rapidement, sans configurer une base de données locale. Les outils existants sont soit trop lourds, soit nécessitent un compte. J'ai donc construit un IDE SQL minimal qui tourne entièrement dans le navigateur grâce à DuckDB WebAssembly.
+
+C'est aussi un terrain d'expérimentation pour DuckDB WASM, une technologie que je trouvais fascinante — faire tourner un moteur SQL analytique sérieux dans un onglet de navigateur.
+
+## Fonctionnalités principales
+
+- Éditeur SQL avec coloration syntaxique
+- Exécution de requêtes en local (DuckDB WASM — aucun serveur)
+- Affichage des résultats en tableau
+- Import de fichiers CSV/JSON directement dans le navigateur
+- Historique des requêtes
+- Zéro installation, zéro compte
+
+## Ce que j'ai appris
+
+- Fonctionnement de WebAssembly et ses contraintes (mémoire, async, workers)
+- API DuckDB WASM — initialisation, exécution de requêtes, gestion des résultats
+- Parsing de fichiers CSV/JSON côté navigateur via FileReader
+- Les limites du stockage en mémoire dans un contexte navigateur
+
+## Difficultés techniques
+
+L'initialisation de DuckDB WASM est asynchrone et peut être lente sur des connexions faibles (le bundle WASM fait plusieurs Mo). J'ai dû implémenter un état de chargement explicite et gérer les erreurs d'initialisation proprement. La gestion des types de données SQL → JavaScript a aussi demandé du travail, notamment pour les dates et les valeurs nulles.
+
+## Installation
+
+```bash
+git clone https://github.com/jeremy6680/sql-online-ide
+cd sql-online-ide
+# Ouvrir index.html dans un navigateur (serveur local recommandé pour WASM)
+npx serve .
+```
+
+## Roadmap
+
+- [ ] Sauvegarde des requêtes (localStorage)
+- [ ] Export des résultats en CSV
+- [ ] Support des schémas multiples
+- [ ] Autocomplétion des noms de tables et colonnes

@@ -39,6 +39,7 @@ const blog = defineCollection({
         .default(POST_METADATA.defaultLayout as "simple" | "column"),
       canonicalUrl: z.string().optional(),
       related: z.array(reference("blog")).default([]),
+      project: reference("projects").optional(),
     }),
 });
 
@@ -75,8 +76,10 @@ const projects = defineCollection({
       github: z.string(),
       demo: z.string().url().optional(),
       tags: z.array(z.string()).default([]),
+      stack: z.array(z.string()).default([]),
       status: z.enum(["actif", "wip", "archive"]).default("actif"),
       cover: image().optional(),
+      year: z.number().optional(),
       order: z.number().default(99),
     }),
 });

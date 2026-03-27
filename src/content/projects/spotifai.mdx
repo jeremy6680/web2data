@@ -2,8 +2,53 @@
 title: "SpotifAI"
 description: "Générateur de playlists Spotify personnalisées pilotées par un LLM — tu décris l'ambiance, l'IA compose la playlist."
 github: "jeremy6680/spotifai"
-tags: ["Python", "LLM", "Spotify API"]
+tags: ["Python", "LLM", "Spotify API", "FastAPI"]
+stack: ["Python", "FastAPI", "spotipy", "API Anthropic / OpenAI", "OAuth 2.0"]
 status: "actif"
 cover: "../../assets/project-2.png"
+year: 2024
 order: 2
 ---
+
+## Contexte
+
+J'utilise Spotify au quotidien, et j'ai toujours trouvé les playlists algorithmiques un peu froides. L'idée : et si on pouvait simplement *décrire* une ambiance en langage naturel et laisser un LLM construire la playlist parfaite ? Ce projet est né de l'envie de combiner l'API Spotify avec les capacités de compréhension contextuelle des LLMs.
+
+C'est aussi un projet d'apprentissage — ma première exploration sérieuse de l'orchestration entre une API tierce et un modèle de langage.
+
+## Fonctionnalités principales
+
+- Description en langage naturel de l'ambiance souhaitée ("musique pour coder à 2h du matin", "road trip dans le désert")
+- Génération d'une liste de titres cohérents via LLM
+- Création automatique de la playlist dans ton compte Spotify
+- Authentification OAuth avec l'API Spotify
+- Interface légère en ligne de commande ou via API REST
+
+## Ce que j'ai appris
+
+- Intégration d'une API OAuth tierce (flux d'autorisation, gestion des tokens)
+- Prompt engineering pour obtenir des listes structurées et exploitables
+- Parsing et validation de la sortie LLM avant injection dans l'API Spotify
+- Gestion des cas d'erreur : titre introuvable, quota API dépassé, token expiré
+
+## Difficultés techniques
+
+La principale difficulté était la fiabilité de la sortie LLM : un modèle peut halluciner des titres ou artistes inexistants. J'ai dû implémenter une étape de validation qui vérifie chaque suggestion via la recherche Spotify avant de créer la playlist, et relance le LLM si trop de titres sont invalides.
+
+## Installation
+
+```bash
+git clone https://github.com/jeremy6680/spotifai
+cd spotifai
+pip install -r requirements.txt
+cp .env.example .env
+# Renseigne tes clés API Spotify et Anthropic dans .env
+python main.py
+```
+
+## Roadmap
+
+- [ ] Interface web (Streamlit ou React)
+- [ ] Support multi-LLM (Gemini, Mistral)
+- [ ] Historique des playlists générées
+- [ ] Mode "similaire à" — générer une playlist à partir d'un titre existant

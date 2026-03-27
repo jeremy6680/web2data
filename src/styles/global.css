@@ -91,6 +91,19 @@
   color: var(--color-primary-400);
 }
 
+/* Prose code blocks — fix background on pre > code */
+.prose pre {
+  background-color: #1e2433;
+}
+:where(.dark, .dark *) .prose pre {
+  background-color: #0f1117;
+}
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
 .task-list-item::before {
   @apply hidden;
 }

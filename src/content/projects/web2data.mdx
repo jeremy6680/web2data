@@ -1,9 +1,56 @@
 ---
 title: "web2data"
-description: "Ce blog lui-même — construit avec Astro v5 et Tailwind CSS v4. Code source ouvert, contributions bienvenues."
+description: "Ce blog lui-même — construit avec Astro v5 et Tailwind CSS v4. Journal de reconversion open source, du web vers la data et l'IA."
 github: "jeremy6680/web2data"
 demo: "https://web2data.jeremymarchandeau.com"
-tags: ["Astro", "Tailwind", "MDX"]
+tags: ["Astro", "Tailwind CSS", "MDX", "TypeScript"]
+stack: ["Astro v5", "Tailwind CSS v4", "TypeScript", "MDX", "Solid.js", "Giscus"]
 status: "actif"
+year: 2024
 order: 1
 ---
+
+## Contexte
+
+En me reconvertissant vers la data et l'IA, j'avais besoin d'un endroit pour documenter ce que j'apprends — sans les contraintes d'une plateforme tierce. Un blog personnel, open source, que je contrôle entièrement et qui me sert aussi de terrain d'expérimentation technique.
+
+J'en ai profité pour découvrir Astro, que je voulais explorer depuis longtemps, et Tailwind CSS v4 qui venait de sortir.
+
+## Fonctionnalités principales
+
+- Articles en MDX avec code, images et composants interactifs
+- Filtrage des articles par domaine, catégorie, techno et année
+- Pages de fiche projet (ce que tu es en train de lire)
+- Mode sombre / clair
+- Recherche full-text côté client
+- Commentaires via Giscus (GitHub Discussions)
+- Analytiques légères (Umami, Matomo)
+- Performance optimisée — pages statiques, images optimisées par Astro
+
+## Ce que j'ai appris
+
+- Architecture Astro v5 avec les nouveaux loaders de Content Collections
+- Tailwind CSS v4 et la gestion des CSS custom properties dans les composants
+- Intégration Solid.js dans un projet Astro (islands)
+- Filtrage client-side en vanilla JS sans framework
+- Optimisation d'images automatique avec `astro:assets`
+
+## Difficultés techniques
+
+Tailwind CSS v4 a introduit des changements importants dans la gestion des styles scopés — notamment l'impossibilité d'utiliser `@apply` avec des utilities custom dans les `<style>` de composants Astro sans `@reference`. J'ai résolu ça en passant par des CSS custom properties et des attributs `data-*` pour les états dynamiques.
+
+## Installation
+
+```bash
+git clone https://github.com/jeremy6680/web2data
+cd web2data
+pnpm install
+pnpm dev
+```
+
+## Roadmap
+
+- [ ] Newsletter (intégration Resend ou Buttondown)
+- [ ] Page de talks / présentations
+- [ ] Flux RSS enrichi par catégorie
+- [ ] Internationalisation (EN/FR)
