@@ -9,7 +9,7 @@ import FormattedDate from "@/components/FormattedDate.astro";
 
 // Fetch last 3 published posts
 const allPosts = await getCollection("blog", ({ data }) => !data.draft);
-const posts = sortBlogPosts(allPosts).slice(0, 3); // ← nom corrigé
+const posts = sortBlogPosts(allPosts).slice(0, 5);
 ---
 
 {posts.length > 0 && (
@@ -22,7 +22,7 @@ const posts = sortBlogPosts(allPosts).slice(0, 3); // ← nom corrigé
           Derniers articles
         </h2>
         <a
-          href="/blog"
+          href="/journal"
           class="hidden text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 sm:block dark:hover:text-primary-400"
         >
           Tous les articles →
