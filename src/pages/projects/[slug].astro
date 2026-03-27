@@ -105,32 +105,6 @@ const statusClass = statusColors[data.status] ?? statusColors.actif;
         <Content />
       </div>
 
-      <!-- Related posts -->
-      {relatedPosts.length > 0 && (
-        <div class="mt-16 border-t border-gray-200 pt-10 dark:border-gray-800">
-          <h2 class="mb-6 text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Articles liés
-          </h2>
-          <ul class="space-y-4">
-            {relatedPosts.map((post) => (
-              <li class="flex items-start gap-4">
-                <time
-                  datetime={post.data.date.toISOString()}
-                  class="mt-0.5 shrink-0 text-sm text-gray-400 dark:text-gray-500"
-                >
-                  {post.data.date.toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" })}
-                </time>
-                <a
-                  href={`/blog/${post.id}`}
-                  class="text-sm font-medium text-gray-800 transition-colors hover:text-primary-500 dark:text-gray-200 dark:hover:text-primary-400"
-                >
-                  {post.data.title}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
 
     <!-- Sidebar -->
@@ -193,6 +167,33 @@ const statusClass = statusColors[data.status] ?? statusColors.actif;
             )}
           </div>
         </div>
+
+        <!-- Articles liés -->
+        {relatedPosts.length > 0 && (
+          <div class="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-gray-900">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              Articles liés
+            </h2>
+            <ul class="space-y-3">
+              {relatedPosts.map((post) => (
+                <li>
+                  <a
+                    href={`/blog/${post.id}`}
+                    class="text-sm font-medium text-gray-800 transition-colors hover:text-primary-500 dark:text-gray-200 dark:hover:text-primary-400"
+                  >
+                    {post.data.title}
+                  </a>
+                  <time
+                    datetime={post.data.date.toISOString()}
+                    class="mt-0.5 block text-xs text-gray-400 dark:text-gray-500"
+                  >
+                    {post.data.date.toLocaleDateString("fr-FR", { year: "numeric", month: "short", day: "numeric" })}
+                  </time>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <!-- Stack technique -->
         {data.stack.length > 0 && (
