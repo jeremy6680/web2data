@@ -1,0 +1,111 @@
+---
+title: "EmDash : Cloudflare signe-t-il l'acte de naissance du successeur de WordPress ?"
+summary: "Cloudflare vient de lancer EmDash, un CMS open-source construit sur Astro, TypeScript et l'architecture Workers. Après l'avoir testé, voici pourquoi je pense que c'est l'une des annonces les plus importantes de ces dernières années pour le monde du CMS — et pourquoi ça me rend à la fois enthousiaste et un peu mélancolique."
+postLayout: column
+date: "2026-04-02"
+lastmod: "2026-04-02"
+draft: false
+domaine: web
+category: veille
+technos:
+  - astro
+  - typescript
+---
+
+J'ai passé plus de 12 ans à construire des sites avec WordPress. Des sites vitrines, des plateformes e-commerce, des outils internes, des blogs d'entreprise — du classique à l'archi-sur-mesure avec Timber, ACF et des champs personnalisés dans tous les coins. WordPress, c'est une bonne partie de ma carrière.
+
+Alors quand Cloudflare a annoncé **EmDash** ce mercredi 1er avril, j'ai failli passer à côté en pensant à un poisson d'avril. Spoiler : c'est bien réel. Et après l'avoir testé aujourd'hui, je peux vous dire que je suis impressionné.
+
+## Un peu de contexte : Cloudflare + Astro
+
+Avant d'entrer dans le vif du sujet, un rappel utile : [Cloudflare a récemment racheté Astro Technology Company](https://www.cloudflare.com/fr-fr/press/press-releases/2026/cloudflare-acquires-astro-to-accelerate-the-future-of-high-performance-web-development/), l'entreprise à l'origine d'[Astro](https://astro.build/), le framework web que j'utilise sur ce blog même. Astro reste open-source — ça, c'est une bonne nouvelle — mais le rapprochement avec l'infrastructure Cloudflare commençait déjà à laisser entrevoir des synergies intéressantes.
+
+EmDash en est la concrétisation la plus ambitieuse à ce jour. Le CMS est entièrement écrit en TypeScript, serverless, open-source sous licence MIT, et il est propulsé par Astro sous le capot.
+
+## Ce que WordPress n'a jamais réussi à régler : la sécurité des plugins
+
+Voilà le cœur du sujet. Si vous avez géré des sites WordPress en production, vous savez. 96 % des problèmes de sécurité sur les sites WordPress proviennent des plugins. Ce n'est pas une statistique sortie de nulle part — c'est le résultat d'une architecture fondamentalement problématique : un plugin WordPress, c'est un script PHP qui s'exécute dans le même contexte que WordPress, avec un accès direct à la base de données et au filesystem. Installer un plugin, c'est lui faire une confiance totale et aveugle.
+
+EmDash casse ce modèle. Chaque plugin tourne dans son propre sandbox isolé — un Dynamic Worker — et n'obtient que les droits qu'il a déclarés explicitement dans son manifeste. Concrètement, un plugin qui envoie un email après la publication d'un article ne peut faire que ça. Pas d'accès réseau non déclaré, pas de lecture de la base de données au-delà de ce qui est spécifié. Voici à quoi ça ressemble dans la pratique :
+
+```typescript
+import { definePlugin } from "emdash";
+
+export default () =>
+  definePlugin({
+    id: "notify-on-publish",
+    version: "1.0.0",
+    capabilities: ["read:content", "email:send"],
+    hooks: {
+      "content:afterSave": async (event, ctx) => {
+        if (
+          event.collection !== "posts" ||
+          event.content.status !== "published"
+        )
+          return;
+
+        await ctx.email!.send({
+          to: "editors@monsite.com",
+          subject: `Nouvel article publié : ${event.content.title}`,
+          text: `"${event.content.title}" est en ligne.`,
+        });
+      },
+    },
+  });
+```
+
+Deux capabilities déclarées : `read:content` et `email:send`. C'est tout ce que ce plugin peut faire. Pas plus. Le modèle rappelle vraiment les scopes OAuth, et c'est exactement le niveau de lisibilité qu'on attendait depuis des années dans le monde des extensions CMS.
+
+## Une architecture pensée pour 2026
+
+WordPress a été conçu à une époque où AWS EC2 n'existait pas encore. Aujourd'hui, déployer un site web peut se faire en envoyant un bundle JavaScript sur un réseau mondial distribué, à un coût quasi nul. WordPress ne tire pas parti de cette évolution — il nécessite toujours un serveur à provisionner, à scaler, à maintenir.
+
+EmDash est serverless by design. Sur Cloudflare, chaque instance EmDash tourne dans un isolate v8 : le runtime démarre instantanément à la réception d'une requête, et revient à zéro quand il n'y a plus rien à traiter. La facturation ne concerne que le temps CPU réellement utilisé.
+
+Mais — et c'est important — EmDash peut aussi tourner sur n'importe quel serveur Node.js. Pas d'enfermement propriétaire. C'est moi qui me self-héberge sur Hetzner avec Coolify : ça, ça m'intéresse directement.
+
+## Le theming via Astro : enfin quelque chose de familier
+
+Pour créer un thème EmDash, on crée un projet Astro classique : des routes pour les pages, des layouts, des composants, des styles CSS ou Tailwind, et un fichier seed JSON qui indique au CMS quels types de contenu et quels champs créer.
+
+Pour ceux qui connaissent Astro, c'est immédiatement lisible. Pour ceux qui viennent de WordPress : exit `functions.php` et ses traîtrises. Les thèmes EmDash ne peuvent pas faire d'opérations sur la base de données. C'est une contrainte qui peut surprendre au premier abord, mais c'est exactement la bonne séparation des responsabilités.
+
+## L'outil pensé pour les agents IA
+
+C'est la partie qui m'a le plus intrigué, surtout dans le contexte de ma transition vers la data et l'IA. EmDash embarque un serveur MCP (Model Context Protocol) dans chaque instance, une CLI pour interagir avec le CMS programmatiquement, et des "Agent Skills" — des fichiers qui décrivent à votre agent ce que le CMS est capable de faire et comment créer des plugins ou migrer des thèmes WordPress.
+
+Autrement dit, EmDash est conçu pour être piloté par un agent IA. Migration de contenus, refactoring de types de contenu, création de plugins custom — tout ça en langage naturel via un agent connecté au MCP. C'est une vision cohérente avec là où va le développement web en 2026.
+
+## Ce que j'ai testé aujourd'hui
+
+J'ai commencé par le playground en ligne sur [emdashcms.com](https://emdashcms.com/). L'interface d'administration est claire, rapide, agréable. Rien à voir avec le tableau de bord WordPress qui a accumulé 20 ans de dette UX.
+
+Ensuite, j'ai lancé un projet local :
+
+```bash
+npm create emdash@latest
+```
+
+Ça s'installe proprement, la structure du projet est immédiatement compréhensible pour quelqu'un qui connaît Astro. La définition de schémas de contenu directement depuis l'admin (sans plugin comme ACF) est un vrai soulagement.
+
+J'ai aussi joué avec l'import depuis WordPress via le fichier WXR. La migration du contenu prend quelques minutes et importe automatiquement les médias attachés. Ça m'a semblé solide pour un v0.1.0.
+
+Ce que j'attends encore : la gestion fine des rôles et permissions en situation réelle, la maturité de l'écosystème de plugins, et surtout voir comment la communauté va s'emparer du projet.
+
+## Mon avis sur l'avenir de WordPress
+
+Je ne vais pas faire semblant. Je suis assez pessimiste sur la trajectoire de WordPress à moyen terme.
+
+Ce n'est pas une question de compétences ni de qualité des personnes qui le maintiennent — l'écosystème WordPress est peuplé de gens brillants, généreux et passionnés, et j'ai une sincère gratitude pour tout ce que cette communauté m'a apporté, autant professionnellement qu'humainement. Mais WordPress, c'est un éléphant. Un très gros éléphant, chargé de 20 ans de décisions de design héritées, de rétrocompatibilité à tout prix, de conflits de gouvernance. Dans un monde qui évolue aussi vite que le notre, cet éléphant a du mal à se déplacer rapidement.
+
+EmDash, lui, part de zéro. Avec les bonnes fondations. TypeScript, Astro, sandboxing des plugins, serverless, MCP natif. La liste des problèmes réglés dès la v0.1.0 est impressionnante.
+
+Peut-être que je me trompe sur WordPress — et franchement, j'espère me tromper. Mais ce que j'ai vu aujourd'hui me conforte dans l'idée qu'il existe maintenant une alternative sérieuse, pensée pour les besoins des entreprises et des développeurs de 2026.
+
+## Pour aller plus loin
+
+- [Annonce officielle EmDash sur le blog Cloudflare](https://blog.cloudflare.com/emdash-wordpress/)
+- [Dépôt GitHub EmDash](https://github.com/emdash-cms/emdash)
+- [EmDash Playground](https://emdashcms.com/)
+
+EmDash en est à sa v0.1.0. C'est encore jeune, l'écosystème est vide, il manque mille choses. Mais les fondations sont là, elles sont bonnes, et Cloudflare a clairement les moyens de ses ambitions. À suivre de très près.

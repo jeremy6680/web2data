@@ -1,0 +1,66 @@
+---
+title: "L'IDE est-il en train de mourir ?"
+summary: "Les agents IA changent profondément la façon dont on écrit du code. L'IDE n'est peut-être pas mort, mais il n'est plus au centre — et ça, ça change tout."
+postLayout: column
+date: "2026-04-01"
+lastmod: "2026-04-01"
+draft: false
+domaine: ia
+category: veille
+technos:
+  - claude-code
+  - python
+---
+
+J'ai lu un [article d'Addy Osmani sur Substack](https://addyo.substack.com/p/death-of-the-ide) il y a quelques jours. Le titre : _"Is the IDE dead?"_. Ma femme travaille aussi dans la tech, et c'est une question qu'on se pose souvent ensemble en ce moment — pas de façon anxieuse, plutôt avec cette curiosité un peu fébrile de ceux qui sentent que quelque chose est en train de changer sous leurs pieds.
+
+Alors je voulais écrire ce que j'en pense, depuis ma position un peu particulière : développeur web depuis 12 ans, en reconversion vers la data et l'IA, qui utilise Claude Code tous les jours depuis plusieurs mois.
+
+## Ce qui est en train de changer
+
+Comme le relève Addy Osmani, le flux de travail d'un développeur ressemblait à ça pendant des années : ouvrir un fichier, éditer, builder, débugger, recommencer. L'IDE était le centre de tout — c'est là que se passait le travail, ligne par ligne, fichier par fichier.
+
+Et l'auteur d'ajouter : ce flux est en train de se déplacer. Pas de disparaître — de se déplacer.
+
+Selon lui, la nouvelle boucle ressemble plutôt à : définir une intention → déléguer à un agent → observer → relire le diff → merger. Je suis d'accord avec lui — c'est le constat qui remonte de mes échanges avec ma femme ou mes collègues devs. Ce n'est plus de l'autocomplétion glorifiée avec une fenêtre de chat à côté. C'est quelque chose de fondamentalement différent : des agents avec accès aux outils, capables d'exécuter plusieurs fichiers de façon autonome, pendant que vous faites autre chose.
+
+Cursor vient de sortir Glass, une interface pensée pour gérer des agents en parallèle — avec l'éditeur traditionnel reléguée en arrière-plan, accessible quand on en a besoin. GitHub Copilot peut désormais créer des branches, lancer des tests, ouvrir une PR — sans que vous ayez dicté chaque étape. Jules (Google) travaille en tâche de fond : vous assignez du travail, vous revenez quand c'est fait.
+
+La réaction de beaucoup de développeurs en voyant Glass : _"Cursor ressemble maintenant plus à un orchestrateur d'agents qu'à un IDE."_ C'est une phrase qui dit beaucoup.
+
+## Pourquoi l'IDE ne disparaît pas pour autant
+
+Pour Osmani, la version forte de "l'IDE est mort" est fausse. Et les meilleurs outils d'orchestration le savent — ils gardent tous une porte de sortie vers l'éditeur manuel.
+
+Pourquoi ? Parce qu'il y a des situations où l'agent n'est qu'à 90% correct. Et ce 10% restant peut prendre plus de temps à débugger que si vous l'aviez écrit vous-même. Pour des refactorisations complexes dans de grandes codebases, pour du débogage chirurgical, pour vraiment _comprendre_ ce qui se passe dans un système — l'IDE reste l'outil le plus précis qu'on ait.
+
+Ce que les agents font bien : les tâches bien définies, répétables, multi-fichiers, avec des tests en place. Ce qu'ils font moins bien : tenir un modèle mental cohérent d'un système complexe sur le long terme. Et c'est exactement là que l'humain reprend la main, avec son éditeur.
+
+## Le vrai changement : le travail s'inverse
+
+Ce qui me frappe le plus dans cette évolution, ce n'est pas la mort de l'IDE. C'est l'inversion du travail.
+
+Avant : vous écriviez, l'outil vous aidait.  
+Maintenant : l'outil produit, vous supervisez.
+
+En apparence, c'est un progrès évident — moins d'écriture mécanique, plus de réflexion de haut niveau. En pratique, ça crée de nouveaux problèmes. La _review fatigue_ est réelle. Douze diffs parallèles en fin de journée, c'est épuisant — d'une façon différente, mais tout aussi épuisant qu'écrire du code toute la journée. Les outils les plus matures dans cet espace l'ont compris et travaillent sur le routage d'attention : quel agent a besoin de vous _maintenant_ ?
+
+Il y a aussi la question de la gouvernance. Un agent qui peut parcourir le web, lire une base de données, écrire dans le filesystem et déclencher un déploiement — ce qu'il a le droit de faire devient aussi important que ce qu'il est capable de faire. Ce n'est plus une question de DX, c'est une question d'architecture.
+
+## Ce que j'en retiens, depuis ma position
+
+Je vis cette transition de façon assez concrète en ce moment. J'utilise Claude Code quotidiennement sur mes projets — SpotifAI, ChefRAG, le SQL IDE que j'ai publié en open-source. Et j'ai un principe que je ne lâche pas : je ne valide pas une ligne de code que je ne comprends pas.
+
+Ce principe devient de plus en plus difficile à tenir — pas parce que les agents produisent du mauvais code, mais parce qu'ils en produisent beaucoup, vite, et qu'il est tentant de merger sans vraiment lire. C'est exactement ce que j'appelle le "vibe coding" dans mes articles, et c'est exactement ce que je veux éviter.
+
+La vraie compétence qui émerge dans cet environnement, c'est peut-être ça : savoir _quand_ déléguer, _comment_ formuler une intention précise, et _comment_ relire intelligemment ce qu'un agent produit. Pas juste vérifier que ça compile — comprendre pourquoi c'est structuré comme ça, identifier ce qui est fragile, anticiper ce qui va casser dans six mois.
+
+## L'IDE n'est pas mort. Il est décentré.
+
+La formulation d'Osmani me semble juste : l'IDE n'est pas en train de mourir, il est en train d'être décentré. Ce n'est plus la porte d'entrée principale du travail de développement — c'est un instrument parmi d'autres, qu'on sort quand on a besoin de précision, de compréhension, de chirurgie.
+
+Le centre de gravité se déplace vers des surfaces d'orchestration : tableaux de bord, terminaux enrichis, interfaces de review de diffs, systèmes de routage d'attention pour agents parallèles. Des outils qui ressemblent moins à des éditeurs et plus à des tours de contrôle.
+
+Est-ce que c'est une bonne chose ? Je pense que ça dépend de comment on gère la transition. Si on l'utilise pour monter en abstraction, réfléchir à des niveaux plus élevés, passer moins de temps sur du code mécanique — oui. Si on l'utilise pour valider des milliers de lignes sans les comprendre, en espérant que ça tient — c'est une dette technique d'un nouveau genre qui s'accumule.
+
+Ma femme et moi, on n'a pas encore tranché. Mais on continue d'en parler.
