@@ -1,0 +1,81 @@
+---
+title: "Garmin Connector for Airbyte"
+description: "Connecteur source Airbyte custom pour Garmin Connect. Extrait activités sportives, métriques de santé quotidiennes et événements calendrier vers n'importe quelle destination Airbyte — implémenté from scratch sans le CDK officiel."
+github: "jeremy6680/airbyte-source-garmin"
+demo: "https://hub.docker.com/r/jeremy6680/source-garmin"
+tags:
+  - Python
+  - Airbyte
+  - Docker
+  - ELT
+stack: ["Python", "Airbyte", "Docker", "garminconnect", "pandas", "pydantic"]
+status: "actif"
+cover: "../../assets/project-airbyte-garmin.png"
+year: 2026
+order: 0
+---
+
+## Contexte
+
+Ce projet est né d'une semaine de formation DataBird consacrée à l'ingestion de données — Airbyte et Fivetran. Airbyte permet de créer des connecteurs custom, et il n'en existait pas pour Garmin Connect dans le catalogue officiel.
+
+**Contrainte principale :** Garmin ne propose pas d'API publique ni de flux OAuth standard. L'authentification repose sur un scraping SSO via la librairie Python `garminconnect`. Le connecteur est donc positionné comme un outil **auto-hébergé uniquement** — cette limitation est documentée explicitement dans le README.
+
+## Fonctionnalités
+
+Le connecteur expose trois streams, chacun mappé sur une source de données Garmin distincte.
+
+**`activities`** — une ligne par activité sportive (course, vélo, natation, etc.). Conversions d'unités appliquées : mètres → km, secondes → minutes, m/s → min/km. Sanity checks physiologiques sur la FC, la VO2max et l'effet d'entraînement. Sync modes : `full_refresh` et `incremental` (curseur sur `activity_date`).
+
+**`daily_health`** — une ligne par jour calendaire. Agrège pas, FC au repos, HRV, durée de sommeil, Body Battery, stress moyen. Appel `get_user_summary(date)` par jour — 30 appels pour une fenêtre de 30 jours. Sync modes : `full_refresh` et `incremental` (curseur sur `date`).
+
+**`calendar_events`** — courses et événements à venir du calendrier Garmin. Fenêtre `lookback_days` + 365 jours forward pour capturer les inscriptions futures. `event_id` synthétique généré par hash car l'API retourne `null` pour le champ `id` des événements. `full_refresh` uniquement.
+
+## Stack technique
+
+L'ensemble du protocole Airbyte est implémenté **sans le CDK officiel** — les messages `SPEC`, `CHECK`, `CATALOG`, `RECORD`, `STATE` sont émis manuellement sur stdout. Ce choix pédagogique force la compréhension du protocole plutôt que son abstraction.
+
+```bash
+# Commandes CLI exposées par le connecteur
+python main.py spec
+python main.py check   --config /secrets/config.json
+python main.py discover --config /secrets/config.json
+python main.py read    --config /secrets/config.json --catalog /secrets/catalog.json
+```
+
+La persistance de session OAuth évite de retrigger le SSO Garmin à chaque sync — le token est sérialisé dans un fichier JSON et rechargé via `client.client.dump()` / `client.client.load()` (syntaxe spécifique à `garminconnect` 0.3.x).
+
+## Tests
+
+99 tests unitaires répartis sur `test_auth.py` (14 tests), `test_streams.py` (85 tests) et `test_utils.py` (8 tests). Stratégie : mock uniquement à la frontière réseau (`garminconnect.Garmin`), toute la logique de transformation tourne pour de vrai avec des fixtures JSON. `time.sleep` patché pour une suite sub-seconde malgré les tests du backoff 30s/60s/120s.
+
+## Utilisation avec Docker
+
+```bash
+# Depuis Docker Hub (pas de build local)
+docker pull jeremy6680/source-garmin:latest
+
+# Spec
+docker run --rm jeremy6680/source-garmin:latest spec
+
+# Check credentials
+docker run --rm \
+  -v $(pwd)/secrets:/secrets \
+  jeremy6680/source-garmin:latest \
+  check --config /secrets/config.json
+
+# Sync (avec session persistée)
+docker run --rm \
+  -v $(pwd)/secrets:/secrets \
+  -v /tmp:/tmp \
+  jeremy6680/source-garmin:latest \
+  read --config /secrets/config.json --catalog /secrets/catalog.json
+```
+
+## Ce que ce projet démontre
+
+- Maîtrise du protocole Airbyte : spec, check, discover, read, STATE management
+- Packaging Docker : image autonome, volumes, entrypoint CLI
+- Python avancé : classes abstraites, Pydantic v2, gestion de session, retry avec backoff exponentiel
+- Pensée ELT : séparation extraction / transformation, schémas JSON, sync modes
+- Documentation honnête : contraintes d'authentification documentées, décisions architecturales tracées dans `DECISIONS.md` (24 ADRs)
