@@ -68,7 +68,7 @@ export const SITE_METADATA = {
 /**
  * Default posts per page for pagination.
  */
-export const ITEMS_PER_PAGE = 5;
+export const ITEMS_PER_PAGE = 10;
 
 /**
  * Navigation items.
@@ -83,7 +83,7 @@ export type NavItem = NavLink | NavDropdown;
 
 export const NAVIGATION: NavItem[] = [
   { href: "/", title: "nav.home" },
-  { href: "/journal", title: "nav.journal" },
+  { href: "/blog", title: "nav.blog" },
   { href: "/projects", title: "nav.projects" },
   { href: "/about", title: "nav.about" },
   { href: "/contact", title: "nav.contact" },

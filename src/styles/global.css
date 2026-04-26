@@ -79,6 +79,59 @@
   }
 }
 
+/* ============================================================
+   Design System — Typography Scale
+   Classes sémantiques réutilisables sur tous les layouts/pages.
+   Modifier ici pour impacter tout le site en un seul endroit.
+   ============================================================ */
+@layer components {
+
+  /* --- H1 de page (titre principal de chaque page/section) ---
+     Utilisé dans : PageTitle, ListLayout, ListWithTagsLayout,
+                    AuthorLayout, about.astro
+  */
+  .page-title {
+    @apply text-4xl font-extrabold leading-tight tracking-tight
+           text-gray-900 dark:text-gray-100
+           sm:text-5xl
+           md:text-6xl;
+  }
+
+  /* --- Titre d'article dans les listes (H2/H3 selon contexte) ---
+     Utilisé dans : LatestPostsSection, ListLayout, ListWithTagsLayout
+  */
+  .article-title {
+    @apply text-xl font-bold leading-snug tracking-tight
+           text-gray-900 dark:text-gray-100
+           sm:text-2xl;
+  }
+
+  /* --- Sous-titre de section (H2 interne, noms, blocs) ---
+     Utilisé dans : AuthorLayout, ProjectsSection, AboutTeaser
+  */
+  .section-title {
+    @apply text-2xl font-bold tracking-tight
+           text-gray-900 dark:text-gray-100;
+  }
+
+  /* --- Méta-données (dates, labels discrets) ---
+     gray-600/gray-300 : contraste WCAG AA garanti sur blanc et fond sombre.
+     Utilisé dans : ListPostCover, ListWithTagsLayout, LatestPostsSection
+  */
+  .meta-text {
+    @apply text-sm font-medium leading-6
+           text-gray-600 dark:text-gray-300;
+  }
+
+  /* --- Résumé / description / corps de texte secondaire ---
+     Utilisé dans : résumés d'articles, descriptions de projets
+  */
+  .summary-text {
+    @apply text-base leading-7
+           text-gray-600 dark:text-gray-300;
+  }
+}
+
 /* Filter chips — active state on the journal page */
 .filter-chip[data-active="true"] {
   border-color: var(--color-primary-400);

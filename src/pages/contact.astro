@@ -7,17 +7,19 @@ import Breadcrumbs from "@/components/Breadcrumbs.astro";
   title="Contact — Jérémy Marchandeau"
   description="Envie d'échanger sur la data, l'IA, le développement web ou l'open source ? Je suis là."
 >
-  <div class="space-y-2 pb-8 pt-6">
-    <Breadcrumbs items={[{ label: "Accueil", href: "/" }, { label: "Contact" }]} />
-    <h1 class="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl">
-      Contact
-    </h1>
-    <p class="text-lg leading-7 text-gray-500 dark:text-gray-400">
-      Une question, une idée, une collaboration ? Je suis ouvert.
-    </p>
+  <div class="divide-y divide-gray-200 dark:divide-gray-700">
+    <div class="space-y-2 pb-8 pt-6 md:space-y-5">
+      <Breadcrumbs items={[{ label: "Accueil", href: "/" }, { label: "Contact" }]} />
+      <h1 class="page-title">
+        Contact
+      </h1>
+      <p class="summary-text text-lg">
+        Une question, une idée, une collaboration ? Je suis ouvert.
+      </p>
+    </div>
   </div>
 
-  <div class="border-t border-gray-100 py-12 dark:border-gray-800">
+  <div class="py-12">
     <div class="mx-auto max-w-xl">
 
       <!-- Email -->

@@ -52,7 +52,11 @@ const { Content, headings } = await render(post);
 >
   <SectionContainer>
     <ScrollTopAndComments client:only="solid-js" />
-    <Breadcrumbs items={[{ label: t("nav.home"), href: "/" }, { label: post.data.title }]} />
+    <Breadcrumbs items={[
+      { label: t("nav.home"), href: "/" },
+      { label: t("nav.blog"), href: "/blog" },
+      { label: post.data.title },
+    ]} />
     <article>
       <div class="xl:divide-y xl:divide-gray-200 xl:dark:divide-gray-700">
         <header class="pt-6 xl:pb-6">

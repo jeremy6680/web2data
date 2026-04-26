@@ -18,11 +18,11 @@ const posts = sortBlogPosts(allPosts).slice(0, 5);
 
       <!-- Section header -->
       <div class="flex items-end justify-between">
-        <h2 class="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+        <h2 class="section-title">
           Derniers articles
         </h2>
         <a
-          href="/journal"
+          href="/blog"
           class="hidden text-sm font-medium text-primary-500 transition-colors hover:text-primary-600 sm:block dark:hover:text-primary-400"
         >
           Tous les articles →
@@ -40,7 +40,7 @@ const posts = sortBlogPosts(allPosts).slice(0, 5);
                 <!-- Date -->
                 <time
                   datetime={date.toISOString()}
-                  class="shrink-0 text-sm text-gray-400 dark:text-gray-600 sm:w-32"
+                  class="shrink-0 meta-text sm:w-32"
                 >
                   <FormattedDate date={date} />
                 </time>
@@ -52,10 +52,11 @@ const posts = sortBlogPosts(allPosts).slice(0, 5);
                     class="block transition-colors"
                     aria-label={`Lire l'article : ${title}`}
                   >
-                    <h3 class="font-semibold text-gray-900 transition-colors group-hover:text-primary-500 dark:text-gray-100 dark:group-hover:text-primary-400">
+                    <!-- article-title : cohérent avec les pages blog/journal -->
+                    <h3 class="article-title group-hover:text-primary-500 dark:group-hover:text-primary-400 transition-colors">
                       {title}
                     </h3>
-                    <p class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400">
+                    <p class="mt-1 line-clamp-2 summary-text text-sm">
                       {summary}
                     </p>
                   </a>

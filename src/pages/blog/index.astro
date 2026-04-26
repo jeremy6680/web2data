@@ -1,10 +1,11 @@
 ---
 /**
  * blog/index.astro
- * Main blog listing — rendered at /blog.
- * Passes ALL posts to ListWithTagsLayout to enable full client-side filtering
- * (domain, category, techno, year, search).
- * Paginated routes (/blog/page/N) remain available for bots/RSS via blog/page/[...page].astro.
+ * Page principale du blog — mode "load more".
+ * Tous les articles sont rendus côté serveur dans le DOM.
+ * Le JS masque tout ce qui dépasse 12, et le bouton "Charger plus"
+ * en révèle 12 de plus à chaque clic.
+ * Les filtres (domaine, catégorie, techno, année) fonctionnent sur l'ensemble.
  */
 import { getCollection } from "astro:content";
 import { sortBlogPosts, excludeDrafts } from "@/functions";
@@ -16,29 +17,27 @@ import { useTranslations } from "@/i18n";
 
 const t = useTranslations();
 
-// Fetch all published posts (needed for client-side filtering)
+// Tous les articles publiés — passés à allPosts pour activer le mode load-more
 const allPosts = await getCollection("blog", excludeDrafts).then(sortBlogPosts);
 
-// Build a minimal Page object (required by the layout's Props interface).
-// In filter mode, allPosts overrides page.data, so this is only a structural stub.
-const pageSize = ITEMS_PER_PAGE;
-const total = allPosts.length;
-const lastPage = Math.ceil(total / pageSize);
+// Stub Page requis par l'interface du layout (non utilisé en mode load-more)
+const total    = allPosts.length;
+const lastPage = Math.ceil(total / ITEMS_PER_PAGE);
 
 const page: Page<CollectionEntry<"blog">> = {
-  data: allPosts.slice(0, pageSize), // not used in filter mode
+  data: allPosts,
   start: 0,
-  end: Math.min(pageSize, total) - 1,
+  end: total - 1,
   total,
   currentPage: 1,
-  size: pageSize,
+  size: total,
   lastPage,
   url: {
     current: "/blog",
-    next: lastPage > 1 ? "/blog/page/2" : undefined,
+    next: undefined,
     prev: undefined,
     first: "/blog",
-    last: lastPage > 1 ? `/blog/page/${lastPage}` : "/blog",
+    last: "/blog",
   },
 };
 ---
@@ -48,4 +47,8 @@ const page: Page<CollectionEntry<"blog">> = {
   description={t("pages.blog.description")}
   page={page}
   allPosts={allPosts}
+  breadcrumbs={[
+    { label: t("nav.home"), href: "/" },
+    { label: t("nav.blog") },
+  ]}
 />

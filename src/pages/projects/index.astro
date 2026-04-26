@@ -38,10 +38,10 @@ const projectsWithStars = await Promise.all(
   <div class="divide-y divide-gray-200 dark:divide-gray-700">
     <div class="space-y-2 pb-8 pt-6 md:space-y-5">
       <Breadcrumbs items={[{ label: t("nav.home"), href: "/" }, { label: t("nav.projects") }]} />
-      <h1 class="text-3xl font-extrabold leading-9 tracking-tight text-gray-900 dark:text-gray-100 sm:text-4xl sm:leading-10 md:text-6xl md:leading-14">
+      <h1 class="page-title">
         {t("pages.projects.allProjects")}
       </h1>
-      <p class="text-lg leading-7 text-gray-500 dark:text-gray-400">
+      <p class="summary-text text-lg">
         {t("pages.projects.showcase")}
       </p>
     </div>
@@ -82,14 +82,14 @@ const projectsWithStars = await Promise.all(
               </div>
 
               <!-- Title → fiche projet -->
-              <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 <a href={`/projects/${project.id}`} class="transition-colors hover:text-primary-500 dark:hover:text-primary-400">
                   {project.data.title}
                 </a>
               </h2>
 
               <!-- Description -->
-              <p class="mt-2 flex-1 text-sm leading-6 text-gray-600 dark:text-gray-400">
+              <p class="mt-2 flex-1 summary-text text-sm leading-6">
                 {project.data.description}
               </p>
 
