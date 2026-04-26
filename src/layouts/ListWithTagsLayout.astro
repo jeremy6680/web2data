@@ -19,22 +19,44 @@ interface Props {
   title: string;
   description: string;
   titleTemplate?: string;
+  /**
+   * page: used for paginated routes (/blog/page/N).
+   * When allPosts is provided, the layout switches to full client-side filtering mode
+   * and ignores page.data in favour of allPosts.
+   */
   page: Page<CollectionEntry<"blog">>;
   robots?: string;
   breadcrumbs?: BreadcrumbItem[];
   filteredPosts?: CollectionEntry<"blog">[];
+  /** Pass all posts to enable full client-side filtering (domain, category, techno, year) */
+  allPosts?: CollectionEntry<"blog">[];
 }
 
-const technos = await getCollection("technos");
-const allPosts = await getCollection("blog");
+const technos   = await getCollection("technos");
+const domaines  = await getCollection("domaines");
+const categories = await getCollection("categories");
+const allBlogPosts = await getCollection("blog");
 
-const { title, description, robots, page, titleTemplate, breadcrumbs, filteredPosts } = Astro.props;
-const postsForSidebar = filteredPosts ?? allPosts;
+const {
+  title, description, robots, page, titleTemplate,
+  breadcrumbs, filteredPosts,
+  allPosts: allPostsProp,
+} = Astro.props;
 
-function technoCount(id: CollectionEntry<"technos">["id"]) {
-  return postsForSidebar.filter((post) => post.data.technos.some((ref) => ref.id === id))
-    .length;
-}
+// In filter mode, use allPostsProp; otherwise fall back to the paginated page.data
+const isFilterMode = Boolean(allPostsProp);
+const postsToRender: CollectionEntry<"blog">[] = allPostsProp ?? page.data;
+const postsForSidebar = filteredPosts ?? allBlogPosts;
+
+// ── Compute which filter values are actually used ──────────────────────────
+const usedDomaineIds  = new Set(postsToRender.map((p) => p.data.domaine?.id).filter(Boolean));
+const usedCategoryIds = new Set(postsToRender.map((p) => p.data.category?.id).filter(Boolean));
+const usedTechnoIds   = new Set(postsToRender.flatMap((p) => p.data.technos.map((t) => t.id)));
+const usedYears       = [...new Set(postsToRender.map((p) => p.data.date.getFullYear()))].sort((a, b) => b - a);
+
+const filteredDomaines   = domaines.filter((d) => usedDomaineIds.has(d.id));
+const filteredCategories = categories.filter((c) => usedCategoryIds.has(c.id));
+const filteredTechnos    = technos.filter((t) => usedTechnoIds.has(t.id));
 
 function isSamePath(path: string) {
   return Astro.url.pathname === path;
@@ -54,12 +76,199 @@ const isBlogPage = Astro.url.pathname === "/" || Astro.url.pathname.startsWith("
       </h1>
       {hasDefaultSlot && <slot />}
     </div>
-    <div class="flex sm:space-x-24">
-      <div>
-        <ul>
+    {/* ── Filter toggle bar ── */}
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <button
+        id="filter-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="filter-panel"
+        data-label-show={t("layouts.listWithTagsLayout.showFilters")}
+        data-label-hide={t("layouts.listWithTagsLayout.hideFilters")}
+        class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L13 10.414V15a1 1 0 01-.553.894l-4 2A1 1 0 017 17v-6.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+        </svg>
+        <span id="filter-toggle-label">{t("layouts.listWithTagsLayout.showFilters")}</span>
+        <svg id="filter-chevron" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+        </svg>
+      </button>
+
+      {/* Search input */}
+      <div class="relative flex-1 max-w-xs">
+        <label for="post-search" class="sr-only">{t("layouts.listWithTagsLayout.searchLabel")}</label>
+        <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+          </svg>
+        </span>
+        <input
+          id="post-search"
+          type="search"
+          placeholder={t("layouts.listWithTagsLayout.searchPlaceholder")}
+          class="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+        />
+      </div>
+
+      {/* Live "no result" feedback */}
+      <p id="search-no-result" class="hidden text-sm text-gray-500 dark:text-gray-400" aria-live="polite">
+        {t("layouts.listWithTagsLayout.searchNoResult")}
+      </p>
+    </div>
+
+    {/* ── Collapsible filter panel (hidden by default) ── */}
+    <div
+      id="filter-panel"
+      hidden
+      class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/70"
+    >
+      <div class="space-y-3">
+
+        {/* ── Domaines ── */}
+        {isFilterMode && filteredDomaines.length > 0 && (
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">
+              {t("layouts.postLayout.domaine")}
+            </span>
+            <button
+              data-filter-group="domain" data-filter-value="" data-active="true"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+            >
+              {t("layouts.listWithTagsLayout.filterAll")}
+            </button>
+            {filteredDomaines.map((d) => (
+              <button
+                data-filter-group="domain" data-filter-value={d.id} data-active="false"
+                class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+              >
+                {d.data.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Catégories ── */}
+        {isFilterMode && filteredCategories.length > 0 && (
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">
+              {t("layouts.postLayout.category")}
+            </span>
+            <button
+              data-filter-group="category" data-filter-value="" data-active="true"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+            >
+              {t("layouts.listWithTagsLayout.filterAll")}
+            </button>
+            {filteredCategories.map((c) => (
+              <button
+                data-filter-group="category" data-filter-value={c.id} data-active="false"
+                class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+              >
+                {c.data.name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* ── Technos ── */}
+        {filteredTechnos.length > 0 && (
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">
+              {t("layouts.postLayout.technos")}
+            </span>
+            {isFilterMode ? (
+              <>
+                <button
+                  data-filter-group="techno" data-filter-value="" data-active="true"
+                  class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                >
+                  {t("layouts.listWithTagsLayout.filterAll")}
+                </button>
+                {filteredTechnos.map(({ id, data }) => (
+                  <button
+                    data-filter-group="techno" data-filter-value={id} data-active="false"
+                    class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+                  >
+                    {data.name}
+                  </button>
+                ))}
+              </>
+            ) : (
+              /* Non-filter mode: links to /technos/[id] pages */
+              filteredTechnos.map(({ id, data }) => (
+                isSamePath(`/technos/${id}`) ? (
+                  <span class="inline-block rounded-full bg-primary-100 px-3 py-1 text-xs font-bold uppercase text-primary-600 dark:bg-primary-900/30 dark:text-primary-400">
+                    {data.name}
+                  </span>
+                ) : (
+                  <Link
+                    href={`/technos/${id}`}
+                    class="inline-block rounded-full px-3 py-1 text-xs font-medium uppercase text-gray-500 transition-colors hover:bg-primary-100 hover:text-primary-600 dark:text-gray-400 dark:hover:bg-primary-900/30 dark:hover:text-primary-400"
+                    aria-label={`Voir les articles avec la techno ${data.name}`}
+                  >
+                    {data.name}
+                  </Link>
+                )
+              ))
+            )}
+          </div>
+        )}
+
+        {/* ── Années ── */}
+        {isFilterMode && usedYears.length > 1 && (
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="shrink-0 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-600">
+              {t("layouts.listWithTagsLayout.filterYear")}
+            </span>
+            <button
+              data-filter-group="year" data-filter-value="" data-active="true"
+              class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+            >
+              {t("layouts.listWithTagsLayout.filterAll")}
+            </button>
+            {usedYears.map((year) => (
+              <button
+                data-filter-group="year" data-filter-value={String(year)} data-active="false"
+                class="filter-chip rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400"
+              >
+                {year}
+              </button>
+            ))}
+          </div>
+        )}
+
+      </div>
+    </div>
+
+    {/* ── Post list ── */}
+    <div class="flex">
+      <div class="w-full">
+        {/* Counter — only shown in filter mode */}
+        {isFilterMode && (
+          <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">
+            <span id="post-count">{postsToRender.length} articles</span>
+          </p>
+        )}
+
+        {/* Empty state */}
+        <p id="empty-state" hidden class="py-12 text-center text-sm text-gray-400 dark:text-gray-600">
+          {t("layouts.listWithTagsLayout.searchNoResult")}
+        </p>
+
+        <ul id="post-list">
           {
-            page.data.map(({ id, data: { date, title, summary, technos: postTechnos, domaine: domaineRef, category: catRef } }) => (
-              <li class="py-5">
+            postsToRender.map(({ id, data: { date, title, summary, technos: postTechnos, domaine: domaineRef, category: catRef } }) => (
+              <li
+                class="post-item py-5"
+                data-title={title.toLowerCase()}
+                data-summary={(summary ?? "").toLowerCase()}
+                data-domain={domaineRef?.id ?? ""}
+                data-category={catRef?.id ?? ""}
+                data-technos={postTechnos.map((t) => t.id).join(" ")}
+                data-year={String(date.getFullYear())}
+              >
                 <article class="space-y-2 flex flex-col xl:space-y-0">
                   <dl>
                     <dt class="sr-only">
@@ -98,47 +307,94 @@ const isBlogPage = Astro.url.pathname === "/" || Astro.url.pathname.startsWith("
         </ul>
         {(page.url.next || page.url.prev) && <Pagination page={page} />}
       </div>
-      <div
-        class="hidden max-h-screen h-full sm:flex flex-wrap bg-gray-50 dark:bg-gray-900/70 shadow-md pt-5 dark:shadow-gray-800/40 rounded min-w-[280px] max-w-[280px] overflow-auto"
-      >
-        <div class="py-4 px-6">
-          {
-            isBlogPage ? (
-              <h3 class="text-primary-500 font-bold uppercase">
-                {t("layouts.listWithTagsLayout.allPosts")}
-              </h3>
-            ) : (
-              <Link
-                href="/blog"
-                class="font-bold uppercase text-gray-700 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-500"
-              >
-                {t("layouts.listWithTagsLayout.allPosts")}
-              </Link>
-            )
-          }
-          <ul>
-            {
-              technos.filter(({ id }) => technoCount(id) > 0).map(({ id, data }) => (
-                <li class="my-3">
-                  {isSamePath(`/technos/${id}`) ? (
-                    <h3 class="inline py-2 px-3 uppercase text-sm font-bold text-primary-500">
-                      {`${data.name} (${technoCount(id)})`}
-                    </h3>
-                  ) : (
-                    <Link
-                      href={`/technos/${id}`}
-                      class="py-2 px-3 uppercase text-sm font-medium text-gray-500 dark:text-gray-300 hover:text-primary-500 dark:hover:text-primary-500"
-                      aria-label={`Voir les articles avec la techno ${data.name}`}
-                    >
-                      {`${data.name} (${technoCount(id)})`}
-                    </Link>
-                  )}
-                </li>
-              ))
-            }
-          </ul>
-        </div>
-      </div>
     </div>
   </div>
 </RootLayout>
+
+<script>
+  type FilterGroup = "domain" | "category" | "techno" | "year";
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const filterState: Record<FilterGroup, string> = { domain: "", category: "", techno: "", year: "" };
+  let searchQuery = "";
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function applyAll() {
+    let visible = 0;
+    const postItems = document.querySelectorAll<HTMLLIElement>(".post-item");
+
+    postItems.forEach((item) => {
+      // Search match
+      const q = searchQuery.toLowerCase();
+      const searchMatch =
+        !q ||
+        (item.dataset.title?.includes(q) ?? false) ||
+        (item.dataset.summary?.includes(q) ?? false);
+
+      // Filter chips match
+      const technoStr = item.dataset.technos ?? "";
+      const technoList = technoStr ? technoStr.split(" ") : [];
+      const filterMatch =
+        (!filterState.domain   || item.dataset.domain   === filterState.domain) &&
+        (!filterState.category || item.dataset.category === filterState.category) &&
+        (!filterState.techno   || technoList.includes(filterState.techno)) &&
+        (!filterState.year     || item.dataset.year     === filterState.year);
+
+      item.hidden = !(searchMatch && filterMatch);
+      if (!item.hidden) visible++;
+    });
+
+    // Update counter if present
+    const counter = document.getElementById("post-count");
+    if (counter) counter.textContent = `${visible} article${visible !== 1 ? "s" : ""}`;
+
+    // Toggle empty state
+    const emptyState = document.getElementById("empty-state");
+    if (emptyState) emptyState.hidden = visible > 0;
+
+    // Toggle "no result" message (search bar)
+    const noResultMsg = document.getElementById("search-no-result");
+    if (noResultMsg) noResultMsg.classList.toggle("hidden", visible > 0);
+  }
+
+  function setFilter(group: FilterGroup, value: string) {
+    // Clicking the active chip resets that group to "all"
+    filterState[group] = filterState[group] === value && value !== "" ? "" : value;
+    document.querySelectorAll<HTMLElement>(`[data-filter-group="${group}"]`).forEach((chip) => {
+      chip.dataset.active = String((chip.dataset.filterValue ?? "") === filterState[group]);
+    });
+    applyAll();
+  }
+
+  // ── Filter panel toggle ────────────────────────────────────────────────────
+  const toggleBtn   = document.getElementById("filter-toggle") as HTMLButtonElement | null;
+  const filterPanel = document.getElementById("filter-panel") as HTMLElement | null;
+  const chevron     = document.getElementById("filter-chevron") as HTMLElement | null;
+  const toggleLabel = document.getElementById("filter-toggle-label") as HTMLElement | null;
+
+  const labelShow = toggleBtn?.dataset.labelShow ?? "Filtrer";
+  const labelHide = toggleBtn?.dataset.labelHide ?? "Masquer les filtres";
+
+  toggleBtn?.addEventListener("click", () => {
+    const isOpen    = toggleBtn.getAttribute("aria-expanded") === "true";
+    const nextState = !isOpen;
+    toggleBtn.setAttribute("aria-expanded", String(nextState));
+    filterPanel?.toggleAttribute("hidden", !nextState);
+    chevron?.classList.toggle("rotate-180", nextState);
+    if (toggleLabel) toggleLabel.textContent = nextState ? labelHide : labelShow;
+  });
+
+  // ── Filter chips ──────────────────────────────────────────────────────────
+  document.querySelectorAll<HTMLElement>("[data-filter-group]").forEach((chip) => {
+    chip.addEventListener("click", () => {
+      setFilter(chip.dataset.filterGroup as FilterGroup, chip.dataset.filterValue ?? "");
+    });
+  });
+
+  // ── Search ────────────────────────────────────────────────────────────────
+  const searchInput = document.getElementById("post-search") as HTMLInputElement | null;
+  searchInput?.addEventListener("input", () => {
+    searchQuery = searchInput.value.trim();
+    applyAll();
+  });
+</script>

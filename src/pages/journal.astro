@@ -41,8 +41,46 @@ const technos = allTechnos.filter((t) => usedTechnoIds.has(t.id));
     </p>
   </div>
 
-  <!-- Filters -->
-  <div class="border-t border-gray-100 py-6 dark:border-gray-800">
+  <!-- Filter toolbar: toggle button + search input -->
+  <div class="flex flex-wrap items-center gap-3 border-t border-gray-100 py-4 dark:border-gray-800">
+    <!-- Toggle button -->
+    <button
+      id="filter-toggle"
+      type="button"
+      aria-expanded="false"
+      aria-controls="filter-panel"
+      class="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+    >
+      <!-- Filter icon -->
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L13 10.414V15a1 1 0 01-.553.894l-4 2A1 1 0 017 17v-6.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+      </svg>
+      <span id="filter-toggle-label">Filtrer</span>
+      <!-- Chevron — rotates when open -->
+      <svg id="filter-chevron" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform duration-200" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+      </svg>
+    </button>
+
+    <!-- Search input -->
+    <div class="relative flex-1 max-w-sm">
+      <label for="journal-search" class="sr-only">Rechercher un article</label>
+      <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400" aria-hidden="true">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+        </svg>
+      </span>
+      <input
+        id="journal-search"
+        type="search"
+        placeholder="Rechercher..."
+        class="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
+      />
+    </div>
+  </div>
+
+  <!-- Filters (collapsed by default) -->
+  <div id="filter-panel" hidden class="border-t border-gray-100 py-6 dark:border-gray-800">
     <div class="space-y-4">
 
       <!-- Domaines -->
@@ -128,6 +166,8 @@ const technos = allTechnos.filter((t) => usedTechnoIds.has(t.id));
           data-category={category?.id ?? ""}
           data-technos={technoIds}
           data-year={String(date.getFullYear())}
+          data-title={title.toLowerCase()}
+          data-summary={(summary ?? "").toLowerCase()}
           class="group border-b border-gray-100 py-7 dark:border-gray-800"
         >
           <div class="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-6">
@@ -198,20 +238,33 @@ const technos = allTechnos.filter((t) => usedTechnoIds.has(t.id));
   type FilterGroup = "domain" | "category" | "techno" | "year";
 
   const state: Record<FilterGroup, string> = { domain: "", category: "", techno: "", year: "" };
+  // Search query, separate from filter state
+  let searchQuery = "";
 
   function applyFilters() {
     let visible = 0;
     document.querySelectorAll<HTMLElement>("[data-post]").forEach((post) => {
       const technoStr = post.dataset.technos ?? "";
       const technos = technoStr ? technoStr.split(" ") : [];
-      const match =
+
+      // Filter chips match
+      const filterMatch =
         (!state.domain   || post.dataset.domain   === state.domain) &&
         (!state.category || post.dataset.category === state.category) &&
         (!state.techno   || technos.includes(state.techno)) &&
         (!state.year     || post.dataset.year     === state.year);
-      post.hidden = !match;
-      if (match) visible++;
+
+      // Search match (title + summary stored in data attributes)
+      const q = searchQuery.toLowerCase();
+      const searchMatch =
+        !q ||
+        (post.dataset.title?.toLowerCase().includes(q) ?? false) ||
+        (post.dataset.summary?.toLowerCase().includes(q) ?? false);
+
+      post.hidden = !(filterMatch && searchMatch);
+      if (!post.hidden) visible++;
     });
+
     const counter = document.getElementById("post-count");
     if (counter) counter.textContent = `${visible} article${visible !== 1 ? "s" : ""}`;
     const emptyState = document.getElementById("empty-state");
@@ -219,7 +272,7 @@ const technos = allTechnos.filter((t) => usedTechnoIds.has(t.id));
   }
 
   function setFilter(group: FilterGroup, value: string) {
-    // clicking the active value resets to "all"
+    // Clicking the active value resets it to "all"
     state[group] = state[group] === value && value !== "" ? "" : value;
     document.querySelectorAll<HTMLElement>(`[data-filter-group="${group}"]`).forEach((chip) => {
       chip.dataset.active = String((chip.dataset.filterValue ?? "") === state[group]);
@@ -227,9 +280,34 @@ const technos = allTechnos.filter((t) => usedTechnoIds.has(t.id));
     applyFilters();
   }
 
+  // Attach click listeners to filter chips
   document.querySelectorAll<HTMLElement>("[data-filter-group]").forEach((chip) => {
     chip.addEventListener("click", () => {
       setFilter(chip.dataset.filterGroup as FilterGroup, chip.dataset.filterValue ?? "");
     });
+  });
+
+  // ── Filter panel toggle ─────────────────────────────────────────────────────
+  const toggleBtn   = document.getElementById("filter-toggle") as HTMLButtonElement | null;
+  const filterPanel = document.getElementById("filter-panel") as HTMLElement | null;
+  const chevron     = document.getElementById("filter-chevron") as HTMLElement | null;
+  const toggleLabel = document.getElementById("filter-toggle-label") as HTMLElement | null;
+
+  toggleBtn?.addEventListener("click", () => {
+    const isOpen    = toggleBtn.getAttribute("aria-expanded") === "true";
+    const nextState = !isOpen;
+
+    toggleBtn.setAttribute("aria-expanded", String(nextState));
+    filterPanel?.toggleAttribute("hidden", !nextState);
+    chevron?.classList.toggle("rotate-180", nextState);
+    if (toggleLabel) toggleLabel.textContent = nextState ? "Masquer les filtres" : "Filtrer";
+  });
+
+  // ── Live search ────────────────────────────────────────────────────────────────
+  const searchInput = document.getElementById("journal-search") as HTMLInputElement | null;
+
+  searchInput?.addEventListener("input", () => {
+    searchQuery = searchInput.value.trim();
+    applyFilters();
   });
 </script>
