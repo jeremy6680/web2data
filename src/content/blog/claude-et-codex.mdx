@@ -1,0 +1,66 @@
+---
+title: "Claude + Codex : j'ai craqué, et je ne le regrette pas"
+summary: "J'ai fini par prendre un abonnement Codex en parallèle de Claude Code. Non pas parce que l'un est meilleur que l'autre, mais parce qu'ils sont complémentaires. Voici comment j'utilise les deux au quotidien."
+postLayout: column
+date: "2026-04-18"
+lastmod: "2026-04-18"
+draft: false
+domaine: ia
+category: rex
+technos:
+  - claude-code
+  - codex
+  - python
+---
+
+Ça y est, j'ai craqué.
+
+Pendant un bon moment, j'ai résisté. J'avais déjà Claude Code, j'étais plutôt content, ça tournait bien. Rajouter un deuxième abonnement à un autre LLM de développement, ça semblait être le genre de dépense qu'on se justifie un peu trop facilement quand on est geek et qu'on suit l'actu IA de près. Et pourtant — j'ai pris Codex.
+
+Voilà pourquoi, et surtout comment je les utilise ensemble.
+
+## Ce que j'apprécie chez Claude
+
+La première chose qui m'a séduite avec Claude : la qualité de ses réponses. Pas seulement la précision technique, mais la **pertinence contextuelle**. Quand je lui explique une architecture, il comprend les implications, soulève les bonnes questions, propose des alternatives en les justifiant. Il y a une cohérence dans le raisonnement que j'ai du mal à retrouver ailleurs — du moins pour les phases où l'on réfléchit, pas où l'on code.
+
+Ce que j'aime aussi, c'est qu'il me reprend quand je dis des bêtises. C'est le cas dans cet article d'ailleurs — j'avais écrit un premier jet en parlant de "base vectorielle" et de "RAG" pour décrire les Projets Claude Desktop. Claude m'a gentiment recadré, et c'est bien utile.
+
+## Mon workflow en trois temps
+
+### 1. Structurer avec Claude Desktop
+
+Quand je démarre un nouveau projet, je commence toujours par créer un Projet dédié dans Claude Desktop. J'y uploade tout ce qui va permettre à Claude de comprendre le contexte : les fichiers de documentation que je génère systématiquement (`CONTEXT.md`, `STRUCTURE.md`, `NEXT_STEPS.md`, `DECISIONS.md`), éventuellement des extraits de code existant ou des specs.
+
+L’avantage réel, c’est la persistance et la cohérence : je n’ai pas à recoller mon contexte à chaque session, Claude part toujours du même état connu du projet. Et ça, c’est déjà énorme pour maintenir une continuité sur un projet qui s’étale dans le temps.
+
+C'est là que se passe la phase d'**architecture et de réflexion**. Je discute des choix techniques, des patterns à adopter, des arbitrages. Claude propose, j'analyse, on affine ensemble. À l'issue de ces échanges, j'ai une vision claire de ce que je vais construire et dans quel ordre.
+
+C'est le travail que Claude fait le mieux : raisonner, structurer, anticiper les problèmes.
+
+### 2. Implémenter avec Codex
+
+Une fois que l'architecture est posée et les tâches bien définies, je passe dans VS Code avec Codex. Et là, Codex est vraiment efficace : il travaille vite, il produit du code propre, il suit les instructions à la lettre pour peu qu'elles soient bien formulées.
+
+C'est exactement ça le point clé : **Codex a besoin que le travail soit bien cadré en amont**. Si la tâche est floue ou ambiguë, la qualité du résultat en pâtit. Mais quand c'est bien défini — "implémente cette fonction selon ce schéma, avec ces contraintes" — il délivre.
+
+### 3. Déboguer et clarifier avec Claude
+
+Inévitablement, il y a des moments où Codex produit quelque chose que je ne comprends pas, ou s'emmêle dans une logique complexe. Dans ces cas-là, je retourne voir Claude. Je lui colle le code, j'explique ce que j'attendais, et on repart ensemble pour comprendre ce qui se passe.
+
+C'est aussi là que je maintiens mon principe de **no vibe coding** : je ne merge rien que je ne comprends pas. Si le code généré est une boîte noire pour moi, ce n'est pas acceptable — peu importe s'il passe les tests. Claude m'aide à ouvrir cette boîte noire, à la comprendre, à la réécrire si besoin.
+
+## Deux outils complémentaires, pas concurrents
+
+Ce que j'ai réalisé en utilisant les deux en parallèle, c'est qu'ils répondent à des besoins différents. Mettre Claude et Codex en compétition n'a pas beaucoup de sens — c'est un peu comme comparer un architecte et un chef de chantier. Les deux sont indispensables, à des moments différents.
+
+Claude excelle sur la **réflexion, la conception, l'explication**. C'est mon interlocuteur de choix pour penser un système, comprendre un concept, déboguer une logique.
+
+Codex excelle sur **l'exécution rapide de tâches définies**. Une fois que je sais exactement ce que je veux, il le produit efficacement.
+
+Est-ce que ça vaut le double abonnement ? Pour l'usage que j'en fais, oui. Mais je ne vais pas vous vendre une recette universelle — ça dépend entièrement de comment vous travaillez, de vos projets, de votre budget.
+
+## Et vous ?
+
+C'est mon retour d'expérience, et je suis curieux de savoir comment vous gérez ça de votre côté. Vous avez un workflow similaire ? Vous utilisez d'autres outils ? Vous avez tranché pour l'un ou l'autre ?
+
+Les commentaires sont là pour ça.
