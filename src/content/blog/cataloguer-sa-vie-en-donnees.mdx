@@ -1,0 +1,78 @@
+---
+title: "Travelogue : quand l'obsession des données vient des carnets de voyage de mon père"
+summary: "J'ai construit un site pour archiver tous mes voyages et évènements vécus — concerts, matchs, mariages, conférences tech. Un projet né en vibe coding sur Replit, poursuivi avec Codex, et qui m'a rappelé que mon rapport à la data est probablement génétique."
+postLayout: column
+date: "2026-04-25"
+lastmod: "2026-04-25"
+draft: false
+related: []
+domaine: perso
+category: rex
+technos:
+  - react
+  - postgresql
+---
+
+Il y a un truc que j'ai toujours eu du mal à jeter : les souvenirs. Pas au sens sentimental kitsch du terme — enfin, si, un peu — mais surtout au sens très concret du terme. Les photos, les billets, les emails de confirmation d'hôtels. Les vieilles réservations de vols qui traînent dans ma boîte Gmail depuis dix ans. Les albums photos en carton qui s'empilent dans la cave. Ce besoin de garder une trace de tout, de tout archiver, de tout dater.
+
+J'ai mis du temps à comprendre d'où ça venait. Et puis je suis tombé sur les carnets de voyage de mon père.
+
+## Les carnets de mon père
+
+Mon père note tout. Ça, je le savais. Mais quand je lui ai demandé s'il pouvait me retrouver les informations sur les voyages qu'on a effectués quand j'étais petit, j'ai été surpris par la quantité de détails qu'il avait conservés. Chaque voyage de famille, chaque road trip, chaque vol — avec la distance en kilomètres, le temps de trajet, le type d'avion, les escales. Des carnets entiers, remplis à la main, couvrant les années 70 (je n'étais pas né), 80, 90... Précis, méthodiques, exhaustifs.
+
+Quand j'ai commencé à réfléchir à ce projet de travelogue personnel et que je me suis retrouvé à fouiller ma mémoire pour retrouver des voyages vieux de 30 ans, c'est vers ces carnets que je me suis naturellement tourné pour commencer. Et là, j'ai eu un petit moment de révélation : mon obsession pour la data, elle n'est pas née avec Python ou DuckDB. Elle est dans les gènes. Merci, papa.
+
+## Le projet : un travelogue personnel
+
+L'idée est simple. Je voulais un endroit pour lister **tous mes voyages** et **tous les évènements** auxquels j'ai assisté ou participé au fil des années — concerts, matchs de rugby ou de NBA, mariages, WordCamps et autres conférences tech, road trips, vacances. Tout.
+
+Le résultat, c'est [travelogue.jeremymarchandeau.com](https://travelogue.jeremymarchandeau.com/). Le site propose plusieurs vues :
+
+- Une **liste des voyages**, avec les destinations, les dates, les contextes
+- Une **liste des évènements**, du premier match de rugby de la Nouvelle-Zélande que j'ai vu à Mayol au récital de piano auquel j'ai assisté à l'hippodrome de Cagnes-sur-mer la semaine dernière.
+- Une **page de dataviz**, parce que bon, évidemment, accumuler des données sans les visualiser c'est un peu passer à côté de l'essentiel
+
+Retrouver les infos, c'est une enquête à part entière. Je passe au crible mes photos classées par date sur iPhone et iCloud, mes emails de réservation, mes souvenirs. Je discute avec des amis, avec ma famille. Et pour les trucs vraiment anciens, direction les cartons et les carnets de mon père donc.
+
+## Vibe coding total — et j'assume
+
+Je vais être honnête : pour ce projet, je me suis laissé aller à du **vibe coding pur**. J'entends par là : j'ai lancé Replit, j'ai décrit ce que je voulais, et j'ai laissé l'IA générer. Sans trop regarder ce qui se passait sous le capot, du moins au début.
+
+C'est quelque chose que je n'aurais pas fait sur un projet client, ni même sur la plupart de mes projets perso. Sur SpotifAI, ChefRAG ou RugbyDraft, j'applique ma règle : je ne valide pas du code que je ne comprends pas. Mais là, j'avais envie de voir jusqu'où on pouvait aller vite, sans friction, juste en décrivant des intentions.
+
+Replit a bien bossé. Le design qui en est sorti me plaisait vraiment — et ça, c'est souvent le point bloquant du vibe coding : soit tu obtiens quelque chose de fonctionnel mais moche, soit c'est joli mais cassé. Là, j'ai eu de la chance sur les deux tableaux.
+
+Le problème, c'est que Replit en compte gratuit a une limite de tokens. Et j'ai rapidement grillé mon quota.
+
+## Récupérer le projet et poursuivre avec Codex
+
+Une fois le projet récupéré en local, j'ai continué avec **OpenAI Codex** — que j'utilise désormais en complément de Claude Code, notamment quand il s'agit d'itérer rapidement sur des interfaces ou de gérer des fichiers que je ne veux pas trop triturer à la main.
+
+J'ai gardé le même état d'esprit : vibe coding, mais avec un minimum d'attention portée à un point précis. Un seul, mais central.
+
+## La base de données, c'est le cœur
+
+Ce projet repose sur une **base PostgreSQL**, auto-hébergée sur mon VPS Hetzner via Coolify — comme la plupart de mes services. Et c'est là que j'ai décidé de sortir du mode vibe coding et de vraiment réfléchir.
+
+La modélisation de la base de données, c'est ce que tu ne refais pas facilement une fois que les données sont dedans. Un mauvais schéma en amont, c'est des migrations douloureuses, des requêtes tordues et une dataviz bancale. J'ai donc pris le temps de penser les entités proprement : voyages, étapes, évènements, catégories, lieux, dates. Les relations entre elles. Les clés qui permettront d'agréger facilement pour la visualisation.
+
+C'est peut-être l'unique endroit dans ce projet où je suis sorti de l'auto-pilote. Et c'est exactement le bon endroit pour le faire.
+
+## Ce que ça m'a appris (ou confirmé)
+
+Quelques réflexions en vrac après avoir passé du temps sur ce projet :
+
+**Le vibe coding, c'est un outil, pas une méthode.** Sur un projet perso avec un scope clair et un schéma de données bien pensé, ça permet d'aller vite et de garder l'énergie sur ce qui compte. Sur n'importe quoi de plus complexe ou de plus critique, je reviens à ma règle de base : je comprends ce que je valide.
+
+**Le design "gratuit" de Replit a une valeur sous-estimée.** Je m'attendais à repartir avec quelque chose d'à moitié fonctionnel. J'ai eu un truc qui avait de la gueule, et j'ai eu envie de le poursuivre. C'est rare.
+
+**Retrouver des souvenirs, c'est une vraie discipline.** Et franchement, c'est une des parties les plus fun du projet. Chercher une date dans Gmail, recouper avec une photo, appeler un ami pour confirmer l'année — il y a quelque chose d'un peu archéologique là-dedans.
+
+**Mon père était un data engineer avant l'heure.** Et je ne le lui ai pas encore dit, mais je pense qu'il appréciera le compliment.
+
+---
+
+Le projet est encore en cours. Il y a des dizaines d'évènements et de voyages à renseigner, la dataviz est perfectible, et j'ai des idées pour enrichir les pages individuelles. Mais c'est un projet plaisir, sans deadline, sans contrainte. Juste l'envie de garder une trace — et de comprendre, à travers les chiffres et les cartes, à quoi ressemble une vie quand on la visualise.
+
+Tu peux jeter un œil par ici : [travelogue.jeremymarchandeau.com](https://travelogue.jeremymarchandeau.com/).

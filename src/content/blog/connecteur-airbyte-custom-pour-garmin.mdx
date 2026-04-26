@@ -1,0 +1,157 @@
+---
+title: "J'ai créé un connecteur Airbyte custom pour Garmin Connect"
+summary: "Retour d'expérience sur la création d'un connecteur source Airbyte from scratch, sans le CDK officiel, pour extraire des données Garmin Connect vers n'importe quelle destination. Un projet portfolio né d'une semaine de formation DataBird sur l'ingestion de données."
+postLayout: column
+date: "2026-04-26"
+lastmod: "2026-04-26"
+draft: false
+domaine: data
+category: rex
+technos:
+  - python
+  - docker
+  - airbyte
+  - duckdb
+---
+
+Cette semaine au bootcamp Analytics Engineer chez DataBird, on a planché sur les outils d'ingestion de données — notamment Airbyte et Fivetran. Quelques jours pour bien comprendre ce que fait réellement un pipeline ELT moderne avant même de toucher à dbt.
+
+Airbyte m'a particulièrement accroché. Pas seulement parce qu'il est open-source et auto-hébergeable, mais parce qu'on peut **créer ses propres connecteurs**. Et quand j'entends "tu peux faire ça toi-même", j'ai du mal à rester spectateur.
+
+J'ai donc décidé de mettre les mains dans le cambouis sur un cas concret : construire un connecteur source Airbyte pour **Garmin Connect**, pour extraire mes propres données de course à pied et de santé. Le repo est public sur GitHub : [jeremy6680/airbyte-source-garmin](https://github.com/jeremy6680/airbyte-source-garmin). L'image Docker est dispo sur Docker Hub : [jeremy6680/source-garmin](https://hub.docker.com/r/jeremy6680/source-garmin).
+
+## Pourquoi Garmin ?
+
+J'utilise une [montre Garmin depuis bientôt deux ans](/blog/running-et-data). Elle enregistre toutes mes activités, mon sommeil, ma fréquence cardiaque au repos, mon HRV, et j'en passe. Garmin Connect, l'appli web qui centralise tout ça, me laisse voir des graphiques, mais ne me donne pas vraiment accès aux données brutes de façon programmatique.
+
+Il existe bien un catalogue Airbyte officiel avec des dizaines de connecteurs, mais il n'y en a pas pour Garmin Connect. Et pour cause : **Garmin ne propose pas d'API publique officielle**, ni de flux OAuth standard. Leur SSO propriétaire ne rentre dans aucune case. C'est une contrainte réelle, documentée dans le README du projet, et qui explique pourquoi ce connecteur ne sera jamais dans le catalogue Airbyte public — il est conçu pour un usage auto-hébergé uniquement.
+
+La librairie Python `garminconnect` (non officielle, maintenue par la communauté) contourne ça en faisant du scraping SSO. C'est la seule option disponible, et c'est celle que j'ai utilisée.
+
+## Ce que j'ai voulu apprendre
+
+Avant de coder quoi que ce soit, j'ai réfléchi à ce que ce projet devait m'apprendre concrètement. Trois choses :
+
+**Comprendre le protocole Airbyte de l'intérieur.** Il existe un CDK Python officiel qui abstrait le protocole. J'ai délibérément choisi de ne pas l'utiliser. Implémenter moi-même les messages `SPEC`, `CHECK`, `CATALOG`, `RECORD`, `STATE` m'oblige à comprendre ce qui se passe vraiment sous le capot — et ça, c'est bien plus utile pour un entretien Data Engineering que de montrer qu'on a étendu une classe abstraite.
+
+**Packager un outil Python en image Docker.** Un connecteur Airbyte, c'est une image Docker. Airbyte appelle le binaire `python main.py spec`, `python main.py read --config ...`, etc. Il faut que l'image soit autonome et cohérente. C'est une compétence de base en data engineering que je n'avais pas encore pratiquée.
+
+**Gérer l'extraction de données réelles avec toutes leurs impuretés.** Les données Garmin sont loin d'être propres : valeurs nulles, fréquences cardiaques à zéro quand le cardiofréquencemètre n'est pas porté, vitesses aberrantes dues à des bugs GPS, objets imbriqués à aplatir. C'est là que la maîtrise de pandas et des sanity checks fait vraiment la différence.
+
+## Le protocole Airbyte, concrètement
+
+Un connecteur Airbyte source, c'est une interface CLI. Airbyte l'appelle avec quatre commandes :
+
+```bash
+python main.py spec                    # retourne le JSON Schema de configuration
+python main.py check --config ...      # vérifie que les credentials fonctionnent
+python main.py discover --config ...   # liste les streams disponibles
+python main.py read --config ... --catalog ...   # lit et émet les données
+```
+
+Chaque commande écrit sur stdout des lignes JSON, une par ligne, selon un format précis. Un `RECORD` ressemble à ça :
+
+```json
+{"type": "RECORD", "record": {"stream": "activities", "data": {...}}}
+```
+
+Un `STATE` (pour l'incrémental) :
+
+```json
+{
+  "type": "STATE",
+  "state": { "data": { "activities": { "activity_date": "2026-04-20" } } }
+}
+```
+
+Airbyte lit stdout ligne par ligne. C'est pour ça que chaque `print()` doit être `flush=True` — sans ça, Python bufferise et Airbyte attend indéfiniment des records qui sont déjà en mémoire mais pas encore transmis.
+
+## Les trois streams
+
+Le connecteur expose trois streams, chacun mappé sur une source de données Garmin distincte.
+
+**`activities`** : une ligne par activité sportive (course, vélo, natation...). Les données brutes de l'API arrivent avec des unités qui ne correspondent pas à ce qu'on veut exposer : la distance est en mètres, la durée en secondes, la vitesse en m/s. On convertit tout : mètres → km, secondes → minutes, m/s → min/km. On applique aussi des sanity checks physiologiques — une fréquence cardiaque à 0 bpm signifie l'absence de capteur, pas un arrêt cardiaque ; au-delà de 250 bpm, c'est un artefact GPS. Dans les deux cas : `None`.
+
+**`daily_health`** : une ligne par jour, avec les métriques de santé agrégées — nombre de pas, FC au repos, HRV hebdomadaire, durée de sommeil, Body Battery, stress moyen. L'API Garmin n'expose pas un endpoint batch sur une plage de dates : il faut appeler `get_user_summary(date)` jour par jour. Pour une fenêtre de 30 jours, ça fait 30 appels API séquentiels.
+
+**`calendar_events`** : les courses et événements du calendrier Garmin. Full-refresh uniquement, car un événement peut être annulé ou modifié entre deux syncs — l'incrémental n'aurait pas de sens ici. Un détail technique notable : l'API retourne `null` pour le champ `id` des événements de type `event`. J'ai donc généré un `event_id` synthétique via `abs(hash(titre + "|" + date)) % 2**31`.
+
+## La gestion de session Garmin
+
+C'est le point le plus délicat du projet. Garmin rate-limite agressivement les logins SSO : si tu te connectes trop souvent depuis la même IP, tu te fais bloquer temporairement. Dans un contexte de développement avec des dizaines de tests par jour, c'est vite un problème.
+
+La solution : persister le token OAuth dans un fichier JSON après le premier login, et le recharger au lieu de se reconnecter à chaque run.
+
+```python
+# Sauvegarder la session
+client.client.dump(session_file_path)
+
+# Recharger la session
+client.client.load(session_file_path)
+```
+
+Je dis `client.client.dump()` et non `client.garth.dump()` — c'est un détail important. La version 0.3.x de `garminconnect` a renommé l'attribut interne de `garth` à `client`. J'ai découvert ça en production (enfin, en "production locale") : la session semblait se charger correctement, mais les appels à `get_user_summary()` échouaient systématiquement car `display_name` n'était jamais initialisé. Deux heures de debug pour un renommage d'attribut.
+
+La validation du token est aussi plus subtile qu'il n'y paraît. La méthode `get_full_name()` de la librairie renvoie simplement un attribut mis en cache — elle ne fait aucun appel réseau. Pour vraiment valider qu'un token est encore valide, j'appelle l'endpoint `/userprofile-service/socialProfile`, qui fait un vrai appel HTTP et initialise `display_name` au passage.
+
+## Tests unitaires
+
+99 tests unitaires répartis sur `test_auth.py` (14 tests) et `test_streams.py` (85 tests). La stratégie : **mocker uniquement la frontière réseau** — c'est-à-dire `garminconnect.Garmin` — et laisser toute la logique de transformation tourner pour de vrai avec des fixtures JSON.
+
+```python
+# Charger la fixture depuis le disque
+raw = load_fixture("activities.json")
+stream = ActivitiesStream()
+client = MagicMock()
+client.get_activities_by_date.return_value = raw
+
+records = list(stream.read_records(client, make_config(), start_date, end_date))
+```
+
+Les fichiers de fixtures dans `unit_tests/fixtures/` reflètent la forme réelle des réponses de l'API Garmin — avec les cas limites intentionnellement inclus : activité avec `averageHR: 0`, vitesse à `999 m/s`, valeurs nulles partout. Si l'API change un jour, mettre à jour la fixture révèle immédiatement quelles transformations cassent.
+
+`time.sleep` est systématiquement patché pour que la suite tourne en moins d'une seconde, même quand on teste la logique de retry avec backoff exponentiel à 30s/60s/120s.
+
+## Ce que j'ai appris sur le protocole Airbyte
+
+Quelques points qui ne sont pas évidents de prime abord et que je retiens pour les prochains projets.
+
+**Le sync mode `full_refresh` ne doit pas émettre de message `STATE`.** Techniquement le protocole ne l'interdit pas, mais c'est trompeur : Airbyte en mode full-refresh écrase la table de destination et ignore tout état sauvegardé. Émettre un STATE dans ce contexte ne sert à rien et génère des sorties trompeuses dans les logs.
+
+**`check` doit toujours retourner exit code 0.** Même quand la connexion échoue. La réussite ou l'échec se communique via le message `CONNECTION_STATUS` sur stdout, pas via le code de sortie. C'est l'inverse de `read`, où une erreur fatale doit retourner exit code 1.
+
+**`json.dumps(default=str)` comme filet de sécurité dans `_emit()`.** Si un objet `datetime` ou `date` non converti remonte jusqu'à la sérialisation JSON, `json.dumps` lève une `TypeError` et le sync plante. `default=str` convertit silencieusement ces valeurs — une sécurité de dernier recours qui permet au sync de continuer tout en rendant le problème visible dans les logs.
+
+## Charger l'image dans Airbyte local (abctl)
+
+Un point pratique qui m'a pris du temps à comprendre. Airbyte installé via `abctl` tourne dans un cluster KIND (Kubernetes dans Docker). Les images construites avec `docker build` ne sont **pas** automatiquement visibles à l'intérieur du cluster — il faut les importer manuellement.
+
+```bash
+# Builder l'image
+docker build -t source-garmin:dev .
+
+# Exporter en tar
+docker save source-garmin:dev -o /tmp/source-garmin.tar
+
+# Copier dans le nœud KIND
+docker cp /tmp/source-garmin.tar airbyte-abctl-control-plane:/root/source-garmin.tar
+
+# Importer dans le namespace containerd de Kubernetes
+docker exec airbyte-abctl-control-plane \
+  ctr -n k8s.io images import /root/source-garmin.tar
+```
+
+Puis dans l'UI Airbyte (localhost:8000) : Settings → Sources → New connector, Docker image : `source-garmin:dev`. À refaire à chaque rebuild. C'est fastidieux en développement itératif — un registry Docker local (`docker run -d -p 5000:5000 registry:2`) est une meilleure option dès qu'on commence à itérer sérieusement.
+
+## Ce que ce projet m'a appris sur l'ELT en général
+
+Construire un connecteur from scratch, c'est comprendre ce que font vraiment Airbyte et Fivetran sous le capot. Ce ne sont pas des boîtes noires magiques : ce sont des orchestrateurs qui appellent des processus CLI, récupèrent des JSON sur stdout, et les acheminent vers une destination. La complexité est dans les détails — gestion du state, retry, schémas, types de sync — pas dans un algorithme mystérieux.
+
+J'ai aussi compris pourquoi les connecteurs ELT sont séparés de la transformation. Extraire et charger des données brutes, sans les transformer en transit, c'est une décision architecturale forte : si le schéma source change, si tu veux retravailler une métrique, si tu te plantes dans ta logique de calcul — tu peux rejouer la transformation sur les données brutes déjà chargées. Avec une approche ETL classique, tu aurais transformé en transit et tu n'aurais plus rien sur quoi retomber.
+
+Ce connecteur Garmin va maintenant servir dans un projet plus large que je suis en train de construire autour de l'analyse de mes performances de course. Les données seront chargées dans DuckDB via Airbyte, puis transformées avec dbt. Un article là-dessus arrive, promis.
+
+---
+
+**Repo GitHub** : [jeremy6680/airbyte-source-garmin](https://github.com/jeremy6680/airbyte-source-garmin)  
+**Image Docker** : [jeremy6680/source-garmin](https://hub.docker.com/r/jeremy6680/source-garmin)
