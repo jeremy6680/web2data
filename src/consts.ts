@@ -19,7 +19,7 @@ export const SITE_METADATA = {
       site: "", // Add your site id here
       src: "https://cdn.usefathom.com/fathom.js",
     },
-    googleAnalyticsId: "G-F09R652Y2Z", // Add your Google Analytics id here
+    googleAnalyticsId: null, // Add your Google Analytics id here
     metricalApp: null, // Add your Metrical app here
     plausible: {
       domain: "", // Add your domain here
