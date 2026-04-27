@@ -9,7 +9,7 @@ export const SITE_METADATA = {
     "Tutoriels, insights et bonnes pratiques sur le développement web, la data et l'IA.",
   language: "fr_FR", // OG locale format: language_TERRITORY
   theme: "system", // Options: system, light, dark
-  siteUrl: "https://web2data.jeremymarchandeau.com/",
+  siteUrl: "https://web2data.org/",
   siteRepo: "https://github.com/jeremy6680/web2data",
   robots: "index, follow", // Options: index, noindex, follow, nofollow
 
