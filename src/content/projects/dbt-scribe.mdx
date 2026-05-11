@@ -1,0 +1,244 @@
+---
+title: "dbt-scribe"
+description: "Interface de ligne de commande Python qui analyse les projets dbt Core et utilise des LLM pour générer la documentation de modèle manquante, les descriptions de colonnes et les tests dbt, tout en préservant le travail existant."
+github: "jeremy6680/dbt-scribe"
+tags: ["Python", "dbt", "LLM", "BigQuery", "DuckDB"]
+stack:
+  [
+    "dbt Core",
+    "Python",
+    "Anthropic Claude API",
+    "Jinja2",
+    "SQLGlot",
+    "PyYAML",
+    "DuckDB",
+    "BigQuery",
+    "GitHub Actions (CI/CD)",
+  ]
+status: "actif"
+cover: "../../assets/project-dbt-scribe.png"
+year: 2026
+order: 0
+---
+
+## dbt-scribe — Notes de projet
+
+### Ce que j'ai construit
+
+`dbt-scribe` est un outil CLI Python qui automatise la génération de documentation et de tests de qualité de données pour les projets [dbt Core](https://docs.getdbt.com/) à l'aide d'un grand modèle de langage. Il s'installe via pip et expose cinq commandes :
+
+- `dbt-scribe init` — génère un fichier de configuration `dbt-scribe.yml` par défaut à la racine du projet dbt
+- `dbt-scribe docs` — génère uniquement les descriptions des modèles et des colonnes
+- `dbt-scribe tests` — génère uniquement les tests dbt génériques (not_null, unique, accepted_values, relationships)
+- `dbt-scribe generate` — exécute docs et tests en une seule passe
+- `dbt-scribe audit` — affiche la couverture de documentation et de tests par modèle, sans rien générer
+
+L'outil est conçu pour s'intégrer à n'importe quel projet dbt Core existant avec une configuration minimale. Il cible l'architecture medallion trois couches classique (staging / intermediate / marts) et supporte actuellement les adaptateurs DuckDB, BigQuery et PostgreSQL.
+
+La Phase 1 (le MVP fonctionnel) est terminée : les cinq commandes sont implémentées, la suite de tests complète passe, et l'outil a été validé de bout en bout sur un vrai projet dbt BigQuery avec 13 modèles répartis sur les trois couches, atteignant 100 % de couverture de documentation en une seule exécution.
+
+---
+
+### Pourquoi je l'ai construit
+
+La documentation et la couverture de tests sont deux des points de douleur les plus
+chroniques dans les projets dbt. En pratique, elles sont presque toujours incomplètes
+— écrire des descriptions pour chaque modèle et chaque colonne est un travail fastidieux
+et répétitif que les ingénieurs ont tendance à ignorer ou à reporter. Les tests requièrent
+le même type de réflexion mécanique : identifier les clés primaires, signaler les colonnes
+nullables, décider quelles colonnes nécessitent des contraintes de valeurs acceptées.
+
+C'est exactement le genre de travail où un modèle de langage peut apporter une vraie
+valeur : la tâche est bien définie, le contexte (noms de colonnes, expressions SQL, lignage
+upstream) est structuré et disponible, et le format de sortie (YAML) est déterministe.
+L'objectif n'était pas de remplacer le jugement de l'ingénieur, mais de produire une
+première ébauche solide — prête à relire et à commiter, pas à écrire de zéro.
+
+Une motivation secondaire est la constitution d'un portfolio. En tant que développeur web
+en transition vers l'analytics engineering, livrer un outil CLI à l'intersection de dbt
+et des LLMs est une démonstration concrète des deux compétences.
+
+#### Et dbt Power User ?
+
+`dbt Power User` mérite une mention. C'est un plugin VS Code très bien fait, qui propose aussi
+de la génération de doc et de tests via LLM. Si tu travailles seul dans ton éditeur sur un
+projet local, il couvre probablement l'essentiel. Mais les fonctionnalités IA sont derrière
+un abonnement payant, et l'outil n'est pas pensé pour s'intégrer dans un pipeline CI/CD.
+`dbt-scribe` occupe un angle différent : headless, open source, configurable par projet,
+exécutable dans un container ou une GitHub Action sans dépendance à un IDE ou à un SaaS
+tiers.
+
+---
+
+### Vue d'ensemble de l'architecture
+
+Le pipeline est linéaire :
+
+```
+manifest.json
+    → manifest_parser   (extrait le SQL compilé, les colonnes, le lignage, le type d'adaptateur)
+    → yaml_parser       (lit les .yml existants, détecte les descriptions déjà renseignées)
+    → analyzer          (détecte la couche, infère les types de colonnes)
+    → docs_generator    (rend le prompt, appelle le LLM, parse la réponse JSON)
+    → tests_generator   (rend le prompt, appelle le LLM, parse la réponse JSON)
+    → yaml_writer       (crée le .yml from scratch ou fusionne de façon non destructive)
+    → docs_writer       (crée ou complète les fichiers *__docs.md)
+```
+
+Une contrainte clé guide la plupart des décisions de conception : **le manifest est obligatoire**. Les fichiers de modèles dbt contiennent des macros Jinja2 non résolues (ex. `{{ ref('autre_modele') }}`, `{{ source(...) }}`). Celles-ci ne peuvent pas être parsées directement comme du SQL. Le manifest, produit par `dbt compile` ou `dbt run`, contient le SQL entièrement compilé pour chaque modèle — c'est la seule entrée fiable pour l'extraction de colonnes et le contexte LLM. Les fichiers `.sql` bruts ne sont jamais lus.
+
+L'outil doit être exécuté depuis la racine du projet dbt (le répertoire contenant `dbt_project.yml`). Cela est validé au démarrage avant l'exécution de toute commande.
+
+---
+
+### Comment le LLM est utilisé
+
+#### Ce que le LLM reçoit
+
+Pour chaque modèle, un template de prompt Jinja2 est rendu avec le contexte suivant :
+
+- Le nom du modèle et sa couche détectée (staging / intermediate / marts)
+- Le SQL entièrement compilé
+- La liste des colonnes avec leurs types de données (depuis le manifest) et leurs types sémantiques inférés (clé primaire, clé étrangère, enum, booléen, timestamp, métrique, etc.)
+- Quelles colonnes ont déjà une description (pour éviter de les écraser)
+- La configuration du projet (propriétaire, liste de colonnes partagées, seuils de couverture)
+
+Il y a un template de prompt par couche et par type de génération — par exemple, les modèles marts reçoivent un template de documentation en quatre sections (Description et Motivation / Limitations Connues / Responsable Métier / Responsable Technique) tandis que les modèles staging reçoivent un format à description unique plus simple.
+
+#### Ce que le LLM retourne
+
+Tous les appels LLM ont pour instruction de retourner **uniquement du JSON** — pas de préambule, pas de balises markdown, pas d'explication. Le prompt système est explicite : `"Return JSON only: no markdown fences, no commentary, no preamble."` Un échec de parsing JSON déclenche un retry automatique, jusqu'à trois tentatives.
+
+Un appel de documentation retourne quelque chose comme :
+
+```json
+{
+  "model_description": "Modèle staging pour les matchs de rugby depuis api-sports.",
+  "columns": {
+    "fixture_id": "Identifiant unique d'un match de rugby.",
+    "home_team_id": "Identifiant de l'équipe à domicile, clé étrangère vers stg_teams.",
+    "kickoff_at": "Timestamp du coup d'envoi prévu du match, en UTC."
+  },
+  "docs_block_content": "..."
+}
+```
+
+Un appel de génération de tests retourne :
+
+```json
+{
+  "columns": {
+    "fixture_id": [
+      { "not_null": { "name": "fixtures_fixture_id_not_null" } },
+      { "unique": { "name": "fixtures_fixture_id_unique" } }
+    ],
+    "status": [
+      {
+        "accepted_values": {
+          "name": "fixtures_status_accepted_values",
+          "arguments": { "values": ["scheduled", "live", "finished"] }
+        }
+      }
+    ]
+  }
+}
+```
+
+#### Un appel par modèle, pas par colonne
+
+C'est une décision de conception délibérée : le LLM reçoit le modèle entier (toutes les colonnes) en un seul appel. Cela lui donne un contexte inter-colonnes — il peut inférer que `home_score` et `away_score` sont des concepts liés, ou que `fixture_id` est la clé primaire en voyant la liste complète des colonnes. Cela réduit également significativement le coût en API et la latence, par rapport à un appel par colonne.
+
+#### Abstraction du provider
+
+L'intégration LLM est construite derrière une interface abstraite `LLMProvider` avec trois implémentations concrètes : Anthropic Claude (par défaut), OpenAI GPT-4o et Google Gemini. Les trois reçoivent des prompts identiques et retournent un `LLMResponse(content, input_tokens, output_tokens)` normalisé. Le code des générateurs ne sait pas quel provider est actif — il appelle `provider.complete(system_prompt, user_prompt)` et reçoit une chaîne JSON en retour. Le provider est résolu au démarrage depuis `dbt-scribe.yml` et la variable d'environnement correspondante (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY` ou `GOOGLE_API_KEY`).
+
+La température est fixée à 0.2 sur tous les providers pour minimiser la variation créative et maximiser la cohérence des sorties.
+
+#### Garde-fous déterministes appliqués sur la sortie LLM
+
+La sortie du LLM n'est pas utilisée telle quelle. Après parsing, l'outil applique des règles déterministes indépendamment de ce que le modèle a retourné :
+
+- Toute colonne identifiée comme clé primaire reçoit toujours les tests `not_null` + `unique`
+- Toute colonne identifiée comme enum reçoit toujours un placeholder `accepted_values` (avec un commentaire TODO si le LLM n'a pas suggéré de valeurs)
+- Le bloc de documentation marts en quatre sections est assemblé en Python à partir de champs LLM séparés — cela garantit que la structure est toujours respectée, même si le modèle ignore les instructions du template
+
+Ces garde-fous existent parce que les LLMs sont probabilistes : même avec un prompt bien conçu, la conformité au format de sortie n'est pas garantie à 100 % du temps.
+
+#### Fusion non destructive
+
+Quand un fichier `.yml` existe déjà, l'outil le lit en premier et compare son contenu avec la sortie du LLM. Les descriptions existantes (y compris les références `{{ doc("...") }}`) ne sont jamais écrasées sauf si le flag `--force` est passé. Les tests existants sont préservés et les nouveaux sont ajoutés. Cela rend l'outil safe à exécuter de façon répétée sur un projet en évolution.
+
+---
+
+### Difficultés rencontrées et comment elles ont été résolues
+
+**1. Dictionnaires de colonnes vides dans le manifest**
+Quand un modèle dbt n'a pas de fichier `.yml` au moment de la compilation, le manifest peut contenir un dict `columns` vide — dbt n'inclut les colonnes dans le manifest que si elles sont déclarées en YAML. L'outil ne peut pas connaître les noms de colonnes depuis le manifest seul dans ce cas.
+
+Résolution : un fallback a été ajouté avec `sqlglot` pour parser le SQL compilé et extraire la liste des colonnes depuis le SELECT final. Une cascade multi-dialectes a été implémentée (DuckDB → BigQuery → ANSI) pour gérer la syntaxe SQL spécifique à chaque adaptateur. C'est le seul endroit où `sqlglot` est utilisé — il reçoit toujours le SQL compilé depuis le manifest, jamais les fichiers `.sql` bruts.
+
+**2. Guillemets backtick de BigQuery**
+Le SQL BigQuery utilise des identifiants entre backticks (`` `projet.dataset.table` ``). `sqlglot` les rejette sans indication explicite de dialecte, provoquant des échecs de parsing silencieux.
+
+Résolution : le type d'adaptateur est extrait des métadonnées du manifest (`metadata.adapter_type`) et passé comme paramètre `dialect` à `sqlglot`.
+
+**3. Le LLM qui retourne des balises markdown malgré les instructions**
+Certaines réponses LLM enveloppaient le JSON dans des balises ` ```json ... ``` `, faisant échouer `json.loads()`, même quand le prompt système l'interdisait explicitement.
+
+Résolution : une étape de pré-traitement supprime les balises markdown avant le parsing JSON. La logique de retry capture les échecs de parsing restants.
+
+**4. Format de test incorrect généré par le LLM**
+Le prompt du tests_generator demande au LLM d'utiliser le format dbt 1.10.5+ pour les définitions de tests (un dict avec une seule clé — le type de test — dont la valeur est un dict avec une clé `name`). Le LLM retournait parfois des formats plus anciens comme `{"test": "not_null"}` ou des chaînes nues comme `"not_null"`, ou introduisait des tests `dbt_utils` non standards qui n'avaient pas été demandés.
+
+Résolution : une fonction sanitizer filtre la sortie LLM avant l'application des garde-fous déterministes, rejetant toute entrée qui ne se conforme pas au format attendu.
+
+**5. Détection trop agressive des clés primaires**
+La logique initiale de l'analyzer typait toute colonne correspondant à `*_id` comme clé primaire, conduisant à des tests `not_null` + `unique` incorrects sur les colonnes de clés étrangères.
+
+Résolution : la règle a été modifiée pour désigner une colonne comme clé primaire uniquement quand c'est la seule colonne `*_id` du modèle. Les modèles avec plusieurs colonnes `*_id` n'en ont aucune auto-typée comme PK.
+
+**6. Détection de couche échouant sur `mart/` vs `marts/`**
+L'outil détecte la couche depuis le nom pleinement qualifié du modèle (`fqn`) dans le manifest. Le dossier configuré était `marts/` (avec un s), mais certaines structures de projet utilisent `mart/` (sans s). Cela produisait `Layer.UNKNOWN` et causait l'utilisation du mauvais template de prompt.
+
+Résolution : des fallbacks d'orthographe alternative ont été ajoutés à la logique de détection de couche.
+
+**7. Le template quatre sections des marts ignoré par le LLM**
+Le prompt de documentation marts demandait au LLM de retourner quatre champs JSON séparés. Le LLM retournait parfois un seul champ `docs_block_content` à la place, réduisant les quatre sections en prose libre.
+
+Résolution : l'assemblage en quatre sections a été entièrement déplacé dans le code Python. Le LLM est toujours invité à fournir des champs `description_and_motivation` et `known_limitations` séparés, mais la structure finale est toujours construite par le code — le LLM ne peut plus la contourner.
+
+**8. Variable d'environnement non chargée**
+Lors des tests locaux, l'`ANTHROPIC_API_KEY` n'était pas prise en compte malgré sa définition. Deux causes racines : le fichier `.env` utilisait la syntaxe shell `export KEY=value` (incompatible avec `python-dotenv`, qui attend le format simple `KEY=value`), et `load_dotenv()` était appelé trop tard dans la séquence de démarrage, après la validation de config qui vérifie la présence de la clé API.
+
+Résolution : `load_dotenv()` a été déplacé en haut de `cli.py`, avant l'initialisation du groupe Click. Le `.env.example` a été mis à jour pour documenter le format correct sans `export`. Sur macOS, `ANTHROPIC_API_KEY` doit également être définie dans `~/.zprofile` (pas `~/.zshrc`) pour être disponible dans les sessions shell non interactives.
+
+**9. Crash `StopIteration` dans l'application des tests de clé primaire**
+La fonction chargée de garantir les tests de clé primaire itérait sur un générateur et appelait `next()` sans valeur par défaut, crashant quand le générateur était épuisé sur des modèles sans colonne correspondant aux critères PK.
+
+Résolution : l'itération a été réécrite avec une boucle standard et un break anticipé.
+
+---
+
+### Prochaines étapes (Phase 2 et au-delà)
+
+**Court terme (Phase 2 — portfolio-ready) :**
+
+- **Migration vers `ruamel.yaml`** : l'implémentation actuelle utilise `PyYAML`, qui ne préserve pas les commentaires ni l'ordre des clés dans les opérations de round-trip. `ruamel.yaml` sera substitué pour conserver les commentaires écrits à la main (ex. `# ── Clé primaire ──`) lors de la fusion dans des fichiers existants.
+- **Cache des réponses LLM** : les réponses seront mises en cache sur disque avec une clé SHA-256 composée du SQL compilé et d'une empreinte de configuration. Ré-exécuter l'outil sur un modèle inchangé n'engendrera pas d'appel API.
+- **Génération de tests singuliers** : en plus des tests génériques YAML, l'outil générera des fichiers SQL dans le répertoire `tests/` pour des validations de logique métier complexes (couche marts uniquement).
+- **`--format json | markdown` pour audit** : la commande audit affiche actuellement un tableau Rich dans le terminal ; une sortie structurée sera ajoutée pour l'intégration CI.
+- **Avertissement de manifest périmé** : si le timestamp `generated_at` du manifest a plus de N heures, l'outil avertira l'utilisateur de relancer `dbt compile`.
+- **Suite de tests de régression** : tous les bugs corrigés pendant la validation de bout en bout doivent être couverts par des tests de régression dédiés, incluant des fixtures d'adaptateur BigQuery et des dicts de colonnes vides.
+
+**Moyen terme (Phase 3 — open source) :**
+
+- **Publication sur PyPI** : le `pyproject.toml` est déjà configuré ; le chemin est `python -m build` → sandbox TestPyPI → `twine upload` en production.
+- **Site de documentation complet** : un site de docs dédié (probablement MkDocs + thème Material) couvrant l'installation, la référence de configuration, la référence des commandes et l'architecture.
+- **Annonce dans la communauté dbt** : l'outil cible une audience bien définie (praticiens dbt Core) et a sa place dans cet écosystème.
+
+**Plus long terme (Phase 3+) :**
+
+- Documentation tenant compte du lignage : utiliser les descriptions des modèles upstream pour améliorer les descriptions des colonnes downstream (ex. une colonne mart héritée d'un modèle staging reçoit la description staging comme contexte).
+- Outputs structurés OpenAI / tool use Anthropic optionnels pour un formatage JSON plus fiable.
+- Intégration pre-commit hook : exécuter `dbt-scribe audit` automatiquement avant les commits pour appliquer les seuils de couverture.
+- Intégration avec `w2d-scaffold`, l'outil de scaffolding de projets compagnon.

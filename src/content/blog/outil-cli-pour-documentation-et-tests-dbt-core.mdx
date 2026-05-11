@@ -1,0 +1,132 @@
+---
+title: "dbt-scribe : un outil CLI pour automatiser la documentation et les tests dbt avec un LLM"
+summary: "Deux semaines dans le vif du sujet avec dbt en formation DataBird, et une conviction : documenter et tester c'est non négociable, mais c'est aussi fastidieux. Voilà comment j'ai construit dbt-scribe pour m'aider — et ce que j'ai appris en chemin."
+postLayout: column
+date: "2026-05-10"
+lastmod: "2026-05-10"
+draft: false
+related:
+  - w2d-scaffold
+domaine: data
+category: rex
+technos:
+  - dbt
+  - python
+  - llm
+---
+
+Ça fait deux semaines qu'on est plongés dans dbt au bootcamp Analytics Engineering de DataBird. La première semaine, on a posé les fondations : comprendre la logique de transformation, les modèles, le `ref()`, l'architecture medallion. Ça m'a plu. Vraiment. La deuxième semaine, on est passés à des sujets plus avancés : documentation, tests, optimisation du code, configuration des adaptateurs. Et là, j'ai été confronté à quelque chose que je savais théoriquement mais que je n'avais pas encore mesuré concrètement : **documenter un projet dbt correctement, c'est un travail à temps plein**.
+
+## Le problème que tout le monde connaît et que personne ne résout vraiment
+
+Un modèle dbt staging avec une quinzaine de colonnes, c'est facile à écrire. C'est le documenter qui prend du temps. Il faut rédiger une description pour le modèle, une description pour chaque colonne, décider quels tests générer (`not_null`, `unique`, `accepted_values`…), identifier les clés primaires et étrangères, créer les blocs de docs dans des fichiers `__docs.md` séparés. Le tout en anglais, en respectant les conventions du projet, de façon cohérente sur l'ensemble des couches staging / intermediate / marts.
+
+Sur un projet réel avec une trentaine de modèles, ça représente facilement plusieurs jours de travail. Des jours où on n'écrit pas une ligne de SQL utile. Des jours qui passent donc souvent à la trappe, ou à moitié. Résultat : des projets sous-documentés, des tests absents, et une dette technique qui s'accumule en silence.
+
+Il existe déjà des outils dans l'écosystème dbt pour adresser ce problème. `dbt-osmosis` propage mécaniquement les descriptions existantes d'un modèle à l'autre. `dbt-codegen` génère du YAML vide prêt à remplir. `dbt Assist` intègre un LLM, mais c'est Cloud-only et payant. Aucun de ces outils ne résout vraiment le problème : produire une documentation de qualité, adaptée au contexte du projet, sans y passer des heures.
+
+C'est à partir de ce constat que j'ai commencé à construire **dbt-scribe**.
+
+## Et DBT Power User dans tout ça ?
+
+C'est la question légitime à poser. **dbt Power User** est une extension VS Code qui propose aussi de la génération de doc et de tests via LLM. Elle est bien faite, bien intégrée dans l'éditeur, et si tu travailles seul dans VS Code sur un projet local, elle fait très bien le job.
+
+Mais ce n'est pas le même outil. dbt Power User est pensé pour le développeur individuel dans son IDE. dbt-scribe est pensé pour s'intégrer dans un pipeline : une étape CI qui bloque un merge si la couverture de documentation tombe sous un seuil, un audit automatisé dans un GitHub Action, un script qui tourne dans un container sans VS Code. Les fonctionnalités IA de dbt Power User sont aussi derrière un abonnement Altimate AI — dbt-scribe tourne sur ta propre clé API, pay-per-use, sans intermédiaire.
+
+Les deux outils répondent au même problème de fond, mais sur des angles orthogonaux. Ce n'est pas l'un contre l'autre.
+
+## Ce que fait dbt-scribe
+
+`dbt-scribe` est un outil en ligne de commande Python. On l'installe via pip (`pip install dbt-scribe`), on l'initialise dans un projet dbt existant, et il expose cinq commandes :
+
+```bash
+dbt-scribe init      # génère un fichier de config dbt-scribe.yml
+dbt-scribe docs      # génère les descriptions de modèles et de colonnes
+dbt-scribe tests     # génère les tests génériques dbt
+dbt-scribe generate  # docs + tests en une seule passe
+dbt-scribe audit     # affiche la couverture de doc et de tests, sans rien écrire
+```
+
+L'idée centrale : l'outil analyse le projet, appelle un LLM pour produire une première ébauche de documentation et de tests, et écrit le résultat dans les fichiers YAML et Markdown du projet — sans jamais écraser ce qui existe déjà.
+
+**Non-destructif par défaut.** C'est la règle numéro un. Si une description est déjà présente (même une référence `{{ doc("...") }}`), elle n'est pas touchée. Les tests existants sont préservés. Pour forcer la réécriture, il faut passer `--force` explicitement.
+
+## Comment le LLM analyse un projet dbt
+
+C'est la partie qui m'a demandé le plus de réflexion, parce que faire appel à un LLM sur un projet dbt naïvement ne fonctionne pas.
+
+### Le manifest, pas les fichiers SQL bruts
+
+Les fichiers `.sql` d'un projet dbt contiennent des macros Jinja2 non résolues. Des expressions comme `{{ ref('stg_orders') }}` ou `{{ var('start_date') }}` sont illisibles pour un LLM sans contexte supplémentaire. Ce que j'utilise à la place, c'est le `manifest.json` — le fichier produit par `dbt compile` ou `dbt run` qui contient le SQL **entièrement compilé** de chaque modèle. Toutes les références sont résolues, toutes les macros développées. C'est la seule source fiable.
+
+Conséquence pratique : avant d'utiliser dbt-scribe, il faut avoir lancé `dbt compile`. L'outil le vérifie au démarrage.
+
+### Ce que le LLM reçoit pour chaque modèle
+
+Pour chaque modèle à documenter, un prompt Jinja2 est rendu avec le contexte suivant :
+
+- Le nom du modèle et la couche détectée (staging, intermediate, marts)
+- Le SQL compilé complet
+- La liste des colonnes avec leurs types de données
+- Les types sémantiques inférés : clé primaire, clé étrangère, enum, booléen, timestamp, métrique
+- Quelles colonnes ont déjà une description (pour ne pas les écraser)
+- La configuration du projet : propriétaire, colonnes partagées, seuils de couverture
+
+Il y a un template de prompt différent par couche. Un modèle marts, par exemple, reçoit un template en quatre sections : description et motivation, limitations connues, responsable métier, responsable technique. Un modèle staging reçoit quelque chose de plus simple. Le LLM adapte sa réponse en fonction de ce contexte.
+
+**Un appel par modèle, pas par colonne.** C'est une décision délibérée. En envoyant toutes les colonnes en un seul appel, le modèle peut raisonner sur leurs relations : comprendre que `home_score` et `away_score` sont conceptuellement liés, déduire que `fixture_id` est probablement la clé primaire en voyant la liste complète. Ça réduit aussi significativement les coûts d'API.
+
+### JSON uniquement en sortie
+
+Toutes les réponses du LLM sont demandées en JSON strict — pas de préambule, pas de balises markdown, pas d'explication. Le prompt système est explicite là-dessus. Un échec de parsing JSON déclenche jusqu'à trois tentatives automatiques.
+
+Un appel de documentation retourne quelque chose comme ça :
+
+```json
+{
+  "model_description": "Modèle staging pour les matchs de rugby depuis api-sports.",
+  "columns": {
+    "fixture_id": "Identifiant unique d'un match de rugby.",
+    "home_team_id": "Identifiant de l'équipe à domicile, clé étrangère vers stg_teams.",
+    "kickoff_at": "Timestamp du coup d'envoi prévu du match, en UTC."
+  }
+}
+```
+
+### Des garde-fous déterministes au-dessus du LLM
+
+La sortie du LLM n'est pas utilisée telle quelle. Après parsing, l'outil applique des règles déterministes indépendantes de ce que le modèle a produit :
+
+- Toute colonne identifiée comme clé primaire reçoit **toujours** les tests `not_null` + `unique`
+- Toute colonne identifiée comme enum reçoit **toujours** un `accepted_values` — avec un commentaire `TODO` si le LLM n'a pas suggéré de valeurs
+- Le template quatre sections des marts est assemblé en Python, pas laissé à la discrétion du LLM
+
+Ces garde-fous existent pour une raison simple : les LLMs sont probabilistes. Même avec un prompt bien conçu, la conformité au format de sortie n'est pas garantie à 100 %. L'approche hybride — LLM pour le contenu sémantique, règles déterministes pour la structure — donne des résultats bien plus fiables qu'une confiance aveugle dans la sortie du modèle.
+
+## Ce que ça donne en pratique
+
+J'ai validé l'outil sur un vrai projet dbt BigQuery — celui qu'on utilise dans les exercices DataBird — avec 13 modèles répartis sur les trois couches. Résultat : **100 % de couverture de documentation en une seule exécution**. Les descriptions étaient pertinentes, les tests correctement formatés pour la syntaxe dbt 1.10+, et rien de ce qui existait déjà n'avait été écrasé.
+
+Ça ne veut pas dire que le travail est terminé pour autant. La documentation générée constitue un **point de départ solide**, pas un livrable final. Il faut relire, corriger les approximations, ajuster les descriptions qui manquent de contexte métier, compléter les `accepted_values` là où l'outil a mis des `TODO`. Mais on passe d'une page blanche à quelque chose de substantiel en quelques minutes — et c'est précisément là que le gain de temps est réel.
+
+## Ce que j'ai appris en construisant ça
+
+Quelques points qui valent la peine d'être notés, parce qu'ils ne sont pas évidents avant de s'y frotter.
+
+**Le manifest est central à tout.** J'ai perdu du temps à vouloir parser les fichiers `.sql` directement au début. C'est une fausse piste. Le manifest, c'est le seul endroit où on trouve le SQL réellement exécuté par dbt.
+
+**Les LLMs ont des comportements non déterministes même avec des instructions strictes.** J'ai eu des réponses avec des balises markdown malgré un prompt qui les interdisait explicitement. J'ai eu des formats de tests incorrects, des templates ignorés. La leçon : ne pas faire confiance à la sortie brute, toujours sanitiser avant d'utiliser.
+
+**La détection de couche est plus fragile qu'on ne le pense.** Le projet utilisait `mart/` (sans s) alors que la config attendait `marts/`. Résultat : tous les modèles de cette couche étaient détectés comme `UNKNOWN` et recevaient le mauvais template. Un bug bête, vite corrigé, mais représentatif de la fragilité des hypothèses implicites.
+
+**Construire avec Claude Code et Codex en parallèle.** J'ai utilisé Claude Desktop pour la conception et l'architecture, Claude Code pour l'exécution des tâches complexes — refactoring, génération des tests, décisions d'implémentation — et Codex pour les tâches plus simples et bien définies, là où un modèle moins bavard suffit largement. Claude et Codex sont deux outils sont complémentaires ; ils ne font pas exactement le même travail.
+
+## Et maintenant ?
+
+Le projet est disponible sur [GitHub](https://github.com/jeremy6680/dbt-scribe) et publié sur [PyPI](https://pypi.org/project/dbt-scribe/). La Phase 1 est terminée : les cinq commandes sont implémentées, la suite de tests complète passe (91 tests), et l'outil supporte les adaptateurs DuckDB, BigQuery et PostgreSQL.
+
+La Phase 2 est en backlog : migration vers `ruamel.yaml` pour préserver les commentaires manuels lors des fusions, cache des réponses LLM pour éviter les appels API redondants, génération de tests singuliers en SQL pour les modèles marts. Et à terme, une intégration avec `w2d-scaffold`, l'outil de scaffolding de projets que j'ai décrit dans un précédent article.
+
+Ce n'est pas un outil parfait. Il y a de la dette technique, des cas non couverts, des descriptions qui nécessiteront toujours un regard humain. Mais c'est un outil utile — je l'utilise déjà sur mes propres projets, et c'est le meilleur signal que je puisse avoir à ce stade.
+
+Si tu travailles avec dbt Core et que le sujet t'intéresse, je suis preneur de tout retour.
