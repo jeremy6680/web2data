@@ -1,0 +1,287 @@
+---
+title: "Mettre en place la CI sur un projet dbt Core avec GitHub Actions"
+summary: "Retour d'expérience complet sur la mise en place d'une pipeline CI pour un projet dbt Core connecté à BigQuery, avec GitHub Actions, SQLFluff et tous les pièges que j'ai rencontrés en chemin."
+postLayout: column
+date: "2026-05-18"
+lastmod: "2026-05-18"
+draft: false
+domaine: data
+category: rex
+technos:
+  - dbt
+  - bigquery
+  - github-actions
+  - python
+---
+
+Il y a des choses qu'on remet à plus tard parce qu'on pense que ça va être compliqué, et puis quand on s'y met vraiment, on réalise que c'était encore plus compliqué que prévu. La CI sur mon projet **personal-warehouse** (un data warehouse personnel dbt Core + BigQuery), c'était un peu ça.
+
+Mais c'est aussi l'une des meilleures décisions que j'aie prises sur ce projet. Alors je documente tout, y compris les erreurs, parce que si tu travailles sur un projet dbt et que tu envisages d'intégrer de la CI, ce retour d'expérience va probablement te faire gagner quelques heures.
+
+## Ce qu'on cherche à faire
+
+L'objectif d'une CI sur un projet dbt, c'est simple : à chaque Pull Request, on veut s'assurer automatiquement que le code ne casse rien. Concrètement, ça signifie :
+
+1. **Linter le SQL** avec SQLFluff — attraper les problèmes de style avant qu'ils s'accumulent
+2. **Compiler le projet** avec `dbt compile` — vérifier que les modèles sont syntaxiquement valides
+3. **Builder et tester les modèles** avec `dbt build` — exécuter le SQL contre BigQuery dans un environnement isolé
+
+Le mot-clé ici, c'est _isolé_. En CI, on ne touche jamais à la prod. Le pattern standard consiste à créer un dataset BigQuery temporaire par PR (par exemple `ci_pr_42`), à y exécuter tout le build, puis à le supprimer automatiquement à la fin. C'est propre, c'est safe.
+
+## Structure du workflow
+
+Voici le fichier `.github/workflows/ci.yml` tel qu'il tourne aujourd'hui sur mon projet, avec les commentaires qui expliquent chaque étape :
+
+```yaml
+# .github/workflows/ci.yml
+name: dbt CI
+
+on:
+  pull_request:
+    branches:
+      - master # adapter selon le nom de ta branche principale
+  workflow_dispatch: # pour les tests manuels depuis l'onglet Actions
+
+permissions:
+  contents: read
+
+jobs:
+  dbt-ci:
+    name: Lint, Compile & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Le cache pip évite de tout re-télécharger à chaque run.
+      # La clé est basée sur le hash de requirements.txt.
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install dbt packages
+        run: dbt deps
+
+      # On a stocké la clé JSON du service account comme string dans les GitHub Secrets.
+      # Ici on la réécrit dans un fichier temporaire que dbt utilisera pour s'authentifier.
+      - name: Write GCP service account key
+        run: echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-key.json
+
+      # On génère le profiles.yml à la volée en injectant les secrets.
+      # Le dataset cible est isolé par numéro de PR.
+      - name: Write dbt profiles.yml
+        run: |
+          mkdir -p ~/.dbt
+          cat > ~/.dbt/profiles.yml << EOF
+          personal_warehouse:
+            target: ci
+            outputs:
+              ci:
+                type: bigquery
+                method: service-account
+                project: ${{ secrets.GCP_PROJECT_ID }}
+                dataset: ci_pr_${{ github.event.pull_request.number }}
+                keyfile: /tmp/gcp-key.json
+                threads: 4
+                timeout_seconds: 300
+                location: EU
+          EOF
+
+      - name: Lint SQL with SQLFluff
+        run: sqlfluff lint models/ --warn-unused-ignores
+
+      - name: Compile dbt project
+        run: dbt compile
+
+      # On crée le dataset et les tables vides avec l'API Python BigQuery.
+      # Pourquoi Python et pas `bq mk` ? Parce que `bq` nécessite gcloud auth,
+      # et parce que get_table() nous permet d'attendre la disponibilité réelle
+      # avant de passer au build. On explique ça en détail plus bas.
+      - name: Create CI dataset and pre-create empty seed tables
+        run: |
+          python - <<'EOF'
+          from google.cloud import bigquery
+          import os
+
+          os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/tmp/gcp-key.json"
+          client = bigquery.Client(project="${{ secrets.GCP_PROJECT_ID }}")
+          dataset_id = "ci_pr_${{ github.event.pull_request.number }}"
+
+          dataset = bigquery.Dataset(f"{client.project}.{dataset_id}")
+          dataset.location = "EU"
+          client.create_dataset(dataset, exists_ok=True)
+          print(f"Dataset ready: {dataset_id}")
+
+          # Tables correspondant aux seeds vides (header-only dans le repo)
+          tables = {
+              "manga_author_countries": [
+                  bigquery.SchemaField("author", "STRING"),
+                  bigquery.SchemaField("country", "STRING"),
+              ],
+              "anime_director_countries": [
+                  bigquery.SchemaField("director", "STRING"),
+                  bigquery.SchemaField("country", "STRING"),
+              ],
+              "manual_ratings": [
+                  bigquery.SchemaField("domain", "STRING"),
+                  bigquery.SchemaField("title", "STRING"),
+                  bigquery.SchemaField("author_or_director_or_artist", "STRING"),
+                  bigquery.SchemaField("rating", "FLOAT64"),
+                  bigquery.SchemaField("rated_at", "DATE"),
+              ],
+          }
+
+          for table_id, schema in tables.items():
+              ref = f"{client.project}.{dataset_id}.{table_id}"
+              table = bigquery.Table(ref, schema=schema)
+              client.create_table(table, exists_ok=True)
+              client.get_table(ref)  # bloque jusqu'à ce que la table soit queryable
+              print(f"Ready: {ref}")
+          EOF
+
+      - name: Build and test dbt models
+        run: |
+          dbt seed --full-refresh --exclude manga_author_countries anime_director_countries manual_ratings
+          dbt run --fail-fast
+          dbt test --fail-fast --exclude manga_author_countries anime_director_countries manual_ratings
+
+      # Le dataset CI est supprimé après chaque run, même en cas d'échec.
+      - name: Delete CI dataset
+        if: always()
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+        run: |
+          gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+          bq rm -r -f --dataset ${{ secrets.GCP_PROJECT_ID }}:ci_pr_${{ github.event.pull_request.number }} || true
+```
+
+## Les prérequis avant de commencer
+
+Avant de copier-coller ce fichier dans ton projet, il y a quelques choses à mettre en place.
+
+### 1. Un compte de service GCP dédié
+
+Le runner GitHub Actions ne peut pas utiliser tes credentials OAuth personnels — pas d'interactivité possible. Il faut créer un Service Account avec les permissions minimales :
+
+- **BigQuery Data Editor** — pour créer et modifier des tables dans le dataset CI
+- **BigQuery Job User** — pour lancer les jobs de requête
+- **BigQuery Read Session User** — pour lire les données sources
+
+Dans GCP Console : _IAM & Admin → Service Accounts → Create Service Account_. Appelle-le `dbt-ci`, attribue les rôles, génère une clé JSON, et surtout : **ne la committe jamais**.
+
+### 2. Les GitHub Secrets
+
+Dans ton repo : _Settings → Secrets and variables → Actions → New repository secret_
+
+| Secret                    | Valeur                            |
+| ------------------------- | --------------------------------- |
+| `GCP_PROJECT_ID`          | ton project ID GCP                |
+| `GCP_SERVICE_ACCOUNT_KEY` | le contenu JSON complet de la clé |
+
+### 3. Le requirements.txt
+
+C'est le premier piège que j'ai rencontré. Mon `requirements.txt` gérait uniquement les dépendances Python de mes scripts d'ingestion — `spotipy`, `google-cloud-bigquery`, etc. Pas de `dbt-core`, pas de `dbt-bigquery`, pas de `sqlfluff`. Le runner GitHub part de zéro à chaque fois, donc si ces packages ne sont pas dans le fichier, la CI s'effondre dès le départ.
+
+Il faut aussi **pinner les versions exactes** pour que l'environnement CI soit identique à l'environnement local — `>=1.10.0` c'est insuffisant, parce que la CI peut installer une version différente de celle que tu utilises en local et reproduire des comportements différents.
+
+```txt
+# Ingestion scripts
+spotipy>=2.23.0
+google-cloud-bigquery>=3.0.0
+python-dotenv>=1.0.0
+requests>=2.31.0
+
+# dbt — versions pinnées pour garantir parité CI/local
+dbt-core==1.11.8
+dbt-bigquery==1.11.1
+
+# SQL linting
+sqlfluff>=3.0.0
+sqlfluff-templater-dbt>=3.0.0
+```
+
+## SQLFluff : le premier choc
+
+Quand SQLFluff a tourné pour la première fois sur mon projet, il a retourné **24 fichiers en FAIL**. Ce n'est pas une catastrophe — c'est même une bonne chose, ça montre que le linter fait son boulot — mais ça demande un peu de travail avant de pouvoir merger quoi que ce soit.
+
+La majorité des violations sont autocorrigibles avec `sqlfluff fix models/ --force`. Mais certaines règles sont trop agressives pour un projet dbt avec des modèles intermédiaires complexes :
+
+- **RF02** (`references.qualification`) — exige de qualifier chaque référence de colonne avec l'alias de sa CTE dans tous les joins. Sur un modèle avec 5+ CTEs en UNION, ça produit des dizaines de violations sans apporter de clarté réelle. Les CTEs nommées jouent déjà ce rôle de documentation.
+- **RF04** (`references.keywords`) — signale les alias de colonnes qui sont des mots réservés SQL (`status`, `source`, `network`). Ces alias sont intentionnels et bien compris dans leur contexte.
+
+La solution : les exclure dans `.sqlfluff`.
+
+```ini
+[sqlfluff]
+templater = dbt
+dialect = bigquery
+max_line_length = 120
+exclude_rules = RF05,RF02,RF04
+```
+
+C'est un choix documenté — je l'ai ajouté dans `DECISIONS.md` du projet. Les compromis de ce genre méritent d'être tracés, pas cachés.
+
+## Le problème des seeds vides
+
+C'est là que j'ai vraiment galéré, et c'est aussi le point le plus intéressant de ce retour d'expérience.
+
+Mon projet contient des seeds qui n'ont pas encore de données — des fichiers CSV avec seulement un header, qui attendent d'être alimentés progressivement. Par exemple `manual_ratings.csv` :
+
+```
+domain,title,author_or_director_or_artist,rating,rated_at
+```
+
+En local, `dbt seed` les charge sans problème et crée les tables vides avec le bon schéma (`CREATE 0`). Mais en CI, **certains modèles intermédiaires qui référencent ces seeds via `LEFT JOIN` échouaient avec "Table not found"**.
+
+Après plusieurs tentatives infructueuses (latence BigQuery, pin des versions, sleep entre les étapes...), j'ai identifié le vrai problème : quand dbt seed charge une table vide via l'API BigQuery, il y a une latence de propagation avant que cette table soit disponible pour les requêtes suivantes. Cette latence n'existe pas en local parce que le contexte d'exécution est différent.
+
+La solution que j'ai retenue : **pré-créer les tables vides via l'API Python BigQuery** _avant_ le `dbt seed`, en utilisant `client.get_table()` qui bloque jusqu'à confirmation de disponibilité, et **exclure ces seeds du `dbt seed`** pour éviter que dbt les recrée (ce qui réintroduirait la latence).
+
+```python
+client.create_table(table, exists_ok=True)
+client.get_table(ref)  # synchrone — attend que la table soit queryable
+```
+
+C'est la partie du workflow la moins élégante, mais elle est honnête sur le problème qu'elle résout.
+
+## Ce que j'aurais dû faire dès le début
+
+Avec le recul, voilà ce que j'aurais dû mettre en place avant d'écrire la moindre ligne de SQL :
+
+**Installer SQLFluff immédiatement.** Lancer le linter sur un projet de zéro, c'est trivial. Le lancer sur un projet avec 24 modèles et 877 violations automatiquement corrigibles, c'est gérable mais c'est du bruit. L'intégrer dès le début, c'est se donner des contraintes saines qui évitent l'accumulation de dette stylistique.
+
+**Pinner les versions dbt dans requirements.txt dès le début.** Pas `>=1.8.0` — les versions exactes. La parité CI/local, c'est une hygiène de base qui évite des bugs difficiles à diagnostiquer.
+
+**Documenter les seeds vides clairement.** Des fichiers CSV header-only dans un repo dbt, ce n'est pas une erreur — c'est un choix de design valide. Mais il faut le rendre explicite (dans `_seeds.yml`, dans `DECISIONS.md`) pour que la CI sache comment les traiter.
+
+## Résultat
+
+Après quelques heures de debug (et une conversation assez longue avec Claude Code pour démêler le problème des seeds vides...), la CI tourne. À chaque PR sur `master` :
+
+```
+✅ Lint SQL with SQLFluff
+✅ Compile dbt project
+✅ Build and test dbt models   (PASS=25 WARN=0 ERROR=0)
+✅ Delete CI dataset
+```
+
+C'est rassurant. Ça ne remplace pas une vraie revue de code, mais ça attrape les régressions SQL avant qu'elles atteignent la prod, et ça force à maintenir un minimum de rigueur sur le style.
+
+Si tu mets en place la même chose sur ton projet dbt, j'espère que ce retour te fera gagner du temps — notamment sur la partie seeds vides, parce que ce bug-là n'est pas évident à diagnostiquer sans avoir creusé.
+
+---
+
+_Le repo personal-warehouse est public sur GitHub si tu veux voir le fichier CI complet en contexte._
